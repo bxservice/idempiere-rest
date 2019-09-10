@@ -1,0 +1,1508 @@
+{
+	"info": {
+		"_postman_id": "89f8e053-58d1-4a1f-9a11-fda5643a68fc",
+		"name": "trekglobal-idempiere-rest",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "api/v1/auth/tokens",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "dfc349c8-f600-4b94-b171-723165eab4eb",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "eca8c423-7ced-494f-a5b9-79b623ce9da0",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"userName\":\"GardenAdmin\",\"password\":\"GardenAdmin\"}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/tokens",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/roles?client=11",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/roles?client=11",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"roles"
+					],
+					"query": [
+						{
+							"key": "client",
+							"value": "11"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/organizations?client=11&role=102",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/organizations?client=11&role=102",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"organizations"
+					],
+					"query": [
+						{
+							"key": "client",
+							"value": "11"
+						},
+						{
+							"key": "role",
+							"value": "102"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/warehouses?client=11&role=102&organization=11",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/warehouses?client=11&role=102&organization=11",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"warehouses"
+					],
+					"query": [
+						{
+							"key": "client",
+							"value": "11"
+						},
+						{
+							"key": "role",
+							"value": "102"
+						},
+						{
+							"key": "organization",
+							"value": "11"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/tokens",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a5854050-c2df-4bc4-9e4e-791576ee1a8d",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"clientId\": 11,\n  \"roleId\": 102,\n  \"organizationId\": 11,\n  \"warehouseId\": 103\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/tokens",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax/106?details=c_tax_acct",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax/106?details=c_tax_acct",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax",
+						"106"
+					],
+					"query": [
+						{
+							"key": "details",
+							"value": "c_tax_acct"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax_acct/uid",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax_acct/7df64952-88e0-4ebf-9f56-9cb899b555f8",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax_acct",
+						"7df64952-88e0-4ebf-9f56-9cb899b555f8"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/ad_user/0",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/ad_user/0",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"ad_user",
+						"0"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"AD_Org_ID\": {\n        \"id\": 0,\n        \"tableName\": \"AD_Org\"\n    },\n    \"isActive\": true,\n    \"name\": \"MyGST\",\n    \"description\": \"MyCanadian Federal Sales Tax\",\n    \"Parent_Tax_ID\": {\n        \"identifier\": \"GST/PST\",\n        \"tableName\": \"C_Tax\"\n    },\n    \"C_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"To_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"C_TaxCategory_ID\": {\n        \"identifier\": \"Standard\",\n        \"tableName\": \"C_TaxCategory\"\n    },\n    \"isDocumentLevel\": false,\n    \"validFrom\": \"01/01/2001\",\n    \"isSummary\": false,\n    \"rate\": \"7.0\",\n    \"requiresTaxCertificate\": false,\n    \"taxIndicator\": \"GST\",\n    \"isDefault\": false,\n    \"isTaxExempt\": false,\n    \"sOPOType\": {\n        \"id\": \"B\"\n    },\n    \"isSalesTax\": false,\n    \"tableName\": \"C_Tax\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax/1000000",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 1000000,\n    \"name\": \"MyGST\",\n    \"description\": \"My Sales Tax\",\n    \"validFrom\": \"01/01/2019\",\n    \"rate\": \"6.0\",\n    \"isSalesTax\": true,\n    \"taxIndicator\": \"GST\",\n    \"tableName\": \"C_Tax\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax/1000000",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax",
+						"1000000"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_tax?filter",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID=107",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax"
+					],
+					"query": [
+						{
+							"key": "filter",
+							"value": "C_TaxCategory_ID=107"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows?filter",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows?filter=name like 'Calendar%'",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows"
+					],
+					"query": [
+						{
+							"key": "filter",
+							"value": "name like 'Calendar%'"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/{windowSlug}/tabs",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/business-partner-group/tabs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"business-partner-group",
+						"tabs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/{windowSlug}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/business-partner-group",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"business-partner-group"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/{windowSlug}/tabs/{tabSlug}/fields",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/business-partner-group/tabs/business-partner-group/fields",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"business-partner-group",
+						"tabs",
+						"business-partner-group",
+						"fields"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/{windowSlug}/id?details",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/business-partner-group/105?details=accounting,assigned-partners",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"business-partner-group",
+						"105"
+					],
+					"query": [
+						{
+							"key": "details",
+							"value": "accounting,assigned-partners"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-period/tabs",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-period",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-period/102?details",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/102?details=year",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"102"
+					],
+					"query": [
+						{
+							"key": "details",
+							"value": "year"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-and-period/tabs/year/200007/period",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs/year/200007/period",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs",
+						"year",
+						"200007",
+						"period"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-and-period/tabs/period/200084",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs/period/200084",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs",
+						"period",
+						"200084"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-and-period/tabs/period/{id}",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 200084,\n    \"name\": \"Jan-19\",\n    \"endDate\": \"01/30/2019\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs/period/200084",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs",
+						"period",
+						"200084"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-and-period/tabs/year/{parentId}/period",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"periodNo\": 13,\n    \"name\": \"Jan-19x\",\n    \"isActive\": true,\n    \"startDate\": \"01/31/2019\",\n    \"endDate\": \"01/31/2019\",\n    \"periodType\": \"S\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs/year/200007/period",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs",
+						"year",
+						"200007",
+						"period"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/calendar-year-and-period/tabs/period/{id}",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": 200084,\n    \"name\": \"Jan-19\",\n    \"endDate\": \"01/30/2019\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs/period/1000013",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"calendar-year-and-period",
+						"tabs",
+						"period",
+						"1000013"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/processes",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/processes?filter=name like '%Business Partner%'",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"processes"
+					],
+					"query": [
+						{
+							"key": "filter",
+							"value": "name like '%Business Partner%'"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/processes/{processSlug}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/processes/rv_bpartneropen",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"processes",
+						"rv_bpartneropen"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/processes/rv_bpartneropen",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"C_BPartner_ID\": { \"identifier\": \"C&W\" },\n\t\"report-type\" : \"HTML\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/processes/rv_bpartneropen",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"processes",
+						"rv_bpartneropen"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/files/{fileName}/length=",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/octet-stream",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/files/Business_Partner_Open15117746575121893935.html?length=12606",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"files",
+						"Business_Partner_Open15117746575121893935.html"
+					],
+					"query": [
+						{
+							"key": "length",
+							"value": "12606"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_order/1000022/attachments",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_order/1000022/attachments/zip",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/octet-stream",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments/zip",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments",
+						"zip"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_order/1000022/attachments/{name}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/octet-stream",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments",
+						"IDEMPIERE-3997.patch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/c_order/{id}/attachments",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"name\": \"IDEMPIERE-4018.patch\",\n\t\"data\": \"IyBIRyBjaGFuZ2VzZXQgcGF0Y2gKIyBVc2VyIGVsYWluZXRhbgojIERhdGUgMTU2NTA4MDc0NSAtMjg4MDAKIyAgICAgIFR1ZSBBdWcgMDYgMTY6Mzk6MDUgMjAxOSArMDgwMAojIEJyYW5jaCByZWxlYXNlLTYuMgojIE5vZGUgSUQgMGY5ODMyZGM4ZGZlOWQ3Nzg5MDg5NjNkNWE3YTMyNzU3NDZkNzljMgojIFBhcmVudCAgMDJkNmJlYTQ3NjU2OTU4MzBhMjQxYjAyM2Q0Y2Q4Nzg3MGViMTZmNwpJREVNUElFUkUtNDAxOCBPcmRlciBMaW5lIFByaWNlRW50ZXJlZC9QcmljZUFjdHVhbCB3aXRoIGluY29ycmVjdCBQcmljZSBMaXN0IFZlcnNpb24KCmRpZmYgLXIgMDJkNmJlYTQ3NjU2IC1yIDBmOTgzMmRjOGRmZSBvcmcuYWRlbXBpZXJlLmJhc2Uvc3JjL29yZy9jb21waWVyZS9tb2RlbC9NUHJvZHVjdFByaWNpbmcuamF2YQotLS0gYS9vcmcuYWRlbXBpZXJlLmJhc2Uvc3JjL29yZy9jb21waWVyZS9tb2RlbC9NUHJvZHVjdFByaWNpbmcuamF2YQlUdWUgQXVnIDA2IDEyOjI5OjMzIDIwMTkgKzA4MDAKKysrIGIvb3JnLmFkZW1waWVyZS5iYXNlL3NyYy9vcmcvY29tcGllcmUvbW9kZWwvTVByb2R1Y3RQcmljaW5nLmphdmEJVHVlIEF1ZyAwNiAxNjozOTowNSAyMDE5ICswODAwCkBAIC0zNyw5ICszNyw2IEBACiAgKi8NCiBwdWJsaWMgY2xhc3MgTVByb2R1Y3RQcmljaW5nIGV4dGVuZHMgQWJzdHJhY3RQcm9kdWN0UHJpY2luZw0KIHsNCi0JDQotCXByaXZhdGUgU3RyaW5nIHRyeE5hbWU9bnVsbDsNCi0NCiAJLyoqDQogCSAqIE5ldyBjb25zdHJ1Y3RvciB0byBiZSB1c2VkIHdpdGggdGhlIFByb2R1Y3RQcmljZUZhY3Rvcmllcw0KIAkgKi8NCkBAIC04OCw4ICs4NSw2IEBACiAJCW1fdXNlVmVuZG9yQnJlYWsgPSB0aGVyZUFyZVZlbmRvckJyZWFrUmVjb3JkcyA+IDA7DQogCX0NCiANCi0JcHJpdmF0ZSBpbnQgCQltX01fUHJpY2VMaXN0X1ZlcnNpb25fSUQgPSAwOw0KLQlwcml2YXRlIFRpbWVzdGFtcCAJbV9QcmljZURhdGU7CQ0KIAkvKiogUHJlY2lzaW9uIC0xID0gbm8gcm91bmRpbmcJCSovDQogCXByaXZhdGUgaW50CQkgCW1fcHJlY2lzaW9uID0gLTE7DQogCQ0K\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
