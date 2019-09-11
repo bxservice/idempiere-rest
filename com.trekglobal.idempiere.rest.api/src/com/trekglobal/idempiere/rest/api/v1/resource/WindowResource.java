@@ -136,7 +136,9 @@ public interface WindowResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
-	 * update record of header tab
+	 * update record of header tab.
+	 * predefine property:
+	 *   doc-action (document action to execute)
 	 * @param windowSlug slug of window name
 	 * @param recordId
 	 * @param jsonText json representation of data to process
@@ -149,7 +151,9 @@ public interface WindowResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
-	 * Create new record for header tab 
+	 * Create new record for header tab.
+	 * predefine property:
+	 *   doc-action (document action to execute)
 	 * @param windowSlug slug of window name
 	 * @param jsonText json representation of data to process
 	 * @return json representation of created record
@@ -172,7 +176,9 @@ public interface WindowResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
-	 * update record of a tab
+	 * update record of a tab.
+	 * predefine property:
+	 *   doc-action (document action to execute)
 	 * @param windowSlug slug of window name
 	 * @param tabSlug slug of tab name
 	 * @param recordId

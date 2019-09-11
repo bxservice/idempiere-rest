@@ -68,6 +68,14 @@ public interface ProcessResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
 	 * run process
+	 * predefine property:
+	 *   record-id 
+	 *   table-id (ad_table_id)
+	 *   model-name (tablename)
+	 *   report-type (HTML, CSV, PDF or XLS)
+	 *   is-summary (true/false)
+	 *   print-format-id (ad_printformat_id)
+	 * note: use one of table-id or model-name.
 	 * @param processSlug
 	 * @param jsonText process parameters and process info setting
 	 * @return json representation of process info
@@ -98,7 +106,10 @@ public interface ProcessResource {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
-	 * run process as background job
+	 * run process as background job.
+	 * predefine property:
+	 *   notification-type (E, N or B)
+	 *   + the list for runProcess
 	 * @param processSlug
 	 * @param jsonText process parameters and job settings
 	 * @return job details

@@ -86,6 +86,8 @@ public interface ModelResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
 	 * create new record
+	 * predefine property:
+	 *   doc-action (document action to execute)
 	 * @param tableName
 	 * @param jsonText json representation of data to process
 	 * @return json representation of created record
@@ -98,6 +100,8 @@ public interface ModelResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	/**
 	 * update record
+	 * predefine property:
+	 *   doc-action (document action to execute)
 	 * @param tableName
 	 * @param id id/uuid
 	 * @param jsonText json representation of data to process
