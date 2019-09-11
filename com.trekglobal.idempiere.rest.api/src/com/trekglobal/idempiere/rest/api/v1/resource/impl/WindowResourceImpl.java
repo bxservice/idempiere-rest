@@ -175,7 +175,7 @@ public class WindowResourceImpl implements WindowResource {
 		JsonArray fieldArray = new JsonArray();
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
 		for(MField field : fields ) {
-			JsonObject jsonObject = serializer.toJson(field, new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID"}, null);
+			JsonObject jsonObject = serializer.toJson(field, new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID", "MandatoryLogic"}, null);
 			fieldArray.add(jsonObject);
 		}
 		
@@ -680,6 +680,7 @@ public class WindowResourceImpl implements WindowResource {
 					errorResponse = Response.status(Status.FORBIDDEN).build();
 					break;
 				}
+				gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 				IGridTabSerializer serializer = load(gridWindow, gridTab, recordId);
 				if (gridTab.getRowCount() < 1) {
 					errorResponse = Response.status(Status.NOT_FOUND).build();
@@ -687,8 +688,7 @@ public class WindowResourceImpl implements WindowResource {
 				} else if (gridTab.getRowCount() > 1) {
 					errorResponse = Response.status(Status.BAD_REQUEST).entity("More than one match for id " + recordId).build();
 					break;
-				}
-				gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
+				}				
 				serializer.fromJson(jsonObject, gridTab);
 				if (gridTab.needSave(true, true)) {
 					if (!gridTab.dataSave(false))  {
@@ -705,6 +705,7 @@ public class WindowResourceImpl implements WindowResource {
 				if (tabSlugElement != null && tabSlugElement.isJsonArray()) {
 					if (!gridWindow.isTabInitialized(i))
 						gridWindow.initTab(i);
+					gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 					IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 					JsonArray childJsonArray = tabSlugElement.getAsJsonArray();
 					JsonArray updatedArray = new JsonArray();
@@ -713,10 +714,12 @@ public class WindowResourceImpl implements WindowResource {
 						if (e.isJsonObject() && !error[0].booleanValue()) {
 							JsonObject childJsonObject = e.getAsJsonObject();
 							if (!optLoad(gridTab, childJsonObject)) {
-								gridTab.dataNew(false);
+								if (!gridTab.dataNew(false)) {
+									error[0] = Boolean.TRUE;
+									return;
+								}
 								gridTab.setValue(gridTab.getLinkColumnName(), recordId);
 							}
-							gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 							serializer.fromJson(childJsonObject, gridTab);
 							if (gridTab.needSave(true, true)) {
 								if (!gridTab.dataSave(false))  {
@@ -818,11 +821,22 @@ public class WindowResourceImpl implements WindowResource {
 				}
 				if (!gridWindow.isTabInitialized(i))
 					gridWindow.initTab(i);
-				if (!gridTab.isCurrent())
-					gridTab.query(false);
-				IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 				gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
-				gridTab.dataNew(false);
+				if (!gridTab.isCurrent()) {
+					if (gridTab.getTabLevel() > 0) {
+						gridTab.query(false);
+					} else {
+						MQuery query = new MQuery("");
+			    		query.addRestriction("1=2");
+						query.setRecordCount(0);
+						gridTab.setQuery(query);
+						gridTab.query(false);
+					}
+				}
+				IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
+				if (!gridTab.dataNew(false)) {
+					return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+				}
 				serializer.fromJson(jsonObject, gridTab);
 				if (!gridTab.dataSave(false))  {
 					trx.rollback();
@@ -838,6 +852,7 @@ public class WindowResourceImpl implements WindowResource {
 				if (tabSlugElement != null && tabSlugElement.isJsonArray()) {
 					if (!gridWindow.isTabInitialized(i))
 						gridWindow.initTab(i);
+					gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 					IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 					JsonArray childJsonArray = tabSlugElement.getAsJsonArray();
 					JsonArray updatedArray = new JsonArray();
@@ -846,9 +861,13 @@ public class WindowResourceImpl implements WindowResource {
 					childJsonArray.forEach(e -> {
 						if (e.isJsonObject() && !error[0].booleanValue()) {
 							JsonObject childJsonObject = e.getAsJsonObject();
-							gridTab.dataNew(false);
+							if (!gridTab.isCurrent())
+								gridTab.query(false);
+							if (!gridTab.dataNew(false)) {
+								error[0] = Boolean.TRUE;
+								return;
+							}
 							gridTab.setValue(gridTab.getLinkColumnName(), finalHeaderTab.getKeyID(0));								
-							gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 							serializer.fromJson(childJsonObject, gridTab);
 							if (!gridTab.dataSave(false))  {
 								error[0] = Boolean.TRUE;
@@ -904,7 +923,7 @@ public class WindowResourceImpl implements WindowResource {
 		
 		PO po = gridTab.getTableModel().getPO(gridTab.getCurrentRow());
 		if (po instanceof DocAction) {
-			JsonElement docActionElement = jsonObject.get("docAction");
+			JsonElement docActionElement = jsonObject.get("doc-action");
 			if (docActionElement != null) {
 				String docAction = null;
 				if (docActionElement.isJsonPrimitive()) {

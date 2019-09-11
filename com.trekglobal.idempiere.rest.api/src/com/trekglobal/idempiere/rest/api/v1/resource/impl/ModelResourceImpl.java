@@ -822,7 +822,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	private String runDocAction(PO po, JsonObject jsonObject) {
 		if (po instanceof DocAction) {
-			JsonElement docActionElement = jsonObject.get("docAction");
+			JsonElement docActionElement = jsonObject.get("doc-action");
 			if (docActionElement != null) {
 				String docAction = null;
 				if (docActionElement.isJsonPrimitive()) {

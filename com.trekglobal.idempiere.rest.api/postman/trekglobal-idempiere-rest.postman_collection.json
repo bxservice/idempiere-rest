@@ -1503,6 +1503,48 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "pi/v1/windows/sales-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" },\n\t\"deliveryViaRule\": \"P\",\n\t\"order-line\": [{\n\t\t\"M_Product_ID\": { \"identifier\": \"Azalea Bush\"},\n\t\t\"qtyEntered\": 1\n\t}],\n\t\"doc-action\": \"CO\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/sales-order",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"sales-order"
+					]
+				}
+			},
+			"response": []
 		}
 	]
 }

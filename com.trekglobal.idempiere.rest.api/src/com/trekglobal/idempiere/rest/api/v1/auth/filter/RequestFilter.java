@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.v1.auth.filter;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
 import java.util.Properties;
 
 import javax.ws.rs.HttpMethod;
@@ -37,6 +38,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
 import org.adempiere.util.ServerContext;
+import org.compiere.model.MAcctSchema;
+import org.compiere.model.MClientInfo;
 import org.compiere.model.MRole;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
@@ -103,29 +106,65 @@ public class RequestFilter implements ContainerRequestFilter {
 		ServerContext.setCurrentInstance(new Properties());
 		Env.setContext(Env.getCtx(), LOGIN_NAME, userName);
 		Claim claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
+		int AD_Client_ID = 0;
 		if (!claim.isNull()) {
-			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, claim.asInt());				
+			AD_Client_ID = claim.asInt();
+			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, AD_Client_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.AD_User_ID.name());
 		if (!claim.isNull()) {
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, claim.asInt());
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Role_ID.name());
+		int AD_Role_ID = 0;
 		if (!claim.isNull()) {
-			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, claim.asInt());				
+			AD_Role_ID = claim.asInt();
+			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, AD_Role_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Org_ID.name());
+		int AD_Org_ID = 0;
 		if (!claim.isNull()) {
-			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, claim.asInt());				
+			AD_Org_ID = claim.asInt();
+			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, AD_Org_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.M_Warehouse_ID.name());
 		if (!claim.isNull()) {
 			Env.setContext(Env.getCtx(), Env.M_WAREHOUSE_ID, claim.asInt());				
 		}
-		if (MRole.getDefault(Env.getCtx(), false).isShowAcct())
-			Env.setContext(Env.getCtx(), "#ShowAcct", "Y");
-		else
-			Env.setContext(Env.getCtx(), "#ShowAcct", "N");
+		
+		if (AD_Role_ID > 0) {
+			if (MRole.getDefault(Env.getCtx(), false).isShowAcct())
+				Env.setContext(Env.getCtx(), "#ShowAcct", "Y");
+			else
+				Env.setContext(Env.getCtx(), "#ShowAcct", "N");
+		}
+		
+		Env.setContext(Env.getCtx(), "#Date", new Timestamp(System.currentTimeMillis()));
+		
+		/** Define AcctSchema , Currency, HasAlias **/
+		if (AD_Client_ID > 0) {
+			if (MClientInfo.get(Env.getCtx(), AD_Client_ID).getC_AcctSchema1_ID() > 0) {
+				MAcctSchema primary = MAcctSchema.get(Env.getCtx(), MClientInfo.get(Env.getCtx(), AD_Client_ID).getC_AcctSchema1_ID());
+				Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", primary.getC_AcctSchema_ID());
+				Env.setContext(Env.getCtx(), "$C_Currency_ID", primary.getC_Currency_ID());
+				Env.setContext(Env.getCtx(), "$HasAlias", primary.isHasAlias());
+			}
+			
+			MAcctSchema[] ass = MAcctSchema.getClientAcctSchema(Env.getCtx(), AD_Client_ID);
+			if(ass != null && ass.length > 1) {
+				for(MAcctSchema as : ass) {
+					if (as.getAD_OrgOnly_ID() != 0) {
+						if (as.isSkipOrg(AD_Org_ID)) {
+							continue;
+						} else  {
+							Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", as.getC_AcctSchema_ID());
+							Env.setContext(Env.getCtx(), "$C_Currency_ID", as.getC_Currency_ID());
+							Env.setContext(Env.getCtx(), "$HasAlias", as.isHasAlias());
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
-
 }

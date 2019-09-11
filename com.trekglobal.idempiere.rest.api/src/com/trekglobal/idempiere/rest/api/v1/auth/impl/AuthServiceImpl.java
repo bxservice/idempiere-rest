@@ -220,7 +220,7 @@ public class AuthServiceImpl implements AuthService {
 					builder.withClaim(LoginClaims.AD_Org_ID.name(), parameters.getOrganizationId());
 				}
 				if (parameters.getOrganizationId() > 0 && parameters.getWarehouseId() > 0) {
-					builder.withClaim(LoginClaims.M_Warehouse_ID.name(), parameters.getOrganizationId());							
+					builder.withClaim(LoginClaims.M_Warehouse_ID.name(), parameters.getWarehouseId());							
 				}
 			}
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, parameters.getClientId());

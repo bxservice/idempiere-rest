@@ -130,6 +130,8 @@ public class DefaultGridTabSerializer implements IGridTabSerializer {
 				}
 				continue;
 			}
+			if (jsonField.isJsonArray())
+				continue;
 			if (!gridField.isUpdateable() && !gridTab.isNew())
 				continue;
 			if (gridField.isVirtualColumn() || gridField.isEncrypted() || column.isSecure())
@@ -147,7 +149,7 @@ public class DefaultGridTabSerializer implements IGridTabSerializer {
 				}
 			}
 			
-			Object value = TypeConverterUtils.fromJsonValue(column, jsonField);
+			Object value = TypeConverterUtils.fromJsonValue(gridField, jsonField);
 			Object oldValue = gridField.getValue();
 			if (value == null && oldValue == null)
 				continue;
