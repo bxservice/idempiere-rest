@@ -62,7 +62,8 @@
 						"auth",
 						"tokens"
 					]
-				}
+				},
+				"description": "Create authentication token with user name and password. The return token is use as Authorization request header (Bearer {token}) for subsequent api/v1/auth call"
 			},
 			"response": []
 		},
@@ -101,7 +102,8 @@
 							"value": "11"
 						}
 					]
-				}
+				},
+				"description": "Get list of roles avalable"
 			},
 			"response": []
 		},
@@ -144,7 +146,8 @@
 							"value": "102"
 						}
 					]
-				}
+				},
+				"description": "Get list of organizations available"
 			},
 			"response": []
 		},
@@ -191,7 +194,8 @@
 							"value": "11"
 						}
 					]
-				}
+				},
+				"description": "Get list of warehouse available"
 			},
 			"response": []
 		},
@@ -253,7 +257,8 @@
 							"value": ""
 						}
 					]
-				}
+				},
+				"description": "Update authentication token with client, role, organization and warehouse value. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
 			},
 			"response": []
 		},
@@ -290,12 +295,13 @@
 						"v1",
 						"models"
 					]
-				}
+				},
+				"description": "Get list of table accessible"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_tax",
+			"name": "api/v1/models/{tableName}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -328,12 +334,58 @@
 						"models",
 						"c_tax"
 					]
-				}
+				},
+				"description": "Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_tax/106?details=c_tax_acct",
+			"name": "api/v1/models/{tableName}?filter={where clause}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID=107",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax"
+					],
+					"query": [
+						{
+							"key": "filter",
+							"value": "C_TaxCategory_ID=107"
+						}
+					]
+				},
+				"description": "Get records with where clause filter."
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{tableName}/{id}?details={child tables}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -373,12 +425,13 @@
 							"value": "c_tax_acct"
 						}
 					]
-				}
+				},
+				"description": "Get record by id. Optional details parameter to include retrieval of related child records."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_tax_acct/uid",
+			"name": "api/v1/models/{tableName}/{uuid}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -412,51 +465,13 @@
 						"c_tax_acct",
 						"7df64952-88e0-4ebf-9f56-9cb899b555f8"
 					]
-				}
+				},
+				"description": "Get record by uuid."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/ad_user/0",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/v1/models/ad_user/0",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"models",
-						"ad_user",
-						"0"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/models/c_tax",
+			"name": "api/v1/models/{tableName}",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -494,12 +509,13 @@
 						"models",
 						"c_tax"
 					]
-				}
+				},
+				"description": "Create new record."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_tax/1000000",
+			"name": "api/v1/models/{tableName}/{id}",
 			"request": {
 				"method": "PUT",
 				"header": [
@@ -538,51 +554,8 @@
 						"c_tax",
 						"1000000"
 					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/models/c_tax?filter",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID=107",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"models",
-						"c_tax"
-					],
-					"query": [
-						{
-							"key": "filter",
-							"value": "C_TaxCategory_ID=107"
-						}
-					]
-				}
+				},
+				"description": "Update record by id"
 			},
 			"response": []
 		},
@@ -619,12 +592,13 @@
 						"v1",
 						"windows"
 					]
-				}
+				},
+				"description": "Get windows accessible"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows?filter",
+			"name": "api/v1/windows?filter={where clause}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -662,7 +636,8 @@
 							"value": "name like 'Calendar%'"
 						}
 					]
-				}
+				},
+				"description": "Get windows accessible with where clause filter"
 			},
 			"response": []
 		},
@@ -701,45 +676,8 @@
 						"business-partner-group",
 						"tabs"
 					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/windows/{windowSlug}",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/business-partner-group",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"windows",
-						"business-partner-group"
-					]
-				}
+				},
+				"description": "Get window and tabs details by slug of window name."
 			},
 			"response": []
 		},
@@ -780,96 +718,13 @@
 						"business-partner-group",
 						"fields"
 					]
-				}
+				},
+				"description": "Get fields details of a window tab by slug of window namd and tab name."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/{windowSlug}/id?details",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/business-partner-group/105?details=accounting,assigned-partners",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"windows",
-						"business-partner-group",
-						"105"
-					],
-					"query": [
-						{
-							"key": "details",
-							"value": "accounting,assigned-partners"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/windows/calendar-year-period/tabs",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/calendar-year-and-period/tabs",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"windows",
-						"calendar-year-and-period",
-						"tabs"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/windows/calendar-year-period",
+			"name": "api/v1/windows/{window slug}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -902,12 +757,13 @@
 						"windows",
 						"calendar-year-and-period"
 					]
-				}
+				},
+				"description": "Get records."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-period/102?details",
+			"name": "api/v1/windows/{window slug}/{id}?details={child tab slug}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -947,12 +803,13 @@
 							"value": "year"
 						}
 					]
-				}
+				},
+				"description": "Get record by id. Optional details parameter to include retrieval of child tabs"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-and-period/tabs/year/200007/period",
+			"name": "api/v1/windows/{window slug}/tabs/{tab slug}/{id}/{child tab slug}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -989,12 +846,13 @@
 						"200007",
 						"period"
 					]
-				}
+				},
+				"description": "Get child tab records by parent id"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-and-period/tabs/period/200084",
+			"name": "api/v1/windows/{window slug}/tabs/{tab slug}/{id}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1030,12 +888,13 @@
 						"period",
 						"200084"
 					]
-				}
+				},
+				"description": "Get tab record by id"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-and-period/tabs/period/{id}",
+			"name": "api/v1/windows/{window slug}/tabs/{tab slug}/{id}",
 			"request": {
 				"method": "PUT",
 				"header": [
@@ -1075,12 +934,13 @@
 						"period",
 						"200084"
 					]
-				}
+				},
+				"description": "Update record by id"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-and-period/tabs/year/{parentId}/period",
+			"name": "api/v1/windows/{window slug}/tabs/{tab slug}/{parentId}/{child tab slug}",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -1121,12 +981,13 @@
 						"200007",
 						"period"
 					]
-				}
+				},
+				"description": "Create new record for child tab."
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/calendar-year-and-period/tabs/period/{id}",
+			"name": "api/v1/windows/{window slug}/tabs/{tab slug}/{id}",
 			"request": {
 				"method": "DELETE",
 				"header": [
@@ -1166,7 +1027,51 @@
 						"period",
 						"1000013"
 					]
-				}
+				},
+				"description": "Delete record by id"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/windows/sales-order",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" },\n\t\"deliveryViaRule\": \"P\",\n\t\"order-line\": [{\n\t\t\"M_Product_ID\": { \"identifier\": \"Azalea Bush\"},\n\t\t\"qtyEntered\": 1\n\t}],\n\t\"doc-action\": \"CO\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/sales-order",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"sales-order"
+					]
+				},
+				"description": "Example to create and complete a sales order document."
 			},
 			"response": []
 		},
@@ -1209,12 +1114,13 @@
 							"value": "name like '%Business Partner%'"
 						}
 					]
-				}
+				},
+				"description": "Get list of process accessible"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/processes/{processSlug}",
+			"name": "api/v1/processes/{process slug}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1247,12 +1153,13 @@
 						"processes",
 						"rv_bpartneropen"
 					]
-				}
+				},
+				"description": "Get process details by slug of process value"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/processes/rv_bpartneropen",
+			"name": "api/v1/processes/{process slug}",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -1290,12 +1197,13 @@
 						"processes",
 						"rv_bpartneropen"
 					]
-				}
+				},
+				"description": "Run process"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/files/{fileName}/length=",
+			"name": "api/v1/files/{fileName}?length={file size}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1334,12 +1242,13 @@
 							"value": "12606"
 						}
 					]
-				}
+				},
+				"description": "Get file by name and size"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_order/1000022/attachments",
+			"name": "api/v1/models/{table name}/{id}/attachments",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1374,12 +1283,13 @@
 						"1000022",
 						"attachments"
 					]
-				}
+				},
+				"description": "Get attachments of a record"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_order/1000022/attachments/zip",
+			"name": "api/v1/models/{table name}/{id}/attachments/zip",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1415,12 +1325,13 @@
 						"attachments",
 						"zip"
 					]
-				}
+				},
+				"description": "Get attachments of a record as zip file"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_order/1000022/attachments/{name}",
+			"name": "api/v1/models/{table name}/{id}/attachments/{file name}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1456,12 +1367,13 @@
 						"attachments",
 						"IDEMPIERE-3997.patch"
 					]
-				}
+				},
+				"description": "Get attachment by file name"
 			},
 			"response": []
 		},
 		{
-			"name": "api/v1/models/c_order/{id}/attachments",
+			"name": "api/v1/models/{table name}/{id}/attachments",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -1500,49 +1412,8 @@
 						"1000022",
 						"attachments"
 					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "pi/v1/windows/sales-order",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Accept",
-						"type": "text",
-						"value": "application/json"
-					},
-					{
-						"key": "Authorization",
-						"type": "text",
-						"value": "Bearer {{authToken}}"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" },\n\t\"deliveryViaRule\": \"P\",\n\t\"order-line\": [{\n\t\t\"M_Product_ID\": { \"identifier\": \"Azalea Bush\"},\n\t\t\"qtyEntered\": 1\n\t}],\n\t\"doc-action\": \"CO\"\n}"
 				},
-				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/sales-order",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "8080",
-					"path": [
-						"api",
-						"v1",
-						"windows",
-						"sales-order"
-					]
-				}
+				"description": "Add new attachment"
 			},
 			"response": []
 		}
