@@ -12,6 +12,7 @@
   * com.trekglobal.idempiere.extensions.parent
   * com.trekglobal.idempiere.rest.api
 ## Rest Resources
+* api/v1/auth - authentication and jwt token
 * api/v1/models - working with PO and attachments
 * api/v1/windows - working with AD_Window and AD_Tab
 * api/v1/processes - working with process and reports
