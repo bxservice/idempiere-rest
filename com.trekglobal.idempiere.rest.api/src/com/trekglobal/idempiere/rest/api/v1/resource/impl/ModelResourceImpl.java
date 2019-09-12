@@ -77,6 +77,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 5;
 	private static final int DEFAULT_PAGE_SIZE = 100;
+	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 
 	/**
 	 * default constructor
@@ -88,10 +89,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getPO(String tableName, String id, String details) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -109,9 +114,13 @@ public class ModelResourceImpl implements ModelResource {
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -144,10 +153,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getPOs(String tableName, String filter, String order, int pageNo) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		String whereClause = "";
 		if (!Util.isEmpty(filter, true) ) {
@@ -173,9 +186,9 @@ public class ModelResourceImpl implements ModelResource {
 			pageNo = 1;
 		}
 		List<PO> list = query.list();
+		JsonArray array = new JsonArray();
 		if (list != null) {
-			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-			JsonArray array = new JsonArray();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));			
 			for(PO po : list) {
 				JsonObject json = serializer.toJson(po);
 				array.add(json);
@@ -187,7 +200,7 @@ public class ModelResourceImpl implements ModelResource {
 					.header("X-Row-Count", rowCount)
 					.build();
 		} else {
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.ok(array.toString()).build();
 		}
 	}
 
@@ -195,10 +208,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response create(String tableName, String jsonText) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
@@ -208,7 +225,15 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			PO po = serializer.fromJson(jsonObject, table);
 			po.set_TrxName(trx.getTrxName());
-			po.saveEx();
+			try {
+				po.saveEx();
+			} catch (Exception ex) {
+				trx.rollback();
+				log.log(Level.SEVERE, ex.getMessage(), ex);
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+						.build();
+			}
 			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
@@ -220,19 +245,27 @@ public class ModelResourceImpl implements ModelResource {
 						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
 						JsonArray fieldArray = fieldElement.getAsJsonArray();
 						JsonArray savedArray = new JsonArray();
-						fieldArray.forEach(e -> {
-							if (e.isJsonObject()) {
-								JsonObject childJsonObject = e.getAsJsonObject();
-								PO childPO = childSerializer.fromJson(childJsonObject, childTable);
-								childPO.set_TrxName(trx.getTrxName());
-								childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-								childPO.saveEx();
-								childJsonObject = serializer.toJson(childPO);
-								savedArray.add(childJsonObject);
-							}
-						});
-						if (savedArray.size() > 0)
-							detailMap.put(field, savedArray);
+						try {
+							fieldArray.forEach(e -> {
+								if (e.isJsonObject()) {
+									JsonObject childJsonObject = e.getAsJsonObject();
+									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
+									childPO.set_TrxName(trx.getTrxName());
+									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
+									childPO.saveEx();
+									childJsonObject = serializer.toJson(childPO);
+									savedArray.add(childJsonObject);
+								}
+							});
+							if (savedArray.size() > 0)
+								detailMap.put(field, savedArray);
+						} catch (Exception ex) {
+							trx.rollback();
+							log.log(Level.SEVERE, ex.getMessage(), ex);
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+									.build();
+						}
 					}
 				}
 			}
@@ -242,7 +275,9 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR).entity(error).build();
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
+						.build();
 			}
 			
 			jsonObject = serializer.toJson(po);
@@ -255,7 +290,10 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ex.getMessage()).build();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
 		} finally {
 			trx.close();
 		}
@@ -265,10 +303,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response update(String tableName, String id, String jsonText) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -281,9 +323,13 @@ public class ModelResourceImpl implements ModelResource {
 			po = isUUID ? query.setParameters(id).first()
 					 	: query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 		
@@ -295,7 +341,15 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			po = serializer.fromJson(jsonObject, po);
 			po.set_TrxName(trx.getTrxName());
-			po.saveEx();
+			try {
+				po.saveEx();
+			} catch (Exception ex) {
+				trx.rollback();
+				log.log(Level.SEVERE, ex.getMessage(), ex);
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+						.build();
+			}
 			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
@@ -308,25 +362,33 @@ public class ModelResourceImpl implements ModelResource {
 						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
 						JsonArray fieldArray = fieldElement.getAsJsonArray();
 						JsonArray savedArray = new JsonArray();
-						fieldArray.forEach(e -> {
-							if (e.isJsonObject()) {
-								JsonObject childJsonObject = e.getAsJsonObject();
-								PO childPO = loadPO(field, childJsonObject);
-								
-								if (childPO == null) {
-									childPO = childSerializer.fromJson(childJsonObject, childTable);
-									childPO.set_ValueOfColumn(tableName+"_ID", parentId);
-								} else {
-									childPO = childSerializer.fromJson(childJsonObject, childPO);
+						try {
+							fieldArray.forEach(e -> {
+								if (e.isJsonObject()) {
+									JsonObject childJsonObject = e.getAsJsonObject();
+									PO childPO = loadPO(field, childJsonObject);
+									
+									if (childPO == null) {
+										childPO = childSerializer.fromJson(childJsonObject, childTable);
+										childPO.set_ValueOfColumn(tableName+"_ID", parentId);
+									} else {
+										childPO = childSerializer.fromJson(childJsonObject, childPO);
+									}
+									childPO.set_TrxName(trx.getTrxName());
+									childPO.saveEx();
+									childJsonObject = serializer.toJson(childPO);
+									savedArray.add(childJsonObject);
 								}
-								childPO.set_TrxName(trx.getTrxName());
-								childPO.saveEx();
-								childJsonObject = serializer.toJson(childPO);
-								savedArray.add(childJsonObject);
-							}
-						});
-						if (savedArray.size() > 0)
-							detailMap.put(field, savedArray);
+							});
+							if (savedArray.size() > 0)
+								detailMap.put(field, savedArray);
+						} catch (Exception ex) {
+							trx.rollback();
+							log.log(Level.SEVERE, ex.getMessage(), ex);
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+									.build();
+						}
 					}
 				}
 			}
@@ -336,7 +398,9 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR).entity(error).build();
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
+						.build();
 			}
 			
 			jsonObject = serializer.toJson(po);
@@ -349,7 +413,10 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ex.getMessage()).build();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
 		} finally {
 			trx.close();
 		}
@@ -359,10 +426,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response delete(String tableName, String id) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean uuid = isUUID(id);
 		String keyColumn = uuid ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -371,16 +442,27 @@ public class ModelResourceImpl implements ModelResource {
 		PO po = uuid ? query.setParameters(id).first()
 					 : query.setParameters(Integer.parseInt(id)).first();
 		if (po != null) {
-			po.deleteEx(true);
-			return Response.ok().build();
+			try {
+				po.deleteEx(true);
+				return Response.ok().build();
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, ex.getMessage(), ex);
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
+						.build();
+			}
 		} else {
 			query.setApplyAccessFilter(false);
 			po = uuid ? query.setParameters(id).first()
 					  : query.setParameters(Integer.parseInt(id)).first(); 
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -390,10 +472,14 @@ public class ModelResourceImpl implements ModelResource {
 		JsonArray array = new JsonArray();
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -416,9 +502,13 @@ public class ModelResourceImpl implements ModelResource {
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -427,10 +517,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getAttachmentsAsZip(String tableName, String id) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -453,9 +547,13 @@ public class ModelResourceImpl implements ModelResource {
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -472,17 +570,25 @@ public class ModelResourceImpl implements ModelResource {
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST).build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
+					.build();
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST).build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
+					.build();
 		
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+		if (!hasAccess(table, true)) 
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -493,7 +599,9 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST).build();
+				return Response.status(Status.BAD_REQUEST)
+						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
+						.build();
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -509,7 +617,9 @@ public class ModelResourceImpl implements ModelResource {
 	    						attachment.deleteEntry(i);
 	    						break;
 	    					} else {
-	    						return Response.status(Status.CONFLICT).build();
+	    						return Response.status(Status.CONFLICT)
+	    								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(name).build().toString())
+	    								.build();
 	    					}
 	    				}
 	    			}
@@ -522,20 +632,27 @@ public class ModelResourceImpl implements ModelResource {
                     }
                     attachment.addEntry(name, bos.toByteArray());
 	            }
-	        } catch (IOException e1) {
-				return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+	            attachment.saveEx();
+	        } catch (Exception ex) {
+	        	log.log(Level.SEVERE, ex.getMessage(), ex);
+	        	return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+						.build();
 			}
-												
-			attachment.saveEx();
+															
 			return Response.status(Status.CREATED).build();
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -544,10 +661,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getAttachmentEntry(String tableName, String id, String fileName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
 		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -567,9 +688,11 @@ public class ModelResourceImpl implements ModelResource {
 							zipFile = entry.getFile(zipFile);
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
 							return Response.ok(fso).build();
-						} catch (IOException e) {
-							CLogger.getCLogger(getClass()).log(Level.SEVERE, e.getMessage(), e);
-							Response.status(Status.INTERNAL_SERVER_ERROR).build();
+						} catch (IOException ex) {
+							log.log(Level.SEVERE, ex.getMessage(), ex);
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("IO error").append("IO error with exception: ").append(ex.getMessage()).build().toString())
+									.build();
 						}
 					}
 				}
@@ -580,9 +703,13 @@ public class ModelResourceImpl implements ModelResource {
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -594,17 +721,25 @@ public class ModelResourceImpl implements ModelResource {
 		
 		JsonElement jsonElement = jsonObject.get("name");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST).entity("name property is mandatory").build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
+					.build();
 		String fileName = jsonElement.getAsString();
 		if (Util.isEmpty(fileName, true))
-			return Response.status(Status.BAD_REQUEST).entity("name property is mandatory").build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
+					.build();
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST).entity("data property is mandatory").build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
+					.build();
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST).entity("data property is mandatory").build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
+					.build();
 		
 		boolean overwrite = false;
 		jsonElement = jsonObject.get("overwrite");
@@ -613,10 +748,14 @@ public class ModelResourceImpl implements ModelResource {
 		
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+		if (!hasAccess(table, true)) 
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -627,7 +766,9 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST).build();
+				return Response.status(Status.BAD_REQUEST)
+						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
+						.build();
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -639,21 +780,35 @@ public class ModelResourceImpl implements ModelResource {
 						attachment.deleteEntry(i);
 						break;
 					} else {
-						return Response.status(Status.CONFLICT).build();
+						return Response.status(Status.CONFLICT)
+								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(fileName).build().toString())
+								.build();
 					}
 				}
-			}			
-			attachment.addEntry(fileName, data);
-			attachment.saveEx();
+			}		
+			
+			try {
+				attachment.addEntry(fileName, data);
+				attachment.saveEx();
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, ex.getMessage(), ex);
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+						.build();
+			}
 			return Response.status(Status.CREATED).build();
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -662,10 +817,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response deleteAttachments(String tableName, String id) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+		if (!hasAccess(table, true)) 
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -676,21 +835,32 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
-				if (attachment.delete(true))
-					return Response.ok().build();
-				else
-					return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+				try {
+					attachment.deleteEx(true);
+				} catch (Exception ex) {
+					log.log(Level.SEVERE, ex.getMessage(), ex);
+					return Response.status(Status.INTERNAL_SERVER_ERROR)
+							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
+							.build();
+				}
+				return Response.ok().build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
+						.build();
 			}
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -699,10 +869,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.BAD_REQUEST).entity("Invalid table name: " + tableName).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+					.build();
 		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN).build();
+		if (!hasAccess(table, true)) 
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+					.build();
 		
 		boolean isUUID = isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
@@ -717,26 +891,43 @@ public class ModelResourceImpl implements ModelResource {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
 					if (entry.getName().equals(fileName)) {
 						if (attachment.deleteEntry(i)) {
-							attachment.saveEx();
+							try {
+								attachment.saveEx();
+							} catch (Exception ex) {
+								log.log(Level.SEVERE, ex.getMessage(), ex);
+								return Response.status(Status.INTERNAL_SERVER_ERROR)
+										.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
+										.build();
+							}
 							return Response.ok().build();							
 						} else {
-							return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Fail to remove attachment entry").build().toString())
+									.build();
 						}
 					}
 					i++;
 				}
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No matching attachment entry").append("No attachment entry is found for name: ").append(fileName).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
+						.build();
 			}
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()
 					   : query.setParameters(Integer.parseInt(id)).first();
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
 			}
 		}
 	}
@@ -793,8 +984,9 @@ public class ModelResourceImpl implements ModelResource {
 						return true;
 				}
 			}
-		} catch (SQLException e) {
-			CLogger.getCLogger(getClass()).log(Level.SEVERE, e.getMessage(), e);
+		} catch (SQLException ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			throw new RuntimeException(ex.getMessage());
 		}
 		return false;
 	}
@@ -836,10 +1028,16 @@ public class ModelResourceImpl implements ModelResource {
 				}
 				if (!Util.isEmpty(docAction, true) && !DocAction.ACTION_None.equals(docAction)) {
 					ProcessInfo processInfo = MWorkflow.runDocumentActionWorkflow(po, docAction);
-					if (processInfo.isError())
+					if (processInfo.isError()) {
 						return processInfo.getSummary();
-					else
-						po.saveEx();
+					} else {
+						try {
+							po.saveEx();
+						} catch (Exception ex) {
+							log.log(Level.SEVERE, ex.getMessage(), ex);
+							return ex.getMessage();
+						}
+					}
 				}
 			}
 		}
