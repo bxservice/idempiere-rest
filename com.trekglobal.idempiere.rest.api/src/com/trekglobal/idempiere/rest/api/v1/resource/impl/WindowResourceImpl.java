@@ -343,6 +343,7 @@ public class WindowResourceImpl implements WindowResource {
 			return Response.status(Status.FORBIDDEN).build();
 		}
 		
+		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
@@ -385,6 +386,7 @@ public class WindowResourceImpl implements WindowResource {
 			return Response.status(Status.FORBIDDEN).build();
 		}
 		
+		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);		
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
@@ -423,6 +425,7 @@ public class WindowResourceImpl implements WindowResource {
 			return Response.status(Status.FORBIDDEN).build();
 		}
 		
+		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 		GridTab parentTab = null;
