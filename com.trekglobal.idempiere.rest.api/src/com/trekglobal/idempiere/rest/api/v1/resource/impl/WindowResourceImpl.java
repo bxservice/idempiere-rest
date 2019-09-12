@@ -31,11 +31,14 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.DataStatusEvent;
+import org.compiere.model.DataStatusListener;
 import org.compiere.model.GridField;
 import org.compiere.model.GridTab;
 import org.compiere.model.GridWindow;
@@ -49,8 +52,10 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.process.DocAction;
 import org.compiere.process.ProcessInfo;
+import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
 import org.compiere.wf.MWorkflow;
@@ -73,6 +78,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 public class WindowResourceImpl implements WindowResource {
 
 	private static final int DEFAULT_PAGE_SIZE = 100;
+	private static final CLogger log = CLogger.getCLogger(WindowResourceImpl.class);
 	
 	public WindowResourceImpl() {
 	}
@@ -108,14 +114,20 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
 		JsonObject windowJsonObject = serializer.toJson(window, new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"}, null);
@@ -144,14 +156,20 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		MTab[] tabs = window.getTabs(false, null);
@@ -163,7 +181,9 @@ public class WindowResourceImpl implements WindowResource {
 			}
 		}
 		if (tabId==0) {
-			return Response.status(Status.BAD_REQUEST).entity("Invalid Tab Slug: " + tabSlug).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
+					.build();
 		}
 		
 		StringBuilder whereClause = new StringBuilder("AD_Tab_ID=?");
@@ -193,14 +213,20 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.BAD_REQUEST).entity("Invalid window slug: " + windowSlug).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
@@ -217,7 +243,9 @@ public class WindowResourceImpl implements WindowResource {
 			}
 		}
 		
-		return Response.status(Status.BAD_REQUEST).entity("Invalid window slug: " + windowSlug).build();
+		return Response.status(Status.NOT_FOUND)
+				.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+				.build();
 	}
 	
 	@Override
@@ -237,14 +265,20 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		GridTab parentTab = null;
@@ -259,11 +293,15 @@ public class WindowResourceImpl implements WindowResource {
 		}
 		
 		if (parentTab == null) {
-			return Response.status(Status.BAD_REQUEST).entity("Invalid tab slug: " + tabSlug).build();
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
+					.build();
 		}
 		
 		if (parentTab.getRowCount() == 0) {
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(recordId).build().toString())
+					.build();
 		}
 		
 		for(int i = 0; i < gridWindow.getTabCount(); i++) {
@@ -284,7 +322,9 @@ public class WindowResourceImpl implements WindowResource {
 			}
 		}
 				
-		return Response.status(Status.BAD_REQUEST).entity("Invalid tab slug: " + childTabSlug).build();
+		return Response.status(Status.NOT_FOUND)
+				.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(childTabSlug).build().toString())
+				.build();
 	}
 	
 	@Override
@@ -298,14 +338,20 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		JsonObject jsonObject = loadTabRecord(window, tabSlug, recordId, details);
@@ -313,7 +359,9 @@ public class WindowResourceImpl implements WindowResource {
 		if (jsonObject != null)
 			return Response.ok(jsonObject.toString()).build();
 		else
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(recordId).build().toString())
+					.build();
 	}
 	
 	@Override
@@ -332,15 +380,21 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		Boolean windowAccess = role.getWindowAccess(window.getAD_Window_ID());
 		if ( windowAccess == null || windowAccess.booleanValue()==false) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
@@ -353,7 +407,10 @@ public class WindowResourceImpl implements WindowResource {
 			return createTabRecord(gridWindow, null, null, jsonObject, trx);
 		} catch (Exception ex) {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ex.getMessage()).build();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
 		} finally {
 			trx.close();
 		}		
@@ -375,15 +432,21 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		Boolean windowAccess = role.getWindowAccess(window.getAD_Window_ID());
 		if ( windowAccess == null || windowAccess.booleanValue()==false) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
@@ -396,7 +459,10 @@ public class WindowResourceImpl implements WindowResource {
 			return updateTabRecord(gridWindow, tabSlug, recordId, jsonObject, trx);
 		} catch (Exception ex) {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ex.getMessage()).build();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
 		} finally {
 			trx.close();
 		}		
@@ -414,15 +480,21 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		Boolean windowAccess = role.getWindowAccess(window.getAD_Window_ID());
 		if ( windowAccess == null || windowAccess.booleanValue()==false) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		Env.setContext(Env.getCtx(), 1, "IsSOTrx", window.isSOTrx());
@@ -440,11 +512,15 @@ public class WindowResourceImpl implements WindowResource {
 		}
 		
 		if (parentTab == null) {
-			return Response.status(Status.BAD_REQUEST).entity("Invalid tab slug: " + tabSlug).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
+					.build();
 		}
 		
 		if (parentTab.getRowCount() == 0) {
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(recordId).build().toString())
+					.build();
 		}
 		
 		Trx trx = Trx.get(Trx.createTrxName(), true);
@@ -453,7 +529,10 @@ public class WindowResourceImpl implements WindowResource {
 			return createTabRecord(gridWindow, parentTab, childTabSlug, jsonObject, trx);
 		} catch (Exception ex) {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(ex.getMessage()).build();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
 		} finally {
 			trx.close();
 		}
@@ -470,15 +549,21 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
 			}
 		}
 		
 		Boolean windowAccess = role.getWindowAccess(window.getAD_Window_ID());
 		if ( windowAccess == null || windowAccess.booleanValue()==false) {
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
 		}
 		
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
@@ -487,22 +572,43 @@ public class WindowResourceImpl implements WindowResource {
 			if ((gridTab.getTabLevel()==0 && Util.isEmpty(tabSlug, true)) || 
 				(TypeConverterUtils.slugify(gridTab.getName()).equals(tabSlug))) {
 				if (gridTab.isReadOnly() || !gridTab.isDeleteRecord()) {
-					return Response.status(Status.FORBIDDEN).build();
+					return Response.status(Status.FORBIDDEN)
+							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Delete not allow").append("Delete not allow for tab: ").append(TypeConverterUtils.slugify(gridTab.getName())).build().toString())
+							.build();
 				}
 				load(gridWindow, gridTab, recordId);
 				if (gridTab.getRowCount() < 1) {
-					return Response.status(Status.NOT_FOUND).build();
+					return Response.status(Status.NOT_FOUND)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id: ").append(recordId).build().toString())
+							.build();
 				} else if (gridTab.getRowCount() > 1) {
-					return Response.status(Status.BAD_REQUEST).entity("More than one match for id " + recordId).build();
+					return Response.status(Status.BAD_REQUEST)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("More than 1 match").append("More than 1 matching record for id: ").append(recordId).build().toString())
+							.build();
 				}
-				if (gridTab.dataDelete())
-					return Response.status(Status.OK).build();
-				else
-					return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+				ErrorDataStatusListener edsl = new ErrorDataStatusListener();
+				gridTab.getTableModel().addDataStatusListener(edsl);;
+				try {
+					if (gridTab.dataDelete()) {
+						return Response.status(Status.OK).build();
+					} else {
+						String error = edsl.getError();
+						return Response.status(Status.INTERNAL_SERVER_ERROR)
+								.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error")
+										.append(!Util.isEmpty(error) ? "Server error with exception: " : "")
+										.append(!Util.isEmpty(error) ? error : "")
+										.build().toString())
+								.build();
+					}
+				} finally {
+					gridTab.getTableModel().removeDataStatusListener(edsl);
+				}
 			}
 		}
 		
-		return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		return Response.status(Status.NOT_FOUND)
+				.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
+				.build();
 	}
 	
 	private QueryResult query(GridTab gridTab, String filter, String sortColumn, int pageNo) {
@@ -642,7 +748,7 @@ public class WindowResourceImpl implements WindowResource {
 					gridWindow.initTab(index);
 				String linkColumn = currentChild.getLinkColumnName();
 				String keyColumn = currentChild.getTableModel().getKeyColumnName();
-				int parentId = DB.getSQLValue(null, "SELECT " + linkColumn + " FROM " + currentChild.getTableName() + " WHERE " + keyColumn + "=?", currentChildId);
+				int parentId = DB.getSQLValueEx(null, "SELECT " + linkColumn + " FROM " + currentChild.getTableName() + " WHERE " + keyColumn + "=?", currentChildId);
 				parentIds.add(parentId);
 				currentChild = p;
 				currentChildId = parentId;
@@ -680,25 +786,43 @@ public class WindowResourceImpl implements WindowResource {
 				((gridTab.getTabLevel()==0 && Util.isEmpty(tabSlug, true)) || 
 				 (TypeConverterUtils.slugify(gridTab.getName()).equals(tabSlug)))) {
 				if (gridTab.isReadOnly()) {
-					errorResponse = Response.status(Status.FORBIDDEN).build();
+					errorResponse = Response.status(Status.FORBIDDEN)
+							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Tab is readonly").append("Tab is readonly: ").append(tabSlug).build().toString())
+							.build();
 					break;
 				}
 				gridTab.getTableModel().setImportingMode(true, trx.getTrxName());
 				IGridTabSerializer serializer = load(gridWindow, gridTab, recordId);
 				if (gridTab.getRowCount() < 1) {
-					errorResponse = Response.status(Status.NOT_FOUND).build();
+					errorResponse = Response.status(Status.NOT_FOUND)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id: ").append(recordId).build().toString())
+							.build();
 					break;
 				} else if (gridTab.getRowCount() > 1) {
-					errorResponse = Response.status(Status.BAD_REQUEST).entity("More than one match for id " + recordId).build();
+					errorResponse = Response.status(Status.BAD_REQUEST)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("More than 1 match").append("More than 1 matching record for id: ").append(recordId).build().toString())
+							.build();
 					break;
 				}				
 				serializer.fromJson(jsonObject, gridTab);
 				if (gridTab.needSave(true, true)) {
-					if (!gridTab.dataSave(false))  {
-						errorResponse = Response.status(Status.INTERNAL_SERVER_ERROR).build();
-						break;
-					} else {
-						gridTab.dataRefresh();
+					ErrorDataStatusListener edsl = new ErrorDataStatusListener();
+					gridTab.getTableModel().addDataStatusListener(edsl);
+					try {
+						if (!gridTab.dataSave(false))  {
+							String error = edsl.getError();
+							errorResponse = Response.status(Status.INTERNAL_SERVER_ERROR)
+												.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+														.append(!Util.isEmpty(error) ? "Save error with exception: " : "")
+														.append(!Util.isEmpty(error) ? error : "")
+														.build().toString())
+												.build();
+							break;
+						} else {
+							gridTab.dataRefresh();
+						}
+					} finally {
+						gridTab.getTableModel().removeDataStatusListener(edsl);
 					}
 				}
 				headerTab = gridTab;
@@ -713,31 +837,43 @@ public class WindowResourceImpl implements WindowResource {
 					JsonArray childJsonArray = tabSlugElement.getAsJsonArray();
 					JsonArray updatedArray = new JsonArray();
 					final Boolean[] error = new Boolean[] {Boolean.FALSE};
-					childJsonArray.forEach(e -> {
-						if (e.isJsonObject() && !error[0].booleanValue()) {
-							JsonObject childJsonObject = e.getAsJsonObject();
-							if (!optLoad(gridTab, childJsonObject)) {
-								if (!gridTab.dataNew(false)) {
-									error[0] = Boolean.TRUE;
-									return;
+					ErrorDataStatusListener edsl = new ErrorDataStatusListener();
+					gridTab.getTableModel().addDataStatusListener(edsl);
+					try {
+						childJsonArray.forEach(e -> {
+							if (e.isJsonObject() && !error[0].booleanValue()) {
+								JsonObject childJsonObject = e.getAsJsonObject();
+								if (!optLoad(gridTab, childJsonObject)) {
+									if (!gridTab.dataNew(false)) {
+										error[0] = Boolean.TRUE;
+										return;
+									}
+									gridTab.setValue(gridTab.getLinkColumnName(), recordId);
 								}
-								gridTab.setValue(gridTab.getLinkColumnName(), recordId);
-							}
-							serializer.fromJson(childJsonObject, gridTab);
-							if (gridTab.needSave(true, true)) {
-								if (!gridTab.dataSave(false))  {
-									error[0] = Boolean.TRUE;
-									return;
-								} else {
-									gridTab.dataRefresh(false);
+								serializer.fromJson(childJsonObject, gridTab);
+								if (gridTab.needSave(true, true)) {
+									if (!gridTab.dataSave(false))  {
+										error[0] = Boolean.TRUE;
+										return;
+									} else {
+										gridTab.dataRefresh(false);
+									}
 								}
+								childJsonObject = serializer.toJson(gridTab);
+								updatedArray.add(childJsonObject);
 							}
-							childJsonObject = serializer.toJson(gridTab);
-							updatedArray.add(childJsonObject);
-						}
-					});
+						});
+					} finally {
+						gridTab.getTableModel().removeDataStatusListener(edsl);
+					}
 					if (error[0].booleanValue()) {
-						errorResponse = Response.status(Status.INTERNAL_SERVER_ERROR).build();
+						String saveError = edsl.getError();
+						errorResponse = Response.status(Status.INTERNAL_SERVER_ERROR)
+											.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+													.append(!Util.isEmpty(saveError) ? "Save error with exception: " : "")
+													.append(!Util.isEmpty(saveError) ? saveError : "")
+													.build().toString())
+											.build();
 						break;
 					}
 					childMap.put(slug, updatedArray);
@@ -759,7 +895,9 @@ public class WindowResourceImpl implements WindowResource {
 			trx.commit(true);
 		} else {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(error).build();
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
+					.build();
 		}
 		
 		JsonObject updatedJsonObject = null;
@@ -814,13 +952,20 @@ public class WindowResourceImpl implements WindowResource {
 				 ((gridTab.getTabLevel()==0 && Util.isEmpty(tabSlug, true)) || 
 				  (TypeConverterUtils.slugify(gridTab.getName()).equals(tabSlug)))) {
 				if (gridTab.isReadOnly() || !gridTab.isInsertRecord()) {
-					return Response.status(Status.FORBIDDEN).build();
+					return Response.status(Status.FORBIDDEN)
+							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Create not allow").append("Create not allow for tab: ").append(TypeConverterUtils.slugify(gridTab.getName())).build().toString())
+							.build();
 				}
 				if (gridTab.getTabLevel() > 0 && parentTab == null) {
-					return Response.status(Status.BAD_REQUEST).build();
+					return Response.status(Status.BAD_REQUEST)
+							.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("No parent tab record").append("Can't create child tab record without parent tab record: ").append(tabSlug).build().toString())
+							.build();
 				}
 				if (gridTab.getTabLevel() > 0 && parentTab != null && gridTab.getTabLevel() != (parentTab.getTabLevel()+1) ) {
-					return Response.status(Status.BAD_REQUEST).entity(tabSlug + " is not child tab of " + TypeConverterUtils.slugify(parentTab.getName())).build();
+					return Response.status(Status.BAD_REQUEST)
+							.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Wrong parent tab").append(tabSlug)
+									.append(" is not child tab of ").append(TypeConverterUtils.slugify(parentTab.getName())).build().toString())
+							.build();
 				}
 				if (!gridWindow.isTabInitialized(i))
 					gridWindow.initTab(i);
@@ -837,15 +982,33 @@ public class WindowResourceImpl implements WindowResource {
 					}
 				}
 				IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
-				if (!gridTab.dataNew(false)) {
-					return Response.status(Status.INTERNAL_SERVER_ERROR).build();
-				}
-				serializer.fromJson(jsonObject, gridTab);
-				if (!gridTab.dataSave(false))  {
-					trx.rollback();
-					return Response.status(Status.INTERNAL_SERVER_ERROR).build();
-				} else {
-					gridTab.dataRefresh(false);
+				ErrorDataStatusListener edsl = new ErrorDataStatusListener();
+				gridTab.getTableModel().addDataStatusListener(edsl);
+				try {
+					if (!gridTab.dataNew(false)) {
+						String error = edsl.getError();
+						return Response.status(Status.INTERNAL_SERVER_ERROR)
+								.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+										.append(!Util.isEmpty(error) ? "Save error with exception: " : "")
+										.append(!Util.isEmpty(error) ? error : "")
+										.build().toString())
+								.build();
+					}
+					serializer.fromJson(jsonObject, gridTab);
+					if (!gridTab.dataSave(false))  {
+						trx.rollback();
+						String error = edsl.getError();
+						return Response.status(Status.INTERNAL_SERVER_ERROR)
+								.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+										.append(!Util.isEmpty(error) ? "Save error with exception: " : "")
+										.append(!Util.isEmpty(error) ? error : "")
+										.build().toString())
+								.build();
+					} else {
+						gridTab.dataRefresh(false);
+					}
+				} finally {
+					gridTab.removeDataStatusListener(edsl);
 				}
 				
 				headerTab = gridTab;
@@ -861,32 +1024,44 @@ public class WindowResourceImpl implements WindowResource {
 					JsonArray updatedArray = new JsonArray();
 					final Boolean[] error = new Boolean[] {Boolean.FALSE};
 					final GridTab finalHeaderTab = headerTab;
-					childJsonArray.forEach(e -> {
-						if (e.isJsonObject() && !error[0].booleanValue()) {
-							JsonObject childJsonObject = e.getAsJsonObject();
-							if (!gridTab.isCurrent())
-								gridTab.query(false);
-							if (!gridTab.dataNew(false)) {
-								error[0] = Boolean.TRUE;
-								return;
+					ErrorDataStatusListener edsl = new ErrorDataStatusListener();
+					gridTab.getTableModel().addDataStatusListener(edsl);
+					try {
+						childJsonArray.forEach(e -> {
+							if (e.isJsonObject() && !error[0].booleanValue()) {
+								JsonObject childJsonObject = e.getAsJsonObject();
+								if (!gridTab.isCurrent())
+									gridTab.query(false);
+								if (!gridTab.dataNew(false)) {
+									error[0] = Boolean.TRUE;
+									return;
+								}
+								gridTab.setValue(gridTab.getLinkColumnName(), finalHeaderTab.getKeyID(0));								
+								serializer.fromJson(childJsonObject, gridTab);
+								if (!gridTab.dataSave(false))  {
+									error[0] = Boolean.TRUE;
+									return;
+								} else {
+									gridTab.dataRefresh(false);
+								}
+								childJsonObject = serializer.toJson(gridTab);
+								updatedArray.add(childJsonObject);
 							}
-							gridTab.setValue(gridTab.getLinkColumnName(), finalHeaderTab.getKeyID(0));								
-							serializer.fromJson(childJsonObject, gridTab);
-							if (!gridTab.dataSave(false))  {
-								error[0] = Boolean.TRUE;
-								return;
-							} else {
-								gridTab.dataRefresh(false);
-							}
-							childJsonObject = serializer.toJson(gridTab);
-							updatedArray.add(childJsonObject);
+						});
+						if (error[0].booleanValue()) {
+							trx.rollback();
+							String msg = edsl.getError();
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+											.append(!Util.isEmpty(msg) ? "Save error with exception: " : "")
+											.append(!Util.isEmpty(msg) ? msg : "")
+											.build().toString())
+									.build();
 						}
-					});
-					if (error[0].booleanValue()) {
-						trx.rollback();
-						return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+						childMap.put(tSlug, updatedArray);
+					} finally {
+						gridTab.removeDataStatusListener(edsl);
 					}
-					childMap.put(tSlug, updatedArray);
 				}
 			} else if (headerTab != null && gridTab.getTabLevel() < headerTab.getTabLevel()) {
 				break;
@@ -900,7 +1075,9 @@ public class WindowResourceImpl implements WindowResource {
 			trx.commit(true);
 		} else {
 			trx.rollback();
-			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(error).build();
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
+					.build();
 		}
 		
 		JsonObject updatedJsonObject = null;
@@ -941,14 +1118,39 @@ public class WindowResourceImpl implements WindowResource {
 				if (!Util.isEmpty(docAction, true) && !DocAction.ACTION_None.equals(docAction)) {
 					po.set_TrxName(trxName);
 					ProcessInfo processInfo = MWorkflow.runDocumentActionWorkflow(po, docAction);
-					if (processInfo.isError())
+					if (processInfo.isError()) {
 						return processInfo.getSummary();
-					else
-						po.saveEx();
+					} else {
+						try {
+							po.saveEx();
+						} catch (Exception ex) {
+							log.log(Level.SEVERE, ex.getMessage(), ex);
+							return ex.getMessage();
+						}
+					}
 					gridTab.dataRefresh();
 				}
 			}
 		}
 		return null;
+	}
+	
+	private class ErrorDataStatusListener implements DataStatusListener {
+		private String error = null;
+		
+		@Override
+		public void dataStatusChanged(DataStatusEvent e) {
+			if (e.isError()) {
+				String msg = e.getAD_Message();
+				if (!Util.isEmpty(msg, true)) {
+					error = Msg.getMsg(Env.getCtx(), msg);
+				}
+			}
+		}
+		
+		public String getError() {
+			return error;
+		}
+		
 	}
 }

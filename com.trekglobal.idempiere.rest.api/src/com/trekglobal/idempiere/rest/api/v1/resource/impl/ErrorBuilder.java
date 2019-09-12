@@ -106,4 +106,9 @@ public class ErrorBuilder {
 		}
 		return jso;
 	}
+
+	public ErrorBuilder append(int i) {
+		detail.append(i);
+		return this;
+	}
 }

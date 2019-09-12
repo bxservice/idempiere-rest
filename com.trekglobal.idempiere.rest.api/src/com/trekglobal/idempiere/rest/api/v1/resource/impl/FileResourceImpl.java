@@ -49,7 +49,9 @@ public class FileResourceImpl implements FileResource {
 		File file = new File(tempFolder, fileName);
 		if (file.exists() && file.isFile()) {
 			if (!file.canRead()) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not readable").append("File not readable: ").append(fileName).build().toString())
+						.build();
 			} else if (file.length()==length) {
 				String contentType = MediaType.APPLICATION_OCTET_STREAM;
 				String lfn = fileName.toLowerCase();
@@ -60,10 +62,14 @@ public class FileResourceImpl implements FileResource {
 				FileStreamingOutput fso = new FileStreamingOutput(file);
 				return Response.ok(fso, contentType).build();
 			} else {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for file: ").append(fileName).build().toString())
+						.build();
 			}
 		} else {
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not found").append("File not found: ").append(fileName).build().toString())
+					.build();
 		}		
 	}
 }
