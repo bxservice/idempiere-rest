@@ -117,14 +117,20 @@ public class ProcessResourceImpl implements ProcessResource {
 			query.setApplyAccessFilter(false);
 			process = query.setParameters(processSlug).first();
 			if (process != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid process name").append("No match found for process name: ").append(processSlug).build().toString())
+						.build();
 			}
 		}
 		MRole role = MRole.getDefault();
 		if (role.getProcessAccess(process.getAD_Process_ID()) == null)
-			return Response.status(Status.FORBIDDEN).build();
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+					.build();
 		
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MProcess.Table_Name, MTable.getClass(MProcess.Table_Name));
 		JsonObject jsonObject = serializer.toJson(process, new String[] {"AD_Process_ID", "AD_Process_UU", "Value", "Name", "Description", "Help", "EntityType", "IsReport", "AD_ReportView_ID", "AD_PrintFormat_ID", "AD_Workflow_ID", "JasperReport"}, null);
@@ -155,14 +161,20 @@ public class ProcessResourceImpl implements ProcessResource {
 			query.setApplyAccessFilter(false);
 			process = query.setParameters(processSlug).first();
 			if (process != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid process name").append("No match found for process name: ").append(processSlug).build().toString())
+						.build();
 			}
 		}
 		MRole role = MRole.getDefault();
-		if (role.getProcessAccess(process.getAD_Process_ID()) == null)
-			return Response.status(Status.FORBIDDEN).build();
+		if (role.getProcessAccess(process.getAD_Process_ID()) == null || role.getProcessAccess(process.getAD_Process_ID()).booleanValue()==false)
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+					.build();
 		
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
@@ -239,7 +251,9 @@ public class ProcessResourceImpl implements ProcessResource {
 			JsonObject jsonObject = toJsonObject(instance);
 			return Response.ok(jsonObject.toString()).build();
 		} else {
-			return Response.status(Status.NOT_FOUND).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Job not found").append("No job found matching id ").append(id).build().toString())
+					.build();
 		}		
 	}
 
@@ -252,14 +266,20 @@ public class ProcessResourceImpl implements ProcessResource {
 			query.setApplyAccessFilter(false);
 			process = query.setParameters(processSlug).first();
 			if (process != null) {
-				return Response.status(Status.FORBIDDEN).build();
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+						.build();
 			} else {
-				return Response.status(Status.NOT_FOUND).build();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid process name").append("No match found for process name: ").append(processSlug).build().toString())
+						.build();
 			}
 		}
 		MRole role = MRole.getDefault();
-		if (role.getProcessAccess(process.getAD_Process_ID()) == null)
-			return Response.status(Status.FORBIDDEN).build();
+		if (role.getProcessAccess(process.getAD_Process_ID()) == null || role.getProcessAccess(process.getAD_Process_ID()).booleanValue()==false)
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for process: ").append(processSlug).build().toString())
+					.build();
 		
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
