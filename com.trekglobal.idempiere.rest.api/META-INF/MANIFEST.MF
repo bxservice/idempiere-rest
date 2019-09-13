@@ -5,6 +5,7 @@ Bundle-SymbolicName: com.trekglobal.idempiere.rest.api
 Bundle-Version: 0.1.0.qualifier
 Bundle-Activator: com.trekglobal.idempiere.rest.api.Activator
 Bundle-RequiredExecutionEnvironment: JavaSE-11
+Bundle-Vendor: Trek Global
 Automatic-Module-Name: org.idempiere.rest.api
 Import-Package: javax.xml.bind,
  org.compiere.process,

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <bundle id="com.trekglobal.idempiere.rest.api" version="0.1.0.qualifier">
+      <category name="trekglobal.idempiere.extensions"/>
+   </bundle>
+   <category-def name="trekglobal.idempiere.extensions" label="trekglobal idempeire extensions"/>
+</site>

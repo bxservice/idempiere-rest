@@ -13,6 +13,7 @@
         </parent>
         <modules>
 		<module>com.trekglobal.idempiere.rest.api</module>
+		<module>com.trekglobal.idempiere.extensions.p2</module>
 	</modules>
 </project>
 
