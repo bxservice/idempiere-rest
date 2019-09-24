@@ -33,6 +33,7 @@ import org.compiere.model.GridTab;
 import org.compiere.model.MColumn;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
+import org.osgi.service.component.annotations.Component;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -43,7 +44,9 @@ import com.google.gson.JsonObject;
  * @author hengsin
  *
  */
-public class DefaultGridTabSerializer implements IGridTabSerializer {
+@Component(name = "com.trekglobal.idempiere.rest.api.json.DefaultGridTabSerializer", service = IGridTabSerializerFactory.class, 
+	property = {"service.ranking:Integer=0"}, immediate = true)
+public class DefaultGridTabSerializer implements IGridTabSerializer, IGridTabSerializerFactory {
 
 	/**
 	 * default constructor
@@ -180,5 +183,14 @@ public class DefaultGridTabSerializer implements IGridTabSerializer {
 				return true;
 		}
 		return false;
+	}
+
+	@Override
+	public IGridTabSerializer getGridTabSerializer(String gridTabUID) {
+		if ("*".equals(gridTabUID)) {
+			return this;
+		} else {
+			return null;
+		}
 	}
 }

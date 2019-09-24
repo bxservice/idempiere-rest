@@ -90,8 +90,14 @@ public interface IPOSerializer {
 				break;
 			}
 		}
-		if (serializer == null)
-			serializer = new DefaultPOSerializer();
+		if (serializer == null) {
+			for (IPOSerializerFactory  factory : factories) {
+				serializer = factory.getPOSerializer("*", modelClass);
+				if (serializer != null) {
+					break;
+				}
+			}
+		}
 		
 		return serializer;
 	}

@@ -30,6 +30,6 @@
 * copy update-rest-extensions.sh to your idempiere instance's root folder
 * at your idempiere instance's root folder (for instance, /opt/idempiere), run ./update-rest-extensions.sh <file or url path to com.trekglobal.idempiere.extensions.p2/target/repository>
 * for e.g, if your source is at /ws/idempiere-rest, ./update-rest-extensions.sh file:////ws/idempiere-rest/com.trekglobal.idempiere.extensions.p2/target/repository
-* at osgi console, run "sta com.trekglobal.idempiere.rest.api" to activate the plugin
+* if the bundle doesn't auto start after deployment (with STARTING status), at osgi console, run "sta com.trekglobal.idempiere.rest.api" to activate the plugin
 
 this is consider experimental at this point, so use it at your own risk.

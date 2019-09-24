@@ -36,6 +36,7 @@ import org.compiere.model.POInfo;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
+import org.osgi.service.component.annotations.Component;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -46,7 +47,9 @@ import com.google.gson.JsonObject;
  * @author hengsin
  *
  */
-public class DefaultPOSerializer implements IPOSerializer {
+@Component(name = "com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer", service = IPOSerializerFactory.class, 
+	property = {"service.ranking:Integer=0"}, immediate = true)
+public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory {
 
 	/**
 	 * default constructor
@@ -207,5 +210,13 @@ public class DefaultPOSerializer implements IPOSerializer {
 				po.set_ValueOfColumn(column.getAD_Column_ID(), defaultValue);
 			}
 		}		
+	}
+
+	@Override
+	public IPOSerializer getPOSerializer(String tableName, Class<?> modelClass) {
+		if ("*".equals(tableName)) {
+			return this;
+		}
+		return null;
 	}
 }

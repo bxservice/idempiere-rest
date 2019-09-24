@@ -77,8 +77,15 @@ public interface IGridTabSerializer {
 				break;
 			}
 		}
-		if (serializer == null)
-			serializer = new DefaultGridTabSerializer();
+		if (serializer == null) {
+			for (IGridTabSerializerFactory  factory : factories) {
+				serializer = factory.getGridTabSerializer("*");
+				if (serializer != null) {
+					break;
+				}
+			}
+		}
+			
 		
 		return serializer;
 	}

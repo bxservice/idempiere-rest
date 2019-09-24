@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" immediate="true" name="com.trekglobal.idempiere.rest.api.json.DefaultGridTabSerializer">
+   <property name="service.ranking" type="Integer" value="0"/>
+   <service>
+      <provide interface="com.trekglobal.idempiere.rest.api.json.IGridTabSerializerFactory"/>
+   </service>
+   <implementation class="com.trekglobal.idempiere.rest.api.json.DefaultGridTabSerializer"/>
+</scr:component>
