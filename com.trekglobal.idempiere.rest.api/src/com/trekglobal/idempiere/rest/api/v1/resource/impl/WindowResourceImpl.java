@@ -43,6 +43,8 @@ import org.compiere.model.GridField;
 import org.compiere.model.GridTab;
 import org.compiere.model.GridWindow;
 import org.compiere.model.MField;
+import org.compiere.model.MPInstance;
+import org.compiere.model.MProcess;
 import org.compiere.model.MQuery;
 import org.compiere.model.MRole;
 import org.compiere.model.MTab;
@@ -52,6 +54,7 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.process.DocAction;
 import org.compiere.process.ProcessInfo;
+import org.compiere.process.ServerProcessCtl;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
@@ -67,6 +70,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IGridTabSerializer;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.Process;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 
@@ -1152,5 +1156,87 @@ public class WindowResourceImpl implements WindowResource {
 			return error;
 		}
 		
+	}
+
+	@Override
+	public Response printWindowRecord(String windowSlug, int recordId, String reportType) {
+		return printTabRecord(windowSlug, null, recordId, reportType);
+	}
+
+	@Override
+	public Response printTabRecord(String windowSlug, String tabSlug, int recordId, String reportType) {
+		MRole role = MRole.getDefault();
+		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
+		query.setApplyAccessFilter(true).setOnlyActiveRecords(true);
+		query.setParameters(windowSlug);
+		MWindow window = query.first();
+		if (window == null) {
+			query.setApplyAccessFilter(false);
+			window = query.first();
+			if (window != null) {
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+						.build();
+			} else {
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
+						.build();
+			}
+		}
+		
+		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
+					.build();
+		}
+		
+		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
+		GridTab headerTab = null;
+		for(int i = 0; i < gridWindow.getTabCount(); i++) {
+			GridTab gridTab = gridWindow.getTab(i);
+			if (gridTab.getTabLevel()==0 && Util.isEmpty(tabSlug, true)) {
+				headerTab = gridTab;
+				break;
+			} else if (!Util.isEmpty(tabSlug, true)) {
+				String slug = TypeConverterUtils.slugify(gridTab.getName());
+				if (slug.equals(tabSlug)) {
+					headerTab = gridTab;
+					break;
+				}
+			}
+		}
+		
+		if (headerTab == null)
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
+					.build();
+		
+		int AD_Process_ID = headerTab.getAD_Process_ID();
+		if (AD_Process_ID == 0)
+			return Response.status(Status.NO_CONTENT)
+					.entity(new ErrorBuilder().status(Status.NO_CONTENT).title("No print process").append("No print process have been defined for ").append(tabSlug==null?"window":"tab"))
+					.build();
+		
+		JsonObject jsonObject = loadTabRecord(window, tabSlug, recordId, null);
+		
+		if (jsonObject == null)
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(recordId).build().toString())
+					.build();
+		
+		MProcess process = MProcess.get(Env.getCtx(), AD_Process_ID);
+		MPInstance pinstance = Process.createPInstance(process, new JsonObject(), false);
+		JsonObject processConfig = new JsonObject();
+		processConfig.addProperty("record-id", recordId);
+		processConfig.addProperty("table-id", headerTab.getAD_Table_ID());
+		if (!Util.isEmpty(reportType, true)) {
+			processConfig.addProperty("report-type", reportType);
+		}
+		ProcessInfo processInfo = Process.createProcessInfo(process, pinstance, processConfig);
+		ServerProcessCtl.process(processInfo, null);
+		
+		JsonObject processInfoJson = Process.toJsonObject(processInfo, TypeConverterUtils.slugify(process.getValue()));
+		
+		return Response.ok(processInfoJson.toString()).build();
 	}
 }
