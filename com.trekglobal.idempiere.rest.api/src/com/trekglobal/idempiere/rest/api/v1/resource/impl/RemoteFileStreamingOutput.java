@@ -23,34 +23,55 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource;
+package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutionException;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
+
+import org.idempiere.distributed.IClusterMember;
+import org.idempiere.distributed.IClusterService;
+
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.GetFileInfoCallable.FileInfo;
 
 /**
  * 
  * @author hengsin
  *
  */
-@Path("v1/files")
-public interface FileResource {
+public class RemoteFileStreamingOutput implements StreamingOutput {
 
-	@Path("{fileName}")
-	@GET
-	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN})
-	/**
-	 * Get file content as binary stream
-	 * @param fileName
-	 * @param length
-	 * @return response
-	 */
-	public Response getFile(@PathParam("fileName") String fileName, @QueryParam("length") @DefaultValue("0") long length,
-				@QueryParam("node_id") String nodeId);
+	private FileInfo fileInfo;
+	private IClusterMember member;
+
+	RemoteFileStreamingOutput(GetFileInfoCallable.FileInfo fileInfo, IClusterMember member) {
+		this.fileInfo = fileInfo;
+		this.member = member;
+	}
+	
+	@Override
+	public void write(OutputStream output) throws IOException, WebApplicationException {
+		if (fileInfo.getLength() == 0)
+			return;
+		
+		IClusterService service = ClusterUtil.getClusterService();
+		BufferedOutputStream bos = new BufferedOutputStream(output);
+		for(int i = 0; i < fileInfo.getNoOfBlocks(); i++) {
+			ReadFileCallable callable = new ReadFileCallable(fileInfo.getParentFolderName(), fileInfo.getFileName(), fileInfo.getBlockSize(), i);
+			byte[] contents;
+			try {
+				contents = service.execute(callable, member).get();
+				if (contents == null || contents.length == 0)
+					break;
+				bos.write(contents);
+			} catch (InterruptedException | ExecutionException e) {
+				throw new WebApplicationException(e);
+			}								
+		}
+		bos.flush();
+	}	
 }

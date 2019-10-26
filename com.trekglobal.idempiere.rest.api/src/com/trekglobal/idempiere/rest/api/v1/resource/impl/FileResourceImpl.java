@@ -26,12 +26,19 @@
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.io.File;
+import java.util.logging.Level;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.util.CLogger;
+import org.compiere.util.Util;
+import org.idempiere.distributed.IClusterMember;
+import org.idempiere.distributed.IClusterService;
+
 import com.trekglobal.idempiere.rest.api.v1.resource.FileResource;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.GetFileInfoCallable.FileInfo;
 
 /**
  * 
@@ -40,11 +47,46 @@ import com.trekglobal.idempiere.rest.api.v1.resource.FileResource;
  */
 public class FileResourceImpl implements FileResource {
 
+	protected static final int BLOCK_SIZE = 1024 * 1024 * 5;
+	private CLogger log = CLogger.getCLogger(getClass());
+	
 	public FileResourceImpl() {
 	}
 
 	@Override
-	public Response getFile(String fileName, long length) {
+	public Response getFile(String fileName, long length, String nodeId) {
+		if (Util.isEmpty(nodeId)) {
+			return getLocalFile(fileName, true, length);
+		} else {
+			IClusterService service = ClusterUtil.getClusterService();
+			if (service == null) 
+				return getLocalFile(fileName, true, length);
+			
+			IClusterMember local = service.getLocalMember();
+			if (local != null && local.getId().equals(nodeId))
+				return getLocalFile(fileName, true, length);
+			
+			return getRemoteFile(fileName, true, length, nodeId);
+		}
+	}
+
+	public Response getFile(String fileName, String nodeId) {
+		if (Util.isEmpty(nodeId)) {
+			return getLocalFile(fileName, false, 0);
+		} else {
+			IClusterService service = ClusterUtil.getClusterService();
+			if (service == null) 
+				return getLocalFile(fileName, false, 0);
+			
+			IClusterMember local = service.getLocalMember();
+			if (local != null && local.getId().equals(nodeId))
+				return getLocalFile(fileName, false, 0);
+			
+			return getRemoteFile(fileName, false, 0, nodeId);
+		}
+	}
+	
+	private Response getLocalFile(String fileName, boolean verifyLength, long length) {
 		File tempFolder = new File(System.getProperty("java.io.tmpdir"));
 		File file = new File(tempFolder, fileName);
 		if (file.exists() && file.isFile()) {
@@ -52,7 +94,7 @@ public class FileResourceImpl implements FileResource {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not readable").append("File not readable: ").append(fileName).build().toString())
 						.build();
-			} else if (file.length()==length) {
+			} else if (!verifyLength || file.length()==length) {
 				String contentType = MediaType.APPLICATION_OCTET_STREAM;
 				String lfn = fileName.toLowerCase();
 				if (lfn.endsWith(".html") || lfn.endsWith(".htm"))
@@ -70,6 +112,45 @@ public class FileResourceImpl implements FileResource {
 			return Response.status(Status.NOT_FOUND)
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not found").append("File not found: ").append(fileName).build().toString())
 					.build();
-		}		
+		}
 	}
+
+	private Response getRemoteFile(String fileName, boolean verifyLength, long length, String nodeId) {
+		IClusterService service = ClusterUtil.getClusterService();
+		IClusterMember member = ClusterUtil.getClusterMember(nodeId);
+		if (member == null) {
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid Node Id").append("No match found for node id: ").append(nodeId).build().toString())
+					.build(); 
+		}
+		
+		try {
+			GetFileInfoCallable infoCallable = new GetFileInfoCallable("java.io.tmpdir", fileName, BLOCK_SIZE);
+			FileInfo fileInfo = service.execute(infoCallable, member).get();
+			if (fileInfo == null) {
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid File Name").append("File does not exists or not readable: ").append(fileName).build().toString())
+						.build(); 
+			}
+			if (verifyLength && length != fileInfo.getLength()) {
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for file: ").append(fileName).build().toString())
+						.build();
+			}
+			
+			String contentType = MediaType.APPLICATION_OCTET_STREAM;
+			String lfn = fileName.toLowerCase();
+			if (lfn.endsWith(".html") || lfn.endsWith(".htm"))
+				contentType = MediaType.TEXT_HTML;
+			else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv"))
+				contentType = MediaType.TEXT_PLAIN;
+			RemoteFileStreamingOutput rfso = new RemoteFileStreamingOutput(fileInfo, member);
+			return Response.ok(rfso, contentType).build();
+		} catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
+		}
+	}		
 }

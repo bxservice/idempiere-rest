@@ -44,11 +44,13 @@ import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.compiere.util.Util;
+import org.idempiere.distributed.IClusterService;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ClusterUtil;
 
 /**
  * 
@@ -223,6 +225,10 @@ public class Process {
 		if (processInfo.getExportFile() != null) {
 			processInfoJson.addProperty("exportFile", processInfo.getExportFile().getName());
 			processInfoJson.addProperty("exportFileLength", processInfo.getExportFile().length());
+		}
+		IClusterService service = ClusterUtil.getClusterService();
+		if (service != null && service.getLocalMember() != null) {
+			processInfoJson.addProperty("nodeId", service.getLocalMember().getId());
 		}
 		
 		ProcessInfoUtil.setLogFromDB(processInfo);
