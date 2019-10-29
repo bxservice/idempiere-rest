@@ -12,6 +12,7 @@ Import-Package: javax.activation;version="1.2.0",
  org.adempiere.server,
  org.compiere.process,
  org.compiere.server,
+ org.idempiere.server.cluster,
  org.idempiere.server.cluster.callable,
  org.osgi.framework,
  org.osgi.service.component.annotations;version="1.3.0"

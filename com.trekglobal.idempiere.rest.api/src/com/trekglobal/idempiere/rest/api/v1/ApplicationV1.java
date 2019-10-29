@@ -40,6 +40,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.impl.FileResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ModelResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.NodeResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ProcessResourceImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ServerResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.WindowResourceImpl;
 
 /**
@@ -68,6 +69,7 @@ public class ApplicationV1 extends Application {
         classes.add(FileResourceImpl.class);
         classes.add(CacheResourceImpl.class);
         classes.add(NodeResourceImpl.class);
+        classes.add(ServerResourceImpl.class);
         
         return classes;
     }	

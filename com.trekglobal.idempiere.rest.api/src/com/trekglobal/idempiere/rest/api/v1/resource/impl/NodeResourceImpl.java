@@ -35,12 +35,15 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.server.LogFileInfo;
 import org.compiere.server.SystemInfo;
+import org.compiere.util.CLogMgt;
 import org.compiere.util.CLogger;
 import org.compiere.util.TimeUtil;
+import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
 import org.idempiere.server.cluster.callable.DeleteLogsCallable;
 import org.idempiere.server.cluster.callable.RotateLogCallable;
+import org.idempiere.server.cluster.callable.SetTraceLevelCallable;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -205,10 +208,14 @@ public class NodeResourceImpl implements NodeResource {
 					.build();
 		}
 		
-		if (result != null && result)
-			return Response.ok("Logs deleted").build();
-		else
-			return Response.status(Status.NOT_MODIFIED).entity("Failed to delete logs").build();
+		SystemInfo info = getSystemInfo(id);
+		JsonObject json = new JsonObject();
+		json.addProperty("currentLogFile", info.getCurrentLogFile());
+		if (result != null && result) {			
+			return Response.ok(json.toString()).build();
+		} else {
+			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(json.toString()).build();
+		}
 	}
 
 	@Override
@@ -244,10 +251,61 @@ public class NodeResourceImpl implements NodeResource {
 					.build();
 		}
 		
+		SystemInfo info = getSystemInfo(id);
+		JsonObject json = new JsonObject();
+		json.addProperty("currentLogFile", info.getCurrentLogFile());
 		if (result != null && result)
-			return Response.ok("Logs rotated").build();
+			return Response.ok(json.toString()).build();
 		else
-			return Response.status(Status.NOT_MODIFIED).entity("Failed to rotate logs").build();
+			return Response.status(Status.INTERNAL_SERVER_ERROR).entity(json.toString()).build();
+	}
+
+	@Override
+	public Response updateNodeLogLevel(String id, String logLevel) {
+		if (Util.isEmpty(logLevel, true)) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("No Log Level").append("No log level parameter").build().toString())
+					.build(); 
+		}
+		
+		String levelName = null;
+		for(Level level : CLogMgt.LEVELS) {
+			if (level.getName().equalsIgnoreCase(logLevel)) {
+				levelName = level.getName();
+				break;
+			}
+		}
+		if (levelName == null) {
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Invalid Log Level").append("Invalid log level parameter: "+logLevel).build().toString())
+					.build(); 
+		}
+		
+		SetTraceLevelCallable callable = new SetTraceLevelCallable(levelName);
+		try 
+		{
+			if (!Util.isEmpty(id, true)) 
+			{
+				ClusterUtil.getClusterService().execute(callable, ClusterUtil.getClusterMember(id)).get();
+			} 
+			else 
+			{
+				callable.call();				
+			}
+		} 
+		catch (Exception ex) 
+		{
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
+		}
+		
+		SystemInfo info = getSystemInfo(id);
+		JsonObject jsonObject = new JsonObject();
+		jsonObject.addProperty("logLevel", info.getLogLevel().getName());
+		
+		return Response.ok(jsonObject.toString()).build();
 	}
 
 }

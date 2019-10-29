@@ -1906,6 +1906,514 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "del api/v1/nodes/{id}/logs",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9075d1be-0e60-4b03-8332-50cd1eb41216",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes",
+						"{{nodeId}}",
+						"logs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"serverId\", jsonData[jsonData.length-1].id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/{id}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"{{serverId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/{id}/logs",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/logs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"{{serverId}}",
+						"logs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/{id}/state",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/state",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"{{serverId}}",
+						"state"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/reload",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"serverId\", jsonData[jsonData.length-1].id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/reload",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"reload"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/{id}/run",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/run",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"{{serverId}}",
+						"run"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/servers/schedulers/{id}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"schedulers",
+						"100"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "post api/v1/servers/schedulers/{id}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"schedulers",
+						"100"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "del api/v1/servers/schedulers/{id}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"servers",
+						"schedulers",
+						"100"
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"protocolProfileBehavior": {}

@@ -28,7 +28,6 @@ package com.trekglobal.idempiere.rest.api.v1.resource;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -40,44 +39,50 @@ import javax.ws.rs.core.Response;
  * @author hengsin
  *
  */
-@Path("v1/nodes")
-public interface NodeResource {
+@Path("v1/servers")
+public interface ServerResource {
 
-	public static final String LOCAL_ID="local";
-	
-	public static final String CURRENT_FILE_NAME = "current";
-	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getNodes();
+	public Response getServers();
 	
+	@GET
 	@Path("{id}")
-	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getNodeInfo(@PathParam("id") String id);
-
+	public Response getServer(@PathParam("id") String id);
+	
+	@GET
 	@Path("{id}/logs")
-	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getNodeLogs(@PathParam("id") String id);
+	public Response getServerLogs(@PathParam("id") String id);
 	
-	@Path("{id}/logs/{fileName}")
-	@GET
-	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN})
-	public Response getNodeLogFile(@PathParam("id") String id, @PathParam("fileName") String fileName);
-	
-	@Path("{id}/logs")
-	@DELETE
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response deleteNodeLogs(@PathParam("id") String id);
-	
-	@Path("{id}/logs/rotate")
 	@POST
+	@Path("{id}/state")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response rotateNodeLogs(@PathParam("id") String id);
+	public Response changeServerState(@PathParam("id") String id);
 	
-	@Path("{id}/logs/level/{logLevel}")
-	@PUT
+	@POST
+	@Path("{id}/run")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response updateNodeLogLevel(@PathParam("id") String id, @PathParam("logLevel") String logLevel);
+	public Response runServer(@PathParam("id") String id);
+	
+	@POST
+	@Path("reload")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response reloadServers();
+	
+	@GET
+	@Path("schedulers/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getScheduler(@PathParam("id") int id);
+	
+	@POST
+	@Path("schedulers/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response addScheduler(@PathParam("id") int id);
+	
+	@DELETE
+	@Path("schedulers/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response removeScheduler(@PathParam("id") int id);
 }

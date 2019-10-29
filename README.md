@@ -20,12 +20,13 @@
 * api/v1/windows - working with AD_Window and AD_Tab
 * api/v1/processes - working with process and reports
 * api/v1/files - to access files created by api/v1/processes
-* api/vi/caches - get caches info, reset cache
-* api/vi/nodes - get nodes info, get log files, reset and rotate logs.
+* api/v1/caches - get caches info, reset cache
+* api/v1/nodes - get nodes info, get log files, reset and rotate logs.
+* api/v1/servers - servers and schedulers resource
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
-  * must run "POST api/v1/auth/tokens" and "PUT api/v1/auth/tokens" before you can test other calls. the securty token created by the 2 call is valid for 1 hour.
+  * must run "POST api/v1/auth/tokens" and "PUT api/v1/auth/tokens" before you can test other calls. the security token created by the 2 call is valid for 1 hour.
 
 ## p2 deployment
 * at idempiere-rest, run mvn verify 
