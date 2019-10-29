@@ -20,6 +20,8 @@
 * api/v1/windows - working with AD_Window and AD_Tab
 * api/v1/processes - working with process and reports
 * api/v1/files - to access files created by api/v1/processes
+* api/vi/caches - get caches info, reset cache
+* api/vi/nodes - get nodes info, get log files, reset and rotate logs.
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
