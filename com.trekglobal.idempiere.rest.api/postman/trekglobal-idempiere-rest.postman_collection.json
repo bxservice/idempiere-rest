@@ -1205,18 +1205,18 @@
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
+						"type": "text",
+						"value": "application/json"
 					},
 					{
 						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
+						"type": "text",
+						"value": "application/json"
 					},
 					{
 						"key": "Authorization",
-						"value": "Bearer {{authToken}}",
-						"type": "text"
+						"type": "text",
+						"value": "Bearer {{authToken}}"
 					}
 				],
 				"url": {
@@ -1283,6 +1283,22 @@
 		},
 		{
 			"name": "api/v1/processes/{process slug}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5e2e849c-d4ea-4f9b-87cc-d03a1f9ed898",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"processFileName\", encodeURIComponent(jsonData.exportFile));",
+							"pm.environment.set(\"processFileLength\", jsonData.exportFileLength);",
+							"pm.environment.set(\"processNodeId\", jsonData.nodeId);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -1347,7 +1363,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/files/Business_Partner_Open15117746575121893935.html?length=12606",
+					"raw": "http://localhost:8080/api/v1/files/{{processFileName}}?length={{processFileLength}}&nodeId={{processNodeId}}",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -1357,12 +1373,16 @@
 						"api",
 						"v1",
 						"files",
-						"Business_Partner_Open15117746575121893935.html"
+						"{{processFileName}}"
 					],
 					"query": [
 						{
 							"key": "length",
-							"value": "12606"
+							"value": "{{processFileLength}}"
+						},
+						{
+							"key": "nodeId",
+							"value": "{{processNodeId}}"
 						}
 					]
 				},
@@ -1539,6 +1559,354 @@
 				"description": "Add new attachment"
 			},
 			"response": []
+		},
+		{
+			"name": "api/v1/windows/{window slug}/{recordid}/print",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/windows/sales-order/102/print",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"sales-order",
+						"102",
+						"print"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/caches",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/caches",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"caches"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/caches",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/caches",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"caches"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/nodes",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "796a4e71-6913-45d5-b306-daa54392f9ce",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"nodeId\", jsonData[jsonData.length-1].id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/nodes/{id}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes",
+						"{{nodeId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/nodes/{id}/logs",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9075d1be-0e60-4b03-8332-50cd1eb41216",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"logFileName\", encodeURIComponent(jsonData[jsonData.length-1].fileName));"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes",
+						"{{nodeId}}",
+						"logs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/nodes/{id}/logs/{fileName}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs/{{logFileName}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes",
+						"{{nodeId}}",
+						"logs",
+						"{{logFileName}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/nodes/{id}/logs/rotate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9075d1be-0e60-4b03-8332-50cd1eb41216",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs/rotate",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"nodes",
+						"{{nodeId}}",
+						"logs",
+						"rotate"
+					]
+				}
+			},
+			"response": []
 		}
-	]
+	],
+	"protocolProfileBehavior": {}
 }

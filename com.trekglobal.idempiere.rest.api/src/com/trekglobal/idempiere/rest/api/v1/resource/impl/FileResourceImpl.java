@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.io.File;
 import java.util.logging.Level;
 
+import javax.activation.MimetypesFileTypeMap;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -38,7 +39,6 @@ import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
 
 import com.trekglobal.idempiere.rest.api.v1.resource.FileResource;
-import com.trekglobal.idempiere.rest.api.v1.resource.impl.GetFileInfoCallable.FileInfo;
 
 /**
  * 
@@ -46,7 +46,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.impl.GetFileInfoCallable.Fi
  *
  */
 public class FileResourceImpl implements FileResource {
-
+	
 	protected static final int BLOCK_SIZE = 1024 * 1024 * 5;
 	private CLogger log = CLogger.getCLogger(getClass());
 	
@@ -70,6 +70,12 @@ public class FileResourceImpl implements FileResource {
 		}
 	}
 
+	/**
+	 * 
+	 * @param fileName
+	 * @param nodeId
+	 * @return response
+	 */
 	public Response getFile(String fileName, String nodeId) {
 		if (Util.isEmpty(nodeId)) {
 			return getLocalFile(fileName, false, 0);
@@ -87,20 +93,26 @@ public class FileResourceImpl implements FileResource {
 	}
 	
 	private Response getLocalFile(String fileName, boolean verifyLength, long length) {
-		File tempFolder = new File(System.getProperty("java.io.tmpdir"));
-		File file = new File(tempFolder, fileName);
+		File file = new File(fileName);
 		if (file.exists() && file.isFile()) {
-			if (!file.canRead()) {
+			if (!file.canRead() || !FileAccess.isAccessible(file)) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not readable").append("File not readable: ").append(fileName).build().toString())
 						.build();
 			} else if (!verifyLength || file.length()==length) {
-				String contentType = MediaType.APPLICATION_OCTET_STREAM;
+				String contentType = null;
 				String lfn = fileName.toLowerCase();
-				if (lfn.endsWith(".html") || lfn.endsWith(".htm"))
+				if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
 					contentType = MediaType.TEXT_HTML;
-				else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv"))
+				} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
 					contentType = MediaType.TEXT_PLAIN;
+				} else {
+					MimetypesFileTypeMap map = new MimetypesFileTypeMap();
+					contentType = map.getContentType(file);
+				}
+				if (Util.isEmpty(contentType, true))
+					contentType = MediaType.APPLICATION_OCTET_STREAM;
+				
 				FileStreamingOutput fso = new FileStreamingOutput(file);
 				return Response.ok(fso, contentType).build();
 			} else {
@@ -110,7 +122,7 @@ public class FileResourceImpl implements FileResource {
 			}
 		} else {
 			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not found").append("File not found: ").append(fileName).build().toString())
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("File not found").append("File not found: ").append(fileName).build().toString())
 					.build();
 		}
 	}
@@ -125,7 +137,7 @@ public class FileResourceImpl implements FileResource {
 		}
 		
 		try {
-			GetFileInfoCallable infoCallable = new GetFileInfoCallable("java.io.tmpdir", fileName, BLOCK_SIZE);
+			GetFileInfoCallable infoCallable = new GetFileInfoCallable(null, fileName, BLOCK_SIZE);
 			FileInfo fileInfo = service.execute(infoCallable, member).get();
 			if (fileInfo == null) {
 				return Response.status(Status.NOT_FOUND)
@@ -138,12 +150,19 @@ public class FileResourceImpl implements FileResource {
 						.build();
 			}
 			
-			String contentType = MediaType.APPLICATION_OCTET_STREAM;
+			String contentType = null;
 			String lfn = fileName.toLowerCase();
-			if (lfn.endsWith(".html") || lfn.endsWith(".htm"))
+			if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
 				contentType = MediaType.TEXT_HTML;
-			else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv"))
+			} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
 				contentType = MediaType.TEXT_PLAIN;
+			} else {
+				MimetypesFileTypeMap map = new MimetypesFileTypeMap();
+				contentType = map.getContentType(fileInfo.getFileName());
+			}
+			if (Util.isEmpty(contentType, true))
+				contentType = MediaType.APPLICATION_OCTET_STREAM;
+			
 			RemoteFileStreamingOutput rfso = new RemoteFileStreamingOutput(fileInfo, member);
 			return Response.ok(rfso, contentType).build();
 		} catch (Exception ex) {
@@ -152,5 +171,5 @@ public class FileResourceImpl implements FileResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		}
-	}		
+	}			
 }

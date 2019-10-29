@@ -1,3 +1,28 @@
+/**********************************************************************
+* This file is part of iDempiere ERP Open Source                      *
+* http://www.idempiere.org                                            *
+*                                                                     *
+* Copyright (C) Contributors                                          *
+*                                                                     *
+* This program is free software; you can redistribute it and/or       *
+* modify it under the terms of the GNU General Public License         *
+* as published by the Free Software Foundation; either version 2      *
+* of the License, or (at your option) any later version.              *
+*                                                                     *
+* This program is distributed in the hope that it will be useful,     *
+* but WITHOUT ANY WARRANTY; without even the implied warranty of      *
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the        *
+* GNU General Public License for more details.                        *
+*                                                                     *
+* You should have received a copy of the GNU General Public License   *
+* along with this program; if not, write to the Free Software         *
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,          *
+* MA 02110-1301, USA.                                                 *
+*                                                                     *
+* Contributors:                                                       *
+* - Trek Global Corporation                                           *
+* - Heng Sin Low                                                      *
+**********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.io.File;
@@ -6,7 +31,12 @@ import java.util.concurrent.Callable;
 
 import org.compiere.util.Util;
 
-public class GetFileInfoCallable implements Callable<GetFileInfoCallable.FileInfo>, Serializable {
+/**
+ * 
+ * @author hengsin
+ *
+ */
+public class GetFileInfoCallable implements Callable<FileInfo>, Serializable {
 
 	/**
 	 * generated serial id
@@ -31,14 +61,12 @@ public class GetFileInfoCallable implements Callable<GetFileInfoCallable.FileInf
 	@Override
 	public FileInfo call() throws Exception {
 		File parentFolder =  null;
-		if ("java.io.tmpdir".equals(parentFolderName))
-			parentFolder = new File(System.getProperty("java.io.tmpdir"));
-		else if (!Util.isEmpty(parentFolderName, true))
+		if (!Util.isEmpty(parentFolderName, true))
 			parentFolder = new File(parentFolderName);
 		
 		File file = parentFolder != null ? new File(parentFolder, fileName) : new File(fileName);
 		if (file.exists() && file.isFile()) {
-			if (!file.canRead())
+			if (!file.canRead() || !FileAccess.isAccessible(file))
 				return null;
 			
 			long length = file.length();
@@ -54,62 +82,5 @@ public class GetFileInfoCallable implements Callable<GetFileInfoCallable.FileInf
 		} else {
 			return null;
 		}
-	}
-	
-	public static class FileInfo implements Serializable {
-		
-		/**
-		 * generated serial id
-		 */
-		private static final long serialVersionUID = -8891201167549891241L;
-		
-		private String parentFolderName;
-		private String fileName;
-		private long length;
-		private int blockSize;
-		private int noOfBlocks;
-		
-		public FileInfo(String fileName, String parentFolderName, long length, int blockSize, int noOfBlocks) {
-			this.parentFolderName = parentFolderName;
-			this.fileName = fileName;
-			this.length = length;
-			this.blockSize = blockSize;
-			this.noOfBlocks = noOfBlocks;
-		}
-		
-		/**
-		 * @return the parentFolderName
-		 */
-		public String getParentFolderName() {
-			return parentFolderName;
-		}
-
-		/**
-		 * @return the fileName
-		 */
-		public String getFileName() {
-			return fileName;
-		}
-
-		/**
-		 * @return the length
-		 */
-		public long getLength() {
-			return length;
-		}
-
-		/**
-		 * @return the blockSize
-		 */
-		public int getBlockSize() {
-			return blockSize;
-		}
-
-		/**
-		 * @return the noOfBlocks
-		 */
-		public int getNoOfBlocks() {
-			return noOfBlocks;
-		}			
 	}	
 }

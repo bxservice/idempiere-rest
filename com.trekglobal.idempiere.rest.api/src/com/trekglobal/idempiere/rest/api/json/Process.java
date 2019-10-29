@@ -219,11 +219,11 @@ public class Process {
 		processInfoJson.addProperty("summary", processInfo.getSummary());
 		processInfoJson.addProperty("isError", processInfo.isError());
 		if (processInfo.getPDFReport() != null) {
-			processInfoJson.addProperty("reportFile", processInfo.getPDFReport().getName());
+			processInfoJson.addProperty("reportFile", processInfo.getPDFReport().getAbsolutePath());
 			processInfoJson.addProperty("reportFileLength", processInfo.getPDFReport().length());
 		}
 		if (processInfo.getExportFile() != null) {
-			processInfoJson.addProperty("exportFile", processInfo.getExportFile().getName());
+			processInfoJson.addProperty("exportFile", processInfo.getExportFile().getAbsolutePath());
 			processInfoJson.addProperty("exportFileLength", processInfo.getExportFile().length());
 		}
 		IClusterService service = ClusterUtil.getClusterService();

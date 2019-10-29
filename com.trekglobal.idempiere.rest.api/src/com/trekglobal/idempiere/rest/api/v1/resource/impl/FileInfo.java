@@ -23,35 +23,68 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource;
+package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import java.io.Serializable;
 
 /**
  * 
  * @author hengsin
  *
  */
-@Path("v1/files")
-public interface FileResource {
-
-	@Path("{fileName}")
-	@GET
-	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN})
+public class FileInfo implements Serializable {
+	
 	/**
-	 * Get file content as binary stream
-	 * @param fileName
-	 * @param length
-	 * @param nodeId
-	 * @return response
+	 * generated serial id
 	 */
-	public Response getFile(@PathParam("fileName") String fileName, @QueryParam("length") @DefaultValue("0") long length,
-				@QueryParam("node_id") String nodeId);
+	private static final long serialVersionUID = -8891201167549891241L;
+	
+	private String parentFolderName;
+	private String fileName;
+	private long length;
+	private int blockSize;
+	private int noOfBlocks;
+	
+	public FileInfo(String parentFolderName, String fileName, long length, int blockSize, int noOfBlocks) {
+		this.parentFolderName = parentFolderName;
+		this.fileName = fileName;
+		this.length = length;
+		this.blockSize = blockSize;
+		this.noOfBlocks = noOfBlocks;
+	}
+	
+	/**
+	 * @return the parentFolderName
+	 */
+	public String getParentFolderName() {
+		return parentFolderName;
+	}
+
+	/**
+	 * @return the fileName
+	 */
+	public String getFileName() {
+		return fileName;
+	}
+
+	/**
+	 * @return the length
+	 */
+	public long getLength() {
+		return length;
+	}
+
+	/**
+	 * @return the blockSize
+	 */
+	public int getBlockSize() {
+		return blockSize;
+	}
+
+	/**
+	 * @return the noOfBlocks
+	 */
+	public int getNoOfBlocks() {
+		return noOfBlocks;
+	}			
 }

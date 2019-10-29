@@ -1,6 +1,28 @@
-/**
- * 
- */
+/**********************************************************************
+* This file is part of iDempiere ERP Open Source                      *
+* http://www.idempiere.org                                            *
+*                                                                     *
+* Copyright (C) Contributors                                          *
+*                                                                     *
+* This program is free software; you can redistribute it and/or       *
+* modify it under the terms of the GNU General Public License         *
+* as published by the Free Software Foundation; either version 2      *
+* of the License, or (at your option) any later version.              *
+*                                                                     *
+* This program is distributed in the hope that it will be useful,     *
+* but WITHOUT ANY WARRANTY; without even the implied warranty of      *
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the        *
+* GNU General Public License for more details.                        *
+*                                                                     *
+* You should have received a copy of the GNU General Public License   *
+* along with this program; if not, write to the Free Software         *
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,          *
+* MA 02110-1301, USA.                                                 *
+*                                                                     *
+* Contributors:                                                       *
+* - Trek Global Corporation                                           *
+* - Heng Sin Low                                                      *
+**********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.net.InetAddress;
@@ -58,7 +80,8 @@ public class NodeResourceImpl implements NodeResource {
 		for(IClusterMember member : members) {
 			JsonObject node = new JsonObject();
 			node.addProperty("id", member.getId());
-			node.addProperty("name", member.getAddress().getCanonicalHostName());
+			node.addProperty("hostName", member.getAddress().getCanonicalHostName());
+			node.addProperty("port", member.getPort());
 			nodes.add(node);
 		}
 		return Response.ok(nodes.toString()).build();
@@ -76,7 +99,13 @@ public class NodeResourceImpl implements NodeResource {
 		
 		JsonObject json = new JsonObject();
 		json.addProperty("id", id);
-		json.addProperty("name", info.getAddress().getCanonicalHostName());
+		InetAddress address = null;
+		try {
+			address = info.getAddress() != null ? info.getAddress() : InetAddress.getLocalHost();
+		} catch (UnknownHostException e) {
+		}
+		if (address != null)
+			json.addProperty("hostName", address.getCanonicalHostName());
 		json.addProperty("home", info.getIDempiereHome());
 		json.addProperty("os", info.getOperatingSystem());
 		json.addProperty("jvm", info.getJavaVM());
@@ -96,6 +125,8 @@ public class NodeResourceImpl implements NodeResource {
 		json.addProperty("logLevel", info.getLogLevel().getName());
 		json.addProperty("currentLogFile", info.getCurrentLogFile());
 		json.addProperty("sessionCount", info.getSessionCount());
+		json.addProperty("garbageCollectionCount", info.getGarbageCollectionCount());
+		json.addProperty("garbageCollectionTime", info.getGarbageCollectionTime());
 		
 		return Response.ok(json.toString()).build();
 	}

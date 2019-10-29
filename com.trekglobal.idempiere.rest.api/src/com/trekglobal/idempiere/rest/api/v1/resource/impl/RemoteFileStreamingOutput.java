@@ -36,8 +36,6 @@ import javax.ws.rs.core.StreamingOutput;
 import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
 
-import com.trekglobal.idempiere.rest.api.v1.resource.impl.GetFileInfoCallable.FileInfo;
-
 /**
  * 
  * @author hengsin
@@ -48,7 +46,7 @@ public class RemoteFileStreamingOutput implements StreamingOutput {
 	private FileInfo fileInfo;
 	private IClusterMember member;
 
-	RemoteFileStreamingOutput(GetFileInfoCallable.FileInfo fileInfo, IClusterMember member) {
+	RemoteFileStreamingOutput(FileInfo fileInfo, IClusterMember member) {
 		this.fileInfo = fileInfo;
 		this.member = member;
 	}
@@ -69,6 +67,7 @@ public class RemoteFileStreamingOutput implements StreamingOutput {
 					break;
 				bos.write(contents);
 			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
 				throw new WebApplicationException(e);
 			}								
 		}
