@@ -25,14 +25,24 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.AdempiereProcessor;
 import org.compiere.model.AdempiereProcessorLog;
+import org.compiere.model.MRole;
 import org.compiere.model.MScheduler;
+import org.compiere.model.MTable;
+import org.compiere.model.MUser;
+import org.compiere.model.PO;
 import org.compiere.server.AdempiereServerMgr;
 import org.compiere.server.IServerManager;
 import org.compiere.server.ServerInstance;
+import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
@@ -147,6 +157,27 @@ public class ServerResourceImpl implements ServerResource {
 					.build(); 
 		}
 		
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			AdempiereProcessor model = instance.getModel();
+			if (model instanceof PO) {
+				PO po  = (PO) model;
+				MTable table = MTable.get(Env.getCtx(), po.get_Table_ID());
+				if (!hasAccess(table, true)) {
+					return accessDenied(id, "change server state");
+				}
+				if (po.getAD_Client_ID() != Env.getAD_Client_ID(Env.getCtx())) {
+					return accessDenied(id, "change server state");
+				}
+				MRole role = MRole.getDefault();
+				if (!role.isOrgAccess(po.getAD_Org_ID(), true)) {
+					return accessDenied(id, "change server state");
+				}
+			} else {
+				return accessDenied(id, "change server state");
+			}
+		}
+		
 		String error = null;
 		if (instance.isStarted()) {
 			error = serverMgr.stop(id);
@@ -163,6 +194,12 @@ public class ServerResourceImpl implements ServerResource {
 		return getServer(id);
 	}
 
+	private Response accessDenied(String id, String request) {
+		return Response.status(Status.FORBIDDEN)
+				.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for " + request + " request: " + id).build().toString())
+				.build();
+	}
+
 	@Override
 	public Response runServer(String id) {
 		IServerManager serverMgr = getServerManager();
@@ -171,6 +208,27 @@ public class ServerResourceImpl implements ServerResource {
 			return Response.status(Status.NOT_FOUND)
 					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid server Id").append("No match found for server id: ").append(id).build().toString())
 					.build(); 
+		}
+		
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			AdempiereProcessor model = instance.getModel();
+			if (model instanceof PO) {
+				PO po  = (PO) model;
+				MTable table = MTable.get(Env.getCtx(), po.get_Table_ID());
+				if (!hasAccess(table, true)) {
+					return accessDenied(id, "run now");
+				}
+				if (po.getAD_Client_ID() != Env.getAD_Client_ID(Env.getCtx())) {
+					return accessDenied(id, "run now");
+				}
+				MRole role = MRole.getDefault();
+				if (!role.isOrgAccess(po.getAD_Org_ID(), true)) {
+					return accessDenied(id, "run now");
+				}
+			} else {
+				return accessDenied(id, "run now");
+			}
 		}
 		
 		String error = serverMgr.runNow(id);
@@ -193,6 +251,12 @@ public class ServerResourceImpl implements ServerResource {
 
 	@Override
 	public Response reloadServers() {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for reload servers request").build().toString())
+					.build();
+		}
 		IServerManager serverMgr = getServerManager();
 		String error = serverMgr.reload();
 		if (!Util.isEmpty(error, true)) {
@@ -260,6 +324,21 @@ public class ServerResourceImpl implements ServerResource {
 					.build();
 		}
 		
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			MTable table = MTable.get(Env.getCtx(), MScheduler.Table_ID);
+			if (!hasAccess(table, true)) {
+				return accessDenied(scheduler.getServerID(), "add scheduler");
+			}
+			if (scheduler.getAD_Client_ID() != Env.getAD_Client_ID(Env.getCtx())) {
+				return accessDenied(scheduler.getServerID(), "add scheduler");
+			}
+			MRole role = MRole.getDefault();
+			if (!role.isOrgAccess(scheduler.getAD_Org_ID(), true)) {
+				return accessDenied(scheduler.getServerID(), "add scheduler");
+			}
+		}
+		
 		IServerManager serverMgr = getServerManager();
 		ServerInstance instance = serverMgr.getServerInstance(scheduler.getServerID());
 		if (instance != null) {
@@ -293,6 +372,21 @@ public class ServerResourceImpl implements ServerResource {
 					.build();
 		}
 		
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			MTable table = MTable.get(Env.getCtx(), MScheduler.Table_ID);
+			if (!hasAccess(table, true)) {
+				return accessDenied(scheduler.getServerID(), "remove scheduler");
+			}
+			if (scheduler.getAD_Client_ID() != Env.getAD_Client_ID(Env.getCtx())) {
+				return accessDenied(scheduler.getServerID(), "remove scheduler");
+			}
+			MRole role = MRole.getDefault();
+			if (!role.isOrgAccess(scheduler.getAD_Org_ID(), true)) {
+				return accessDenied(scheduler.getServerID(), "remove scheduler");
+			}
+		}
+		
 		IServerManager serverMgr = getServerManager();
 		String error = serverMgr.removeScheduler(scheduler);
 		if (!Util.isEmpty(error, true)) {
@@ -303,5 +397,30 @@ public class ServerResourceImpl implements ServerResource {
 		ServerInstance instance = serverMgr.getServerInstance(scheduler.getServerID());
 		JsonObject json = toSchedulerJson(scheduler, instance);
 		return Response.ok(json.toString()).build();
+	}
+	
+	private boolean hasAccess(MTable table, boolean rw) {
+		MRole role = MRole.getDefault();
+		if (role == null)
+			return false;
+		
+		StringBuilder builder = new StringBuilder("SELECT DISTINCT a.AD_Window_ID FROM AD_Window a JOIN AD_Tab b ON a.AD_Window_ID=b.AD_Window_ID ");
+		builder.append("WHERE a.IsActive='Y' AND b.IsActive='Y' AND b.AD_Table_ID=?");
+		try (PreparedStatement stmt = DB.prepareStatement(builder.toString(), null)) {
+			stmt.setInt(1, table.getAD_Table_ID());			
+			ResultSet rs = stmt.executeQuery();
+			while (rs.next()) {
+				int windowId = rs.getInt(1);
+				Boolean b = role.getWindowAccess(windowId);
+				if (b != null) {
+					if (!rw || b.booleanValue())
+						return true;
+				}
+			}
+		} catch (SQLException ex) {
+			ex.printStackTrace();
+			return false;
+		}
+		return false;
 	}
 }

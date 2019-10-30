@@ -214,7 +214,7 @@ public class AuthServiceImpl implements AuthService {
 		Builder builder = JWT.create().withSubject(userName);
 		if (parameters.getClientId() >= 0) {
 			builder.withClaim(LoginClaims.AD_Client_ID.name(), parameters.getClientId());
-			if (parameters.getRoleId() > 0) {
+			if (parameters.getRoleId() >= 0) {
 				builder.withClaim(LoginClaims.AD_Role_ID.name(), parameters.getRoleId());
 				if (parameters.getOrganizationId() >= 0) {
 					builder.withClaim(LoginClaims.AD_Org_ID.name(), parameters.getOrganizationId());

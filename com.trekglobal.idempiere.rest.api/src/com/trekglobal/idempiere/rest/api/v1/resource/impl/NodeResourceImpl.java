@@ -33,10 +33,12 @@ import java.util.logging.Level;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MUser;
 import org.compiere.server.LogFileInfo;
 import org.compiere.server.SystemInfo;
 import org.compiere.util.CLogMgt;
 import org.compiere.util.CLogger;
+import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
 import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterMember;
@@ -177,6 +179,12 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response deleteNodeLogs(String id) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for delete logs request").build().toString())
+					.build();
+		}
 		DeleteLogsCallable callable = new DeleteLogsCallable();
 		Boolean result = null;
 		try {
@@ -220,6 +228,12 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response rotateNodeLogs(String id) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for rotate log request").build().toString())
+					.build();
+		}
 		RotateLogCallable callable = new RotateLogCallable();
 		Boolean result = null;
 		try {
@@ -279,6 +293,13 @@ public class NodeResourceImpl implements NodeResource {
 			return Response.status(Status.BAD_REQUEST)
 					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Invalid Log Level").append("Invalid log level parameter: "+logLevel).build().toString())
 					.build(); 
+		}
+		
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator()) {
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for set log level request").build().toString())
+					.build();
 		}
 		
 		SetTraceLevelCallable callable = new SetTraceLevelCallable(levelName);

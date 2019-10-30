@@ -2414,6 +2414,252 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "sysadmin api/v1/auth/tokens",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "dfc349c8-f600-4b94-b171-723165eab4eb",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "eca8c423-7ced-494f-a5b9-79b623ce9da0",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"userName\":\"SuperUser\",\"password\":\"System\"}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/tokens",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "api/v1/auth/tokens",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"type": "text",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"type": "text",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"userName\":\"GardenAdmin\",\"password\":\"GardenAdmin\"}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/tokens",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"tokens"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "216"
+						},
+						{
+							"key": "Server",
+							"value": "Jetty(9.4.14.v20181114)"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"clients\": [\n        {\n            \"id\": 11,\n            \"name\": \"GardenWorld\"\n        }\n    ],\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsImlzcyI6ImlkZW1waWVyZS5vcmciLCJleHAiOjE1NjgyMTIzMTF9.doHygASK4aXAcF_jn-4HOlqyvyvfWdRcuPm2iotXqPE\"\n}"
+				}
+			]
+		},
+		{
+			"name": "sysadmin api/v1/auth/tokens",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a5854050-c2df-4bc4-9e4e-791576ee1a8d",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"clientId\": 0,\n  \"roleId\": 0,\n  \"organizationId\": 0\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/tokens",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": ""
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "api/v1/auth/tokens",
+					"originalRequest": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clientId\": 11,\n  \"roleId\": 102,\n  \"organizationId\": 11,\n  \"warehouseId\": 103\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/tokens",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"tokens"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": ""
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "291"
+						},
+						{
+							"key": "Server",
+							"value": "Jetty(9.4.14.v20181114)"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsIk1fV2FyZWhvdXNlX0lEIjoxMDMsIkFEX1JvbGVfSUQiOjEwMiwiQURfVXNlcl9JRCI6MTAxLCJBRF9PcmdfSUQiOjExLCJpc3MiOiJpZGVtcGllcmUub3JnIiwiQURfQ2xpZW50X0lEIjoxMSwiZXhwIjoxNTY4MjEyMzgzfQ.QoHmDRltIwaBEu_vsgeWU_87--Ylqm7raLZRniEIpT4\"\n}"
+				}
+			]
 		}
 	],
 	"protocolProfileBehavior": {}
