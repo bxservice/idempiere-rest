@@ -1,4 +1,4 @@
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.util;
 
 import java.util.Collection;
 

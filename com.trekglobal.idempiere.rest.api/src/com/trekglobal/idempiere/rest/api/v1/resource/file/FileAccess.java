@@ -23,7 +23,7 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.v1.resource.file;
 
 import java.io.BufferedReader;
 import java.io.File;

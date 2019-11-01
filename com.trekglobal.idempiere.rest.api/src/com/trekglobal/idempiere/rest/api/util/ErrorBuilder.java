@@ -23,57 +23,92 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.util;
 
-import org.compiere.model.GridTab;
+import javax.ws.rs.core.Response.Status;
+
+import org.compiere.util.Util;
+
+import com.google.gson.JsonObject;
 
 /**
- * 
+ * Builder for error response json object 
  * @author hengsin
  *
  */
-public class GridTabPaging {
-	private Paging paging;
-	private GridTab gridTab;
+public class ErrorBuilder {
+
+	private Status status=null;
+	private String title=null;
+	private StringBuilder detail = new StringBuilder();
+	private String type = null;
 	
-	public GridTabPaging(GridTab gridTab, Paging paging) {
-		this.gridTab = gridTab;
-		this.paging = paging;
+	public ErrorBuilder() {
 	}
 
 	/**
-	 * Get number of rows for current page
-	 * @return int
+	 * 
+	 * @param status http status code
+	 * @return ErrorBuilder
 	 */
-	public int getSize() {
-		int total = gridTab.getRowCount(); 
-		if (paging.getPageSize() <= 0)
-			return total;
-		else if ((total - ( paging.getActivePage() * paging.getPageSize())) < 0) {
-			paging.setActivePage(0);
-			return paging.getPageSize() > total ? total : paging.getPageSize();
-		} else {
-			int end = (paging.getActivePage() + 1) * paging.getPageSize();
-			if (end > total)
-				return total - ( paging.getActivePage() * paging.getPageSize());
-			else
-				return paging.getPageSize();
-		}
+	public ErrorBuilder status(Status status) {
+		this.status = status;
+		return this;
 	}
 	
 	/**
-	 * Set current row for current page
-	 * @param rowIndex
+	 * 
+	 * @param title error summary
+	 * @return ErrorBuilder
 	 */
-	public boolean setCurrentRow(int rowIndex) {
-		if (paging.getPageSize() > 0) {
-			rowIndex = (paging.getActivePage() * paging.getPageSize()) + rowIndex;
+	public ErrorBuilder title(String title) {
+		this.title = title;
+		return this;
+	}
+	
+	/**
+	 * error type/code
+	 * @param type
+	 * @return ErrorBuilder
+	 */
+	public ErrorBuilder type(String type) {
+		this.type = type;
+		return this;
+	}
+	
+	/**
+	 * 
+	 * @param detail extra details
+	 * @return ErrorBuilder
+	 */
+	public ErrorBuilder append(String detail) {
+		this.detail.append(detail);
+		return this;
+	}
+	
+	/**
+	 * 
+	 * @return error response json object
+	 */
+	public JsonObject build() {
+		JsonObject jso = new JsonObject();
+		if (!Util.isEmpty(type, true)) {
+			jso.addProperty("type", type);
 		}
-		if (rowIndex < gridTab.getRowCount()) {
-			gridTab.setCurrentRow(rowIndex);
-			return true;
-		} else {
-			return false;
+		if (!Util.isEmpty("title", true)) {
+			jso.addProperty("title", title);
+		}
+		if (status != null) {
+			jso.addProperty("status", status.getStatusCode());
 		}		
+		if (detail.length() > 0) {
+			jso.addProperty("detail", detail.toString());
+		}
+		return jso;
+	}
+
+	public ErrorBuilder append(int i) {
+		detail.append(i);
+		return this;
 	}
 }

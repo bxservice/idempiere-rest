@@ -23,64 +23,89 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.v1.resource.file;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.RandomAccessFile;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
+import org.compiere.util.CLogger;
 import org.compiere.util.Util;
 
 /**
- * 
  * @author hengsin
  *
  */
-public class GetFileInfoCallable implements Callable<FileInfo>, Serializable {
+public class ReadFileCallable implements Callable<byte[]>, Serializable {
 
 	/**
 	 * generated serial id
 	 */
-	private static final long serialVersionUID = -87388045962116357L;
+	private static final long serialVersionUID = -1423690018599866128L;
 	private String parentFolderName;
 	private String fileName;
 	private int blockSize;
+	private int blockNo;
 
+	private transient CLogger log = CLogger.getCLogger(getClass());	
+	
 	/**
 	 * 
 	 * @param parentFolderName
 	 * @param fileName
 	 * @param blockSize size of each block. 0 to load all as one block
+	 * @param blockNo 0 base block index
 	 */
-	public GetFileInfoCallable(String parentFolderName, String fileName, int blockSize) {
+	public ReadFileCallable(String parentFolderName, String fileName, int blockSize, int blockNo) {
 		this.parentFolderName = parentFolderName;
 		this.fileName = fileName;
 		this.blockSize = blockSize;
+		this.blockNo = blockNo;
 	}
 
 	@Override
-	public FileInfo call() throws Exception {
+	public byte[] call() throws Exception {
 		File parentFolder =  null;
-		if (!Util.isEmpty(parentFolderName, true))
+		if ("java.io.tmpdir".equals(parentFolderName))
+			parentFolder = new File(System.getProperty("java.io.tmpdir"));
+		else if (!Util.isEmpty(parentFolderName, true))
 			parentFolder = new File(parentFolderName);
 		
 		File file = parentFolder != null ? new File(parentFolder, fileName) : new File(fileName);
-		if (file.exists() && file.isFile()) {
-			if (!file.canRead() || !FileAccess.isAccessible(file))
-				return null;
-			
-			long length = file.length();
-			int noOfBlocks = 1;
-			if (blockSize > 0 && length > blockSize) {
-				int v = (int) (((length - 1) / blockSize) + 1);
-				if (v == 0)
-					v = 1;
-				noOfBlocks = v;
-			}
-			FileInfo fileInfo = new FileInfo(parentFolderName, fileName, length, blockSize, noOfBlocks);
-			return fileInfo;
-		} else {
-			return null;
+		if (file.length() == 0) {
+			return new byte[0];
 		}
-	}	
+
+		try(RandomAccessFile raf = new RandomAccessFile(file, "r"); FileChannel channel = raf.getChannel();) {			
+			if (blockNo > 0 && blockSize > 0) {
+				channel.position(blockNo * blockSize);
+			}
+			ByteBuffer buffer = ByteBuffer.allocate(1024);
+			ByteArrayOutputStream baos = new ByteArrayOutputStream(2048);
+			int bytesRead = 0;
+			int totalRead = 0;
+			while((bytesRead = channel.read(buffer)) > 0) {
+				totalRead += bytesRead;
+				if (blockSize > 0 && totalRead > blockSize) {
+					int diff = totalRead - blockSize;
+					bytesRead = bytesRead - diff;
+					totalRead = blockSize;
+				}
+				baos.write(buffer.array(), 0, bytesRead);
+				buffer.clear();
+				if (totalRead == blockSize)
+					break;
+			}
+			return baos.toByteArray();
+		} catch (Exception ex) {
+			log.log(Level.SEVERE, "stream" + ex);
+			return null;
+		}		
+	}
+
 }

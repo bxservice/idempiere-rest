@@ -55,12 +55,14 @@ Bundle-ClassPath: .,
  lib/java-jwt-3.3.0.jar
 Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.json,
+ com.trekglobal.idempiere.rest.api.util,
  com.trekglobal.idempiere.rest.api.v1,
  com.trekglobal.idempiere.rest.api.v1.auth,
  com.trekglobal.idempiere.rest.api.v1.auth.filter,
  com.trekglobal.idempiere.rest.api.v1.auth.impl,
  com.trekglobal.idempiere.rest.api.v1.jwt,
  com.trekglobal.idempiere.rest.api.v1.resource,
+ com.trekglobal.idempiere.rest.api.v1.resource.file,
  com.trekglobal.idempiere.rest.api.v1.resource.impl
 Service-Component: OSGI-INF/com.trekglobal.idempiere.rest.api.json.DefaultGridTabSerializer.xml,
  OSGI-INF/com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer.xml

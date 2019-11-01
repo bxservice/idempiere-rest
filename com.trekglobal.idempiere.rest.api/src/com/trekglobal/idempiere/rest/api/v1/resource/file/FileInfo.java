@@ -23,42 +23,68 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.v1.resource.file;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
+import java.io.Serializable;
 
 /**
  * 
  * @author hengsin
  *
  */
-public class FileStreamingOutput implements StreamingOutput {
-
-	private File file;
-
-	FileStreamingOutput(File file) {
-		this.file = file;
+public class FileInfo implements Serializable {
+	
+	/**
+	 * generated serial id
+	 */
+	private static final long serialVersionUID = -8891201167549891241L;
+	
+	private String parentFolderName;
+	private String fileName;
+	private long length;
+	private int blockSize;
+	private int noOfBlocks;
+	
+	public FileInfo(String parentFolderName, String fileName, long length, int blockSize, int noOfBlocks) {
+		this.parentFolderName = parentFolderName;
+		this.fileName = fileName;
+		this.length = length;
+		this.blockSize = blockSize;
+		this.noOfBlocks = noOfBlocks;
 	}
 	
-	@Override
-	public void write(OutputStream output) throws IOException, WebApplicationException {
-		try (FileInputStream fis = new FileInputStream(file)) {
-			BufferedInputStream bis = new BufferedInputStream(fis);
-			BufferedOutputStream bos = new BufferedOutputStream(output);
-			int i = 0;
-			while((i = bis.read()) >= 0) {
-				bos.write(i);
-			}
-			bos.flush();
-		}			
+	/**
+	 * @return the parentFolderName
+	 */
+	public String getParentFolderName() {
+		return parentFolderName;
 	}
-	
+
+	/**
+	 * @return the fileName
+	 */
+	public String getFileName() {
+		return fileName;
+	}
+
+	/**
+	 * @return the length
+	 */
+	public long getLength() {
+		return length;
+	}
+
+	/**
+	 * @return the blockSize
+	 */
+	public int getBlockSize() {
+		return blockSize;
+	}
+
+	/**
+	 * @return the noOfBlocks
+	 */
+	public int getNoOfBlocks() {
+		return noOfBlocks;
+	}			
 }

@@ -23,100 +23,64 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.v1.resource.file;
+
+import java.io.File;
+import java.io.Serializable;
+import java.util.concurrent.Callable;
+
+import org.compiere.util.Util;
 
 /**
  * 
  * @author hengsin
  *
  */
-public class Paging {
-	/** # of items per page. */
-	private int _pgsz = 20;
-	/** total # of items. */
-	private int _ttsz = 0;
-	/** # of pages. */
-	private int _npg = 1;
-	/** the active page. */
-	private int _actpg = 0;
-	
-	public Paging() {
-	}
-
-	/** Constructor.
-	 *
-	 * @param totalsz the total # of items
-	 * @param pagesz the # of items per page
-	 */
-	public Paging(int totalsz, int pagesz) {
-		this();
-		setTotalSize(totalsz);
-		setPageSize(pagesz);
-	}
-	
-	public int getPageSize() {
-		return _pgsz;
-	}
-
-	/**Sets the items to show in each page
-	 * 
-	 */
-	public void setPageSize(int size) {
-		if (size <= 0)
-			throw new IllegalArgumentException("positive only");
-
-		if (_pgsz != size) {
-			_pgsz = size;
-			updatePageNum();
-		}
-	}
-
-	public int getTotalSize() {
-		return _ttsz;
-	}
-
-	/**Sets total size of items
-	 * 
-	 */
-	public void setTotalSize(int size) {
-		if (size < 0)
-			throw new IllegalArgumentException("non-negative only");
-
-		if (_ttsz != size) {
-			_ttsz = size;
-			updatePageNum();
-		}
-	}
-
-	private void updatePageNum() {
-		int v = (_ttsz - 1) / _pgsz + 1;
-		if (v == 0)
-			v = 1;
-		if (v != _npg) {
-			_npg = v;
-			if (_actpg >= _npg) {
-				_actpg = _npg - 1;
-			}
-		}
-	}
-
-	public int getPageCount() {
-		return _npg;
-	}
-
-	public int getActivePage() {
-		return _actpg;
-	}
+public class GetFileInfoCallable implements Callable<FileInfo>, Serializable {
 
 	/**
-	 * Set the active page
-	 * <p>Note: In server side, active page starts from 0. But in browser UI, it starts from 1
+	 * generated serial id
 	 */
-	public void setActivePage(int pg) throws IllegalArgumentException {
-		if (pg >= _npg || pg < 0)
-			throw new IllegalArgumentException("Unable to set active page to " + pg + " since only " + _npg + " pages");
-		if (_actpg != pg) {
-			_actpg = pg;
-		}
+	private static final long serialVersionUID = -87388045962116357L;
+	private String parentFolderName;
+	private String fileName;
+	private int blockSize;
+
+	/**
+	 * 
+	 * @param parentFolderName
+	 * @param fileName
+	 * @param blockSize size of each block. 0 to load all as one block
+	 */
+	public GetFileInfoCallable(String parentFolderName, String fileName, int blockSize) {
+		this.parentFolderName = parentFolderName;
+		this.fileName = fileName;
+		this.blockSize = blockSize;
 	}
+
+	@Override
+	public FileInfo call() throws Exception {
+		File parentFolder =  null;
+		if (!Util.isEmpty(parentFolderName, true))
+			parentFolder = new File(parentFolderName);
+		
+		File file = parentFolder != null ? new File(parentFolder, fileName) : new File(fileName);
+		if (file.exists() && file.isFile()) {
+			if (!file.canRead() || !FileAccess.isAccessible(file))
+				return null;
+			
+			long length = file.length();
+			int noOfBlocks = 1;
+			if (blockSize > 0 && length > blockSize) {
+				int v = (int) (((length - 1) / blockSize) + 1);
+				if (v == 0)
+					v = 1;
+				noOfBlocks = v;
+			}
+			FileInfo fileInfo = new FileInfo(parentFolderName, fileName, length, blockSize, noOfBlocks);
+			return fileInfo;
+		} else {
+			return null;
+		}
+	}	
 }

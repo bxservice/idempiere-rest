@@ -23,92 +23,56 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.v1.resource.file;
 
-import javax.ws.rs.core.Response.Status;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.ExecutionException;
 
-import org.compiere.util.Util;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
 
-import com.google.gson.JsonObject;
+import org.idempiere.distributed.IClusterMember;
+import org.idempiere.distributed.IClusterService;
+
+import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
 
 /**
- * Builder for error response json object 
+ * 
  * @author hengsin
  *
  */
-public class ErrorBuilder {
+public class RemoteFileStreamingOutput implements StreamingOutput {
 
-	private Status status=null;
-	private String title=null;
-	private StringBuilder detail = new StringBuilder();
-	private String type = null;
-	
-	public ErrorBuilder() {
-	}
+	private FileInfo fileInfo;
+	private IClusterMember member;
 
-	/**
-	 * 
-	 * @param status http status code
-	 * @return ErrorBuilder
-	 */
-	public ErrorBuilder status(Status status) {
-		this.status = status;
-		return this;
+	public RemoteFileStreamingOutput(FileInfo fileInfo, IClusterMember member) {
+		this.fileInfo = fileInfo;
+		this.member = member;
 	}
 	
-	/**
-	 * 
-	 * @param title error summary
-	 * @return ErrorBuilder
-	 */
-	public ErrorBuilder title(String title) {
-		this.title = title;
-		return this;
-	}
-	
-	/**
-	 * error type/code
-	 * @param type
-	 * @return ErrorBuilder
-	 */
-	public ErrorBuilder type(String type) {
-		this.type = type;
-		return this;
-	}
-	
-	/**
-	 * 
-	 * @param detail extra details
-	 * @return ErrorBuilder
-	 */
-	public ErrorBuilder append(String detail) {
-		this.detail.append(detail);
-		return this;
-	}
-	
-	/**
-	 * 
-	 * @return error response json object
-	 */
-	public JsonObject build() {
-		JsonObject jso = new JsonObject();
-		if (!Util.isEmpty(type, true)) {
-			jso.addProperty("type", type);
+	@Override
+	public void write(OutputStream output) throws IOException, WebApplicationException {
+		if (fileInfo.getLength() == 0)
+			return;
+		
+		IClusterService service = ClusterUtil.getClusterService();
+		BufferedOutputStream bos = new BufferedOutputStream(output);
+		for(int i = 0; i < fileInfo.getNoOfBlocks(); i++) {
+			ReadFileCallable callable = new ReadFileCallable(fileInfo.getParentFolderName(), fileInfo.getFileName(), fileInfo.getBlockSize(), i);
+			byte[] contents;
+			try {
+				contents = service.execute(callable, member).get();
+				if (contents == null || contents.length == 0)
+					break;
+				bos.write(contents);
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+				throw new WebApplicationException(e);
+			}								
 		}
-		if (!Util.isEmpty("title", true)) {
-			jso.addProperty("title", title);
-		}
-		if (status != null) {
-			jso.addProperty("status", status.getStatusCode());
-		}		
-		if (detail.length() > 0) {
-			jso.addProperty("detail", detail.toString());
-		}
-		return jso;
-	}
-
-	public ErrorBuilder append(int i) {
-		detail.append(i);
-		return this;
-	}
+		bos.flush();
+	}	
 }

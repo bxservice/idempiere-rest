@@ -62,6 +62,7 @@ import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ProcessResource;
 
 /**

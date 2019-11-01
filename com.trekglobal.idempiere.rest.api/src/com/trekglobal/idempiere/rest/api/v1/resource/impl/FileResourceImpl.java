@@ -38,7 +38,14 @@ import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
 
+import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.FileResource;
+import com.trekglobal.idempiere.rest.api.v1.resource.file.FileAccess;
+import com.trekglobal.idempiere.rest.api.v1.resource.file.FileInfo;
+import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
+import com.trekglobal.idempiere.rest.api.v1.resource.file.GetFileInfoCallable;
+import com.trekglobal.idempiere.rest.api.v1.resource.file.RemoteFileStreamingOutput;
 
 /**
  * 

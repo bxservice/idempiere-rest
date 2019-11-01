@@ -23,54 +23,57 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource.impl;
+package com.trekglobal.idempiere.rest.api.util;
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.ExecutionException;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.StreamingOutput;
-
-import org.idempiere.distributed.IClusterMember;
-import org.idempiere.distributed.IClusterService;
+import org.compiere.model.GridTab;
 
 /**
  * 
  * @author hengsin
  *
  */
-public class RemoteFileStreamingOutput implements StreamingOutput {
+public class GridTabPaging {
+	private Paging paging;
+	private GridTab gridTab;
+	
+	public GridTabPaging(GridTab gridTab, Paging paging) {
+		this.gridTab = gridTab;
+		this.paging = paging;
+	}
 
-	private FileInfo fileInfo;
-	private IClusterMember member;
-
-	RemoteFileStreamingOutput(FileInfo fileInfo, IClusterMember member) {
-		this.fileInfo = fileInfo;
-		this.member = member;
+	/**
+	 * Get number of rows for current page
+	 * @return int
+	 */
+	public int getSize() {
+		int total = gridTab.getRowCount(); 
+		if (paging.getPageSize() <= 0)
+			return total;
+		else if ((total - ( paging.getActivePage() * paging.getPageSize())) < 0) {
+			paging.setActivePage(0);
+			return paging.getPageSize() > total ? total : paging.getPageSize();
+		} else {
+			int end = (paging.getActivePage() + 1) * paging.getPageSize();
+			if (end > total)
+				return total - ( paging.getActivePage() * paging.getPageSize());
+			else
+				return paging.getPageSize();
+		}
 	}
 	
-	@Override
-	public void write(OutputStream output) throws IOException, WebApplicationException {
-		if (fileInfo.getLength() == 0)
-			return;
-		
-		IClusterService service = ClusterUtil.getClusterService();
-		BufferedOutputStream bos = new BufferedOutputStream(output);
-		for(int i = 0; i < fileInfo.getNoOfBlocks(); i++) {
-			ReadFileCallable callable = new ReadFileCallable(fileInfo.getParentFolderName(), fileInfo.getFileName(), fileInfo.getBlockSize(), i);
-			byte[] contents;
-			try {
-				contents = service.execute(callable, member).get();
-				if (contents == null || contents.length == 0)
-					break;
-				bos.write(contents);
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-				throw new WebApplicationException(e);
-			}								
+	/**
+	 * Set current row for current page
+	 * @param rowIndex
+	 */
+	public boolean setCurrentRow(int rowIndex) {
+		if (paging.getPageSize() > 0) {
+			rowIndex = (paging.getActivePage() * paging.getPageSize()) + rowIndex;
 		}
-		bos.flush();
-	}	
+		if (rowIndex < gridTab.getRowCount()) {
+			gridTab.setCurrentRow(rowIndex);
+			return true;
+		} else {
+			return false;
+		}		
+	}
 }

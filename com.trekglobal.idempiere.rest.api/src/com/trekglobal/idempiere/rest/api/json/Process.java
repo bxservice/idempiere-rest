@@ -50,7 +50,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.trekglobal.idempiere.rest.api.v1.resource.impl.ClusterUtil;
+import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
 
 /**
  * 
