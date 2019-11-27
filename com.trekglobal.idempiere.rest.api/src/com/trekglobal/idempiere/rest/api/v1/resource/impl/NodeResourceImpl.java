@@ -59,7 +59,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.NodeResource;
  */
 public class NodeResourceImpl implements NodeResource {
 
-	private CLogger log = CLogger.getCLogger(getClass());
+	private static final CLogger log = CLogger.getCLogger(NodeResourceImpl.class);
 	
 	/**
 	 * default constructor 

@@ -23,6 +23,7 @@
 * api/v1/caches - get caches info, reset cache
 * api/v1/nodes - get nodes info, get log files, reset and rotate logs.
 * api/v1/servers - servers and schedulers resource
+* api/v1/infos - info windows
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json

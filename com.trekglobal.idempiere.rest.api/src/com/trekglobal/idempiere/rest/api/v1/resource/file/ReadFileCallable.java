@@ -52,7 +52,7 @@ public class ReadFileCallable implements Callable<byte[]>, Serializable {
 	private int blockSize;
 	private int blockNo;
 
-	private transient CLogger log = CLogger.getCLogger(getClass());	
+	private static final CLogger log = CLogger.getCLogger(ReadFileCallable.class);	
 	
 	/**
 	 * 

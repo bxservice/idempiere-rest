@@ -90,6 +90,8 @@ public class TypeConverterUtils {
 			return typeConverter.toJsonValue(column, value);
 		} else if (value != null && DisplayType.isText(column.getAD_Reference_ID())) {
 			return value.toString();
+		} else if (value != null && column.getAD_Reference_ID() == DisplayType.ID && value instanceof Number) {
+			return ((Number)value).intValue();
 		} else {
 			return null;
 		}
@@ -109,6 +111,8 @@ public class TypeConverterUtils {
 			return typeConverter.toJsonValue(field, value);
 		} else if (value != null && DisplayType.isText(field.getDisplayType())) {
 			return value.toString();
+		} else if (value != null && field.getDisplayType() == DisplayType.ID && value instanceof Number) {
+			return ((Number)value).intValue();
 		} else {
 			return null;
 		}

@@ -55,7 +55,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.RemoteFileStreamingOut
 public class FileResourceImpl implements FileResource {
 	
 	protected static final int BLOCK_SIZE = 1024 * 1024 * 5;
-	private CLogger log = CLogger.getCLogger(getClass());
+	private static final CLogger log = CLogger.getCLogger(FileResourceImpl.class);
 	
 	public FileResourceImpl() {
 	}

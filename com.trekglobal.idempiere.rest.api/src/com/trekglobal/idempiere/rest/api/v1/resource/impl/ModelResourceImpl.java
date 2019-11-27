@@ -77,7 +77,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
  */
 public class ModelResourceImpl implements ModelResource {
 
-	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 5;
+	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
 	private static final int DEFAULT_PAGE_SIZE = 100;
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 
@@ -183,7 +183,7 @@ public class ModelResourceImpl implements ModelResource {
 				pageNo = 1;
 			else if (pageNo > pageCount)
 				pageNo = pageCount;
-			query.setPage(DEFAULT_PAGE_SIZE, pageNo);			
+			query.setPage(DEFAULT_PAGE_SIZE, pageNo-1);			
 		} else {
 			pageNo = 1;
 		}
