@@ -579,16 +579,17 @@ public class InfoWindow {
 	/**
 	 * 
 	 * @param pageSize
-	 * @param pageNo
+	 * @param pageNo page number to retrieve (one base index)
 	 * @param defaultQueryTimeout
 	 * @return JsonArray
 	 */
-	public JsonArray executeQuery(int pageSize, int pageNo, int defaultQueryTimeout) {
+	public QueryResponse executeQuery(int pageSize, int pageNo, int defaultQueryTimeout) {
+		QueryResponse response = new QueryResponse();
 		if (pageNo <= 0)
 			pageNo = 1;
 		int pagesToSkip = pageNo - 1;
 		int start = (pageSize*pagesToSkip) + 1;
-		int end = pageSize * (pagesToSkip+1);
+		int end = (pageSize * (pagesToSkip+1)) + 1;
 		String sql = buildQuerySQL(start, end);
 		JsonArray array = new JsonArray();
 		try (PreparedStatement pstmt = DB.prepareStatement(sql, null)) {
@@ -599,7 +600,13 @@ public class InfoWindow {
 			}
 			pstmt.setQueryTimeout(defaultQueryTimeout);			
 			ResultSet rs = pstmt.executeQuery();
+			int count = 0;
 			while (rs.next()) {
+				count++;
+				if (count > pageSize) {
+					response.setHasNextPage(true);
+					break;
+				}
 				JsonObject json = new JsonObject();
 				for(ColumnInfo columnInfo : columnInfos) {
 					MColumn column = null;
@@ -635,7 +642,8 @@ public class InfoWindow {
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
-		return array;
+		response.setRecords(array);
+		return response;
 	}
 	
 	/**

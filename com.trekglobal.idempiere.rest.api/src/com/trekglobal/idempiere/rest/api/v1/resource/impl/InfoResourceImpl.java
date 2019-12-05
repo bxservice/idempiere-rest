@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.adempiere.model.MInfoProcess;
@@ -51,6 +52,7 @@ import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.InfoResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.info.InfoWindow;
+import com.trekglobal.idempiere.rest.api.v1.resource.info.QueryResponse;
 
 /**
  * @author hengsin
@@ -132,9 +134,21 @@ public class InfoResourceImpl implements InfoResource {
 		
 		InfoWindow infoWindow = new InfoWindow(infoWindowModel, whereClause, orderBy, true);
 		infoWindow.setQueryParameters(paraMap);
-		JsonArray array = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
+		QueryResponse queryResponse = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
+		JsonArray array = queryResponse.getRecords();
+		ResponseBuilder response = Response.ok(array.toString());
+		if (array.size() > 0) {
+			pageNo = queryResponse.getPageNo();
+			response.header("X-Page", pageNo);
+			response.header("X-Per-Page", DEFAULT_PAGE_SIZE);
+			if (queryResponse.isHasNextPage()) {
+				response.header("X-Next-Page", pageNo+1);
+			}
+			if (pageNo > 1)
+				response.header("X-Prev-Page: 1", pageNo-1);						
+		}
 		
-		return Response.ok(array.toString()).build();
+		return response.build();
 	}
 
 	@Override
