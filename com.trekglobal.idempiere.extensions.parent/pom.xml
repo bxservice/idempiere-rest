@@ -10,13 +10,12 @@
 	<name>Maven parent project for Trek Global iDempiere Extensions</name>
 
 	<properties>
-		<tycho.version>1.4.0</tycho.version>
+		<tycho.version>1.5.0</tycho.version>
 		<tycho.extras.version>${tycho.version}</tycho.extras.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.dependency.version>3.1.1</maven.dependency.version>
 		<download.maven.version>1.4.1</download.maven.version>
 		<lifecycle.mapping.version>1.0.0</lifecycle.mapping.version>
-		<ecjVersion>3.19.0</ecjVersion>
 		<!-- default value of properties, use when run without profile -->
 		<idempiere.core.repository.url>file:///${basedir}/../../idempiere/org.idempiere.p2/target/repository</idempiere.core.repository.url>
 	</properties>
@@ -56,13 +55,6 @@
 					<configuration>
 						<verbose>true</verbose>
 					</configuration>
-					<dependencies>
-						<dependency>
-							<groupId>org.eclipse.jdt</groupId>
-							<artifactId>ecj</artifactId>
-							<version>${ecjVersion}</version>
-						</dependency>
-					</dependencies>
 				</plugin>
 				<plugin>
 					<groupId>org.eclipse.tycho</groupId>
