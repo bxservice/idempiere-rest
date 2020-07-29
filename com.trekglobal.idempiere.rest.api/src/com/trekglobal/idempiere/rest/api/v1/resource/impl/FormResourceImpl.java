@@ -63,7 +63,7 @@ public class FormResourceImpl implements FormResource {
 			if (role.getWindowAccess(form.getAD_Form_ID()) == null)
 				continue;
 				
-			JsonObject jsonObject = serializer.toJson(form, new String[] {"AD_Form_ID", "AD_Form_UU", "Name", "Description", "Help", "ClassName", "EntityType"}, null);
+			JsonObject jsonObject = serializer.toJson(form, new String[] {"AD_Form_ID", "AD_Form_UU", "Name", "Description", "Help", "Classname", "EntityType"}, null);
 			jsonObject.addProperty("slug", TypeConverterUtils.slugify(form.getName()));
 			formArray.add(jsonObject);
 			
