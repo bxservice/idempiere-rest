@@ -60,7 +60,7 @@ public class FormResourceImpl implements FormResource {
 		MRole role = MRole.getDefault();
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MForm.Table_Name, MTable.getClass(MForm.Table_Name));
 		for(MForm form : forms) {
-			if (role.getWindowAccess(form.getAD_Form_ID()) == null)
+			if (role.getFormAccess(form.getAD_Form_ID()) == null)
 				continue;
 				
 			JsonObject jsonObject = serializer.toJson(form, new String[] {"AD_Form_ID", "AD_Form_UU", "Name", "Description", "Help", "Classname", "EntityType"}, null);
