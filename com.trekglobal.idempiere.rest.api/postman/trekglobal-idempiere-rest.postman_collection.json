@@ -508,6 +508,51 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?select={columnname list}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/c_order?select=DocumentNo,Description",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order"
+					],
+					"query": [
+						{
+							"key": "select",
+							"value": "DocumentNo,Description"
+						}
+					]
+				},
+				"description": "Get specific set of columns from the records."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}/{id}?details={child tables}",
 			"request": {
 				"method": "GET",

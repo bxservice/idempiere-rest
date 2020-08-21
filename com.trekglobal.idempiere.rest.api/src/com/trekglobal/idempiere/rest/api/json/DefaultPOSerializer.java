@@ -192,7 +192,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		if (includes == null || includes.length == 0)
 			return true;
 		for(String include : includes) {
-			if (include.equals(columnName))
+			if (include.equalsIgnoreCase(columnName))
 				return true;
 		}
 		return false;

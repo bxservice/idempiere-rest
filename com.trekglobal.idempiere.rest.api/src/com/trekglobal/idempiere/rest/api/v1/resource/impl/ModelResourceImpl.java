@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPO(String tableName, String id, String details) {
+	public Response getPO(String tableName, String id, String details, String select) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -108,7 +109,11 @@ public class ModelResourceImpl implements ModelResource {
 					   : query.setParameters(Integer.parseInt(id)).first();
 		if (po != null) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			JsonObject json = serializer.toJson(po);
+			String[] includes = null;
+			if (!Util.isEmpty(select, true)) {
+				includes = getIncludes(po, select);
+			}
+			JsonObject json = serializer.toJson(po, includes, null);
 			loadDetails(po, json, details);
 			return Response.ok(json.toString()).build();
 		} else {
@@ -152,7 +157,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String filter, String order, int pageNo) {
+	public Response getPOs(String tableName, String filter, String order, String select,  int pageNo) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -190,9 +195,13 @@ public class ModelResourceImpl implements ModelResource {
 		List<PO> list = query.list();
 		JsonArray array = new JsonArray();
 		if (list != null) {
-			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));			
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+			String[] includes = null;
 			for(PO po : list) {
-				JsonObject json = serializer.toJson(po);
+				if (!Util.isEmpty(select, true) && includes == null) {
+					includes = getIncludes(po, select);
+				}
+				JsonObject json = serializer.toJson(po, includes, null);
 				array.add(json);
 			}
 			return Response.ok(array.toString())
@@ -966,6 +975,24 @@ public class ModelResourceImpl implements ModelResource {
 				jsonObject.add(tableName, childArray);
 			}
 		}
+	}
+	
+	private String[] getIncludes(PO po, String select) {
+
+		if (Util.isEmpty(select, true))
+			return null;
+
+		ArrayList<String> includes = new ArrayList<String>();
+
+		String[] columnNames = select.split("[,]");
+		for(String columnName : columnNames) {
+			if (po.get_ColumnIndex(columnName.trim()) < 0)
+				continue;
+
+			includes.add(columnName.trim());
+		}
+
+		return includes.toArray(new String[includes.size()]);
 	}
 
 	private boolean hasAccess(MTable table, boolean rw) {

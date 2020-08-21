@@ -53,9 +53,11 @@ public interface ModelResource {
 	 * @param tableName
 	 * @param id id/uuid
 	 * @param details optional comma separated list of child PO to retrieve
+	 * @param select optional comma separated list of columns to retrieve
 	 * @return json representation of record
 	 */
-	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("details") String details);
+	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("details") String details, 
+			@QueryParam("select") String select);
 	
 	@Path("{tableName}")
 	@GET
@@ -69,7 +71,7 @@ public interface ModelResource {
 	 * @return json array of records
 	 */
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("filter") String filter, @QueryParam("order") String order, 
-			@DefaultValue("0") @QueryParam("page_no") int pageNo);
+			@QueryParam("select") String select, @DefaultValue("0") @QueryParam("page_no") int pageNo);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
