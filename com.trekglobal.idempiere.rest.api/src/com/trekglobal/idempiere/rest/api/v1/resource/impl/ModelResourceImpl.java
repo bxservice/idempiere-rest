@@ -90,6 +90,19 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getPO(String tableName, String id, String details, String select) {
+		return getPO(tableName, id, details, select, null);
+	}
+	
+	/**
+	 * 
+	 * @param tableName
+	 * @param id id or uuid
+	 * @param details child/link entity
+	 * @param multiProperty comma separated columns
+	 * @param singleProperty single column
+	 * @return
+	 */
+	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -110,11 +123,19 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
 			String[] includes = null;
-			if (!Util.isEmpty(select, true)) {
-				includes = getIncludes(po, select);
+			if (!Util.isEmpty(multiProperty, true)) {
+				includes = getIncludes(po, multiProperty);
+			} else if (!Util.isEmpty(singleProperty, true)) {
+				if (po.get_Value(singleProperty) == null) {
+					return Response.status(Status.NOT_FOUND)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(singleProperty).build().toString())
+							.build();
+				}
+				includes = new String[] {singleProperty};
 			}
 			JsonObject json = serializer.toJson(po, includes, null);
-			loadDetails(po, json, details);
+			if (!Util.isEmpty(details, true))
+				loadDetails(po, json, details);
 			return Response.ok(json.toString()).build();
 		} else {
 			query.setApplyAccessFilter(false);
@@ -134,46 +155,7 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response getPOProperty(String tableName, String id, String propertyName) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-
-		boolean isUUID = isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
-		if (po != null) {
-			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			if (po.get_Value(propertyName) == null) {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(propertyName).build().toString())
-						.build();
-			}
-			JsonObject json = serializer.toJson(po, new String[] {propertyName}, null);
-			return Response.ok(json.toString()).build();
-		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
-		}
+		return getPO(tableName, id, null, null, propertyName);
 	}
 
 	@Override
