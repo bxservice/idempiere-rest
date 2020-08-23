@@ -131,6 +131,11 @@ public class RequestFilter implements ContainerRequestFilter {
 		if (!claim.isNull()) {
 			Env.setContext(Env.getCtx(), Env.M_WAREHOUSE_ID, claim.asInt());				
 		}
+		claim = jwt.getClaim(LoginClaims.AD_Language.name());
+		if (!claim.isNull()) {
+			String AD_Language = claim.asString();
+			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
+		}
 		
 		if (AD_Role_ID > 0) {
 			if (MRole.getDefault(Env.getCtx(), false).isShowAcct())

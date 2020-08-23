@@ -256,6 +256,46 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/auth/language?client={ad_client_id}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/auth/language?client=11",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"language"
+					],
+					"query": [
+						{
+							"key": "client",
+							"value": "11"
+						}
+					]
+				},
+				"description": "Get default client language"
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/auth/tokens",
 			"event": [
 				{

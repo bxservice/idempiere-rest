@@ -36,6 +36,7 @@ public class LoginParameters {
 	private int clientId;
 	private int organizationId;
 	private int warehouseId;
+	private String language;
 
 	public LoginParameters() {
 	}
@@ -70,6 +71,14 @@ public class LoginParameters {
 
 	public void setWarehouseId(int warehouseId) {
 		this.warehouseId = warehouseId;
+	}
+
+	public String getLanguage() {
+		return language;
+	}
+
+	public void setLanguage(String language) {
+		this.language = language;
 	}
 
 }

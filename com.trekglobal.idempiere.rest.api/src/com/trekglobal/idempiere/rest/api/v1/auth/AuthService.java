@@ -88,6 +88,16 @@ public interface AuthService {
 	public Response getWarehouses(@QueryParam(value = "client") int clientId, 
 			@QueryParam(value = "role") int roleId, @QueryParam(value = "organization") int organizationId);
 	
+	@Path("auth/language")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get default client language
+	 * @param clientId
+	 * @return client language
+	 */
+	public Response getClientLanguage(@QueryParam(value = "client") int clientId);
+	
 	@Path("auth/tokens")
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)

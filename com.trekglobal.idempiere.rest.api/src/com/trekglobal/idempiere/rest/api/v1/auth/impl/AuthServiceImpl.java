@@ -101,6 +101,9 @@ public class AuthServiceImpl implements AuthService {
 					MUser user = MUser.get(Env.getCtx(), credential.getUserName());
 					builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
 				}
+				if (parameters.getLanguage() != null) {
+					builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
+				}
 			}
 			Timestamp expiresAt = TokenUtils.getTokeExpiresAt();
 			builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt);
@@ -203,6 +206,22 @@ public class AuthServiceImpl implements AuthService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 	}
+	
+	/* (non-Javadoc)
+	 * @see org.idempiere.rest.api.v1.AuthService#getWarehouses(int, int, int)
+	 */
+	@Override
+	public Response getClientLanguage(int clientId) {
+		try {
+			MClient client = MClient.get(Env.getCtx(), clientId);
+			JsonObject node = new JsonObject();
+			node.addProperty("AD_Language", client.getAD_Language());
+			return Response.ok(node.toString()).build();
+		} catch (IllegalArgumentException e) {
+			e.printStackTrace();
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+	}
 
 	/* (non-Javadoc)
 	 * @see org.idempiere.rest.api.v1.AuthService#updateLoginParameters(org.idempiere.rest.api.v1.LoginParameters)
@@ -226,6 +245,9 @@ public class AuthServiceImpl implements AuthService {
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, parameters.getClientId());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
+		}
+		if (parameters.getLanguage() != null) {
+			builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
 		}
 		
 		Timestamp expiresAt = TokenUtils.getTokeExpiresAt();
