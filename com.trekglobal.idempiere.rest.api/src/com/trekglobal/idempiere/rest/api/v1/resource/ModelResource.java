@@ -58,7 +58,19 @@ public interface ModelResource {
 	 */
 	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("details") String details, 
 			@QueryParam("select") String select);
-	
+
+	@Path("{tableName}/{id}/{property}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get record id/uuid property by Name 
+	 * @param tableName
+	 * @param id id/uuid
+	 * @param propertyName columnName to be retrieved
+	 * @return json representation of record
+	 */
+	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName);
+
 	@Path("{tableName}")
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
