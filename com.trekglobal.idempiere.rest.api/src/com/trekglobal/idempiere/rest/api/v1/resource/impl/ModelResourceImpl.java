@@ -68,6 +68,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -114,7 +115,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -349,7 +350,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, true);
@@ -472,7 +473,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean uuid = isUUID(id);
+		boolean uuid = TypeConverterUtils.isUUID(id);
 		String keyColumn = uuid ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, true);
@@ -518,7 +519,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -563,7 +564,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -627,7 +628,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -707,7 +708,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -794,7 +795,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -863,7 +864,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -915,7 +916,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = isUUID(id);
+		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 		query.setApplyAccessFilter(true, false);
@@ -967,10 +968,6 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		}
-	}
-	
-	private boolean isUUID(String id) {
-		return id != null && id.length()==36;
 	}
 
 	private void loadDetails(PO po, JsonObject jsonObject, String details) {

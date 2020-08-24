@@ -245,4 +245,14 @@ public class TypeConverterUtils {
 		}
 		return false;
 	}		  	
+	
+	private final static String UUID_REGEX="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
+	
+	/**
+	 * @param value
+	 * @return true if value is a UUID identifier
+	 */
+	public static boolean isUUID(String value) {
+		return value == null ? false : value.matches(UUID_REGEX);
+	}
 }
