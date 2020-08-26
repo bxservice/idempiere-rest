@@ -87,8 +87,13 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			MColumn column = MColumn.get(Env.getCtx(), poInfo.getAD_Column_ID(columnName));
 			if (column.isSecure() || column.isEncrypted())
 				continue;
-			
-			Object value = po.get_Value(i);
+
+			Object value ;
+			if (column.isTranslated())
+				value = po.get_Translation(column.getColumnName());
+			else
+				value = po.get_Value(i);
+
 			if (value != null) {
 				String propertyName = TypeConverterUtils.toPropertyName(columnName);
 				Object jsonValue = TypeConverterUtils.toJsonValue(column, value);
