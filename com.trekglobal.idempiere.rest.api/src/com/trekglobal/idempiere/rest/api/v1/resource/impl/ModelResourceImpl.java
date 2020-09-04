@@ -50,6 +50,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
 import org.compiere.model.MRole;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -80,7 +81,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
 public class ModelResourceImpl implements ModelResource {
 
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
-	private static final int DEFAULT_PAGE_SIZE = 100;
+	private static final int MAX_PAGE_SIZE = MSysConfig.getIntValue("REST_MAX_PAGE_SIZE", 100);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 
 	/**
@@ -209,8 +210,8 @@ public class ModelResourceImpl implements ModelResource {
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 		int rowCount = query.count();
 		int pageCount = 1;
-		if (top > DEFAULT_PAGE_SIZE || top <= 0)
-			top = DEFAULT_PAGE_SIZE;
+		if (top > MAX_PAGE_SIZE || top <= 0)
+			top = MAX_PAGE_SIZE;
 
 		if (rowCount > top) {
 			pageCount = (int)Math.ceil(rowCount / (double)top);
