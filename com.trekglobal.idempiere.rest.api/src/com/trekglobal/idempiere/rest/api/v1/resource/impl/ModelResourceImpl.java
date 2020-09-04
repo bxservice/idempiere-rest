@@ -184,7 +184,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String filter, String order, String select,  int pageNo) {
+	public Response getPOs(String tableName, String filter, String order, String select, int top, int pageNo) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -209,13 +209,16 @@ public class ModelResourceImpl implements ModelResource {
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 		int rowCount = query.count();
 		int pageCount = 1;
-		if (rowCount > DEFAULT_PAGE_SIZE) {
-			pageCount = (int)Math.ceil(rowCount / (double)DEFAULT_PAGE_SIZE);
+		if (top > DEFAULT_PAGE_SIZE || top <= 0)
+			top = DEFAULT_PAGE_SIZE;
+
+		if (rowCount > top) {
+			pageCount = (int)Math.ceil(rowCount / (double)top);
 			if (pageNo <= 0)
 				pageNo = 1;
 			else if (pageNo > pageCount)
 				pageNo = pageCount;
-			query.setPage(DEFAULT_PAGE_SIZE, pageNo-1);			
+			query.setPage(top, pageNo-1);
 		} else {
 			pageNo = 1;
 		}
@@ -233,7 +236,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.ok(array.toString())
 					.header("X-Page-Count", pageCount)
-					.header("X-Page-Size", DEFAULT_PAGE_SIZE)
+					.header("X-Page-Size", top)
 					.header("X-Page-Number", pageNo)
 					.header("X-Row-Count", rowCount)
 					.build();

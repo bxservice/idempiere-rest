@@ -497,6 +497,51 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?top={numer of records}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/m_product?top=2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"m_product"
+					],
+					"query": [
+						{
+							"key": "top",
+							"value": "2"
+						}
+					]
+				},
+				"description": "Get a limited number of records from the given table."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}?filter={where clause}",
 			"request": {
 				"method": "GET",
