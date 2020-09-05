@@ -70,7 +70,11 @@ public class RequestFilter implements ContainerRequestFilter {
 		Properties ctx = new Properties();
 		ServerContext.setCurrentInstance(ctx);
 		
-		if (requestContext.getMethod() == "OPTIONS" || (requestContext.getMethod().equals(HttpMethod.POST) && requestContext.getUriInfo().getPath().endsWith("v1/auth/tokens"))) {
+		if (   HttpMethod.OPTIONS.equals(requestContext.getMethod())
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+				&& requestContext.getUriInfo().getPath().endsWith("v1/auth/tokens")
+				)
+			) {
 			return;
 		}
 		
