@@ -81,7 +81,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
 public class ModelResourceImpl implements ModelResource {
 
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
-	private static final int MAX_PAGE_SIZE = MSysConfig.getIntValue("REST_MAX_PAGE_SIZE", 100);
+	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 
 	/**
@@ -185,7 +185,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String filter, String order, String select, int top, int pageNo) {
+	public Response getPOs(String tableName, String filter, String order, String select, int top, int skip) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -210,19 +210,15 @@ public class ModelResourceImpl implements ModelResource {
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 		int rowCount = query.count();
 		int pageCount = 1;
-		if (top > MAX_PAGE_SIZE || top <= 0)
-			top = MAX_PAGE_SIZE;
+		if (top > MAX_RECORDS_SIZE || top <= 0)
+			top = MAX_RECORDS_SIZE;
 
 		if (rowCount > top) {
 			pageCount = (int)Math.ceil(rowCount / (double)top);
-			if (pageNo <= 0)
-				pageNo = 1;
-			else if (pageNo > pageCount)
-				pageNo = pageCount;
-			query.setPage(top, pageNo-1);
-		} else {
-			pageNo = 1;
-		}
+		} 
+		query.setPageSize(top);
+		query.setRecordstoSkip(skip);
+
 		List<PO> list = query.list();
 		JsonArray array = new JsonArray();
 		if (list != null) {
@@ -237,8 +233,8 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.ok(array.toString())
 					.header("X-Page-Count", pageCount)
-					.header("X-Page-Size", top)
-					.header("X-Page-Number", pageNo)
+					.header("X-Records-Size", top)
+					.header("X-Skip-Records", skip)
 					.header("X-Row-Count", rowCount)
 					.build();
 		} else {
