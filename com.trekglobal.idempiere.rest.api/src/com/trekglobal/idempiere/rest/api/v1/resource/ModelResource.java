@@ -83,7 +83,7 @@ public interface ModelResource {
 	 * @return json array of records
 	 */
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("filter") String filter, @QueryParam("order") String order, 
-			@QueryParam("select") String select, @QueryParam("top") int top, @DefaultValue("0") @QueryParam("page_no") int pageNo);
+			@QueryParam("select") String select, @QueryParam("top") int top, @DefaultValue("0") @QueryParam("skip") int skip);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
