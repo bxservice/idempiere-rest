@@ -215,9 +215,9 @@ public class ModelResourceImpl implements ModelResource {
 
 		if (rowCount > top) {
 			pageCount = (int)Math.ceil(rowCount / (double)top);
-			query.setPageSize(top);
-			query.setRecordstoSkip(skip);
 		} 
+		query.setPageSize(top);
+		query.setRecordstoSkip(skip);
 
 		List<PO> list = query.list();
 		JsonArray array = new JsonArray();
