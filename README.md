@@ -5,7 +5,7 @@
 * com.trekglobal.idempiere.extensions.parent - parent pom project
 * com.trekglobal.idempiere.rest.api - rest api project
 * com.trekglobal.idempiere.extensions.p2 - project to build p2 repository
-* iDempiere version - Current Default (i.e 6.2z, the coming 7.0 version)
+* iDempiere version - Current Default (i.e 7.1z, the coming 8.1 version)
 
 ## Folder layout:
 * idempiere
