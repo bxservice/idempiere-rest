@@ -852,6 +852,47 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}/{id}",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/m_product/144",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"m_product",
+						"144"
+					]
+				},
+				"description": "Delete record by id"
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/windows",
 			"request": {
 				"method": "GET",
@@ -1808,6 +1849,48 @@
 					]
 				},
 				"description": "Add new attachment"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}/attachments",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/api/v1/models/m_product/144/attachments",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"m_product",
+						"144",
+						"attachments"
+					]
+				},
+				"description": "Delete attachments of a record by id"
 			},
 			"response": []
 		},
