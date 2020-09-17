@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="INFO" name="CloudempiereRest">
+<Configuration status="INFO" name="iDempiereRest">
  <Appenders>
     <RollingFile name="RollingFile" fileName="log/rest/Rest.log"
                  filePattern="log/rest/$${date:yyyy-MM}/Rest-%d{MM-dd-yyyy}-%i.log.gz">
