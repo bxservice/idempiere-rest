@@ -1,6 +1,8 @@
 package com.trekglobal.idempiere.rest.api.v1.filter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -25,6 +27,8 @@ public class ResponseLoggingFilter implements ContainerResponseFilter {
 
 	private Logger logger = LogManager.getLogger();
 	
+	public static final String REQUEST_BODY_PROPERTY = "requestBody.logInfo";
+	
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
 			throws IOException {
@@ -44,8 +48,19 @@ public class ResponseLoggingFilter implements ContainerResponseFilter {
 		logMap.put("id", request_ID);
 		logMap.put("uri", requestContext.getUriInfo().getAbsolutePath());
 		logMap.put("method", requestContext.getMethod());
+		logMap.put("requestHeaders", requestContext.getHeaders());
+		logMap.put("requestBody", requestContext.getProperty(REQUEST_BODY_PROPERTY));
 		logMap.put("status", responseContext.getStatus());
-		logMap.put("duration", (System.currentTimeMillis() - ((Long) requestContext.getProperty(RequestLoggingFilter.REQUEST_START_TIME))) + "ms");
+		logMap.put("responseHeaders", responseContext.getHeaders());
+		logMap.put("responseBody", responseContext.getEntity());
+		logMap.put("duration", (System.currentTimeMillis() - ((Long) requestContext.getProperty(RequestLoggingFilter.REQUEST_START_TIME))));
+		
+		//Time
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm:ss");  
+		LocalDateTime now = LocalDateTime.now();  
+		logMap.put("time", dtf.format(now));
+		
 		logger.info(logMap);
+		requestContext.removeProperty(REQUEST_BODY_PROPERTY);
 	}
 }

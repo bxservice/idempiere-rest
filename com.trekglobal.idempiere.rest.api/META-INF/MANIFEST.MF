@@ -10,6 +10,7 @@ Automatic-Module-Name: org.idempiere.rest.api
 Import-Package: javax.activation;version="1.2.0",
  javax.xml.bind,
  org.adempiere.server,
+ org.apache.commons.io;version="2.6.0",
  org.compiere.minigrid,
  org.compiere.process,
  org.compiere.server,
