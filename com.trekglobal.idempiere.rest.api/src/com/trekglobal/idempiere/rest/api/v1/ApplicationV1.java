@@ -35,6 +35,8 @@ import org.glassfish.jersey.jackson.JacksonFeature;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.ResponseFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
+import com.trekglobal.idempiere.rest.api.v1.filter.RequestLoggingFilter;
+import com.trekglobal.idempiere.rest.api.v1.filter.ResponseLoggingFilter;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.CacheResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FileResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FormResourceImpl;
@@ -62,6 +64,8 @@ public class ApplicationV1 extends Application {
     public Set<Class<?>> getClasses() {
         final Set<Class<?>> classes = new HashSet<Class<?>>();
         
+        classes.add(RequestLoggingFilter.class);
+        classes.add(ResponseLoggingFilter.class);
         classes.add(AuthServiceImpl.class);
         classes.add(RequestFilter.class);
         classes.add(ResponseFilter.class);

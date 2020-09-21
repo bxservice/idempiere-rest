@@ -10,6 +10,7 @@ Automatic-Module-Name: org.idempiere.rest.api
 Import-Package: javax.activation;version="1.2.0",
  javax.xml.bind,
  org.adempiere.server,
+ org.apache.commons.io;version="2.6.0",
  org.compiere.minigrid,
  org.compiere.process,
  org.compiere.server,
@@ -53,7 +54,9 @@ Require-Bundle: org.adempiere.base;bundle-version="2.0.0",
  org.adempiere.plugin.utils,
  org.eclipse.osgi.services
 Bundle-ClassPath: .,
- lib/java-jwt-3.3.0.jar
+ lib/java-jwt-3.3.0.jar,
+ lib/log4j-api-2.13.3.jar,
+ lib/log4j-core-2.13.3.jar
 Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.json,
  com.trekglobal.idempiere.rest.api.util,
