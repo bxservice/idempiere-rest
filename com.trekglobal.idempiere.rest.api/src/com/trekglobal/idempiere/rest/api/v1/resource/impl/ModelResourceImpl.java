@@ -1040,7 +1040,9 @@ public class ModelResourceImpl implements ModelResource {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
 			throw new RuntimeException(ex.getMessage());
 		}
-		return false;
+		
+		//If no window or no access to the window - check if the role has read/write access to the table
+		return role.isTableAccess(table.getAD_Table_ID(), false);
 	}
 	
 	private PO loadPO(String tableName, JsonObject jsonObject) {
