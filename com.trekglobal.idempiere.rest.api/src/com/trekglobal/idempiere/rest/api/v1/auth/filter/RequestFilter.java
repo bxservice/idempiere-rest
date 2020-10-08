@@ -140,6 +140,12 @@ public class RequestFilter implements ContainerRequestFilter {
 			String AD_Language = claim.asString();
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
 		}
+		claim = jwt.getClaim(LoginClaims.AD_Session_ID.name());
+		int AD_Session_ID = 0;
+		if (!claim.isNull()) {
+			AD_Session_ID = claim.asInt();
+			Env.setContext(Env.getCtx(), "#AD_Session_ID", AD_Session_ID);
+		}
 		
 		if (AD_Role_ID > 0) {
 			if (MRole.getDefault(Env.getCtx(), false).isShowAcct())

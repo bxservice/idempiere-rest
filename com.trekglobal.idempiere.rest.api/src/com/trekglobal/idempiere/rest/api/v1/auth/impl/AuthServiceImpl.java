@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response.Status;
 import org.compiere.model.MClient;
 import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
+import org.compiere.model.MSession;
 import org.compiere.model.MUser;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
@@ -105,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
 					builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
 				}
 			}
-			Timestamp expiresAt = TokenUtils.getTokeExpiresAt();
+			Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 			builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt);
 			try {
 				String token = builder.sign(Algorithm.HMAC256(TokenUtils.getTokenSecret()));
@@ -249,8 +250,17 @@ public class AuthServiceImpl implements AuthService {
 		if (parameters.getLanguage() != null) {
 			builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
 		}
+		// Create AD_Session here and set the session in the token as another parameter
+		// Create session
+		MSession session = MSession.get(Env.getCtx(), false);
+		if (session == null) {
+			session = MSession.get(Env.getCtx(), true);
+		}
+		session.setWebSession("idempiere-rest");
+		session.saveEx();
+		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
 		
-		Timestamp expiresAt = TokenUtils.getTokeExpiresAt();
+		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt);
 		try {
 			String token = builder.sign(Algorithm.HMAC256(TokenUtils.getTokenSecret()));
