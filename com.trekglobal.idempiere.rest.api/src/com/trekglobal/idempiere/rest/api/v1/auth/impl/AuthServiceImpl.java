@@ -28,9 +28,12 @@ package com.trekglobal.idempiere.rest.api.v1.auth.impl;
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.adempiere.util.LogAuthFailure;
 import org.compiere.model.MClient;
 import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
@@ -39,6 +42,8 @@ import org.compiere.model.MUser;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Login;
+import org.compiere.util.Msg;
+import org.compiere.util.Util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator.Builder;
@@ -59,6 +64,12 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  */
 public class AuthServiceImpl implements AuthService {
 
+	private static LogAuthFailure logAuthFailure = new LogAuthFailure();
+
+	public static final String ROLE_TYPES_WEBSERVICE = "NULL,WS";  //webservice+null
+
+	private @Context HttpServletRequest request = null;
+
 	/**
 	 * default constructor
 	 */
@@ -71,8 +82,17 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public Response authenticate(LoginCredential credential) {
 		Login login = new Login(Env.getCtx());
-		KeyNamePair[] clients = login.getClients(credential.getUserName(), credential.getPassword());
+		KeyNamePair[] clients = login.getClients(credential.getUserName(), credential.getPassword(), ROLE_TYPES_WEBSERVICE);
 		if (clients == null || clients.length == 0) {
+        	String loginErrMsg = login.getLoginErrMsg();
+        	if (Util.isEmpty(loginErrMsg))
+        		loginErrMsg = Msg.getMsg(Env.getCtx(),"FailedLogin", true);
+        	String x_Forward_IP = request.getHeader("X-Forwarded-For");
+            if (x_Forward_IP == null) {
+            	 x_Forward_IP = request.getRemoteAddr();
+            }
+        	logAuthFailure.log(x_Forward_IP, "/api", credential.getUserName(), loginErrMsg);
+
 			return Response.status(Status.UNAUTHORIZED).build();
 		} else {
 			JsonObject responseNode = new JsonObject();
@@ -251,7 +271,6 @@ public class AuthServiceImpl implements AuthService {
 			builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
 		}
 		// Create AD_Session here and set the session in the token as another parameter
-		// Create session
 		MSession session = MSession.get(Env.getCtx(), false);
 		if (session == null) {
 			session = MSession.get(Env.getCtx(), true);
