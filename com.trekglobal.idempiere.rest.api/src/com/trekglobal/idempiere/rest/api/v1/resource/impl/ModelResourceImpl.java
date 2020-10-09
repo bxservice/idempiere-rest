@@ -204,7 +204,7 @@ public class ModelResourceImpl implements ModelResource {
 		Query query = new Query(Env.getCtx(), table, whereClause, null);
 		query.setApplyAccessFilter(true, false)
 			 .setOnlyActiveRecords(true);
-		if (!Util.isEmpty(order, true)) {
+		if (isValidOrderBy(table, order)) {
 			query.setOrderBy(order);
 		}
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
@@ -1096,5 +1096,32 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		}
 		return null;
+	}
+	
+	private boolean isValidOrderBy(MTable table, String orderBy) {
+		if (!Util.isEmpty(orderBy, true)) {
+			String[] columnNames = orderBy.split("[,]");
+			for (String columnName : columnNames) {
+				columnName = columnName.trim();
+
+				if (columnName.contains(" ")) {
+					String[] names = columnName.split(" ");
+					columnName = names[0];
+					String orderPreference = names[1];
+					if (names.length > 2 || (!"asc".equals(orderPreference.toLowerCase()) && !"desc".equals(orderPreference.toLowerCase()))) {
+						log.log(Level.WARNING, "Invalid order by clause.");
+						return false;
+					}
+				}
+				if (table.getColumnIndex(columnName) < 0) {
+					log.log(Level.WARNING, "Column: " + columnName + " is not a valid column to be ordered by");
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
 	}
 }
