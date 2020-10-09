@@ -37,7 +37,7 @@ import javax.ws.rs.core.Response;
 
 @Path("v1")
 /**
- * authentication servicww
+ * authentication service
  * @author hengsin
  *
  */
