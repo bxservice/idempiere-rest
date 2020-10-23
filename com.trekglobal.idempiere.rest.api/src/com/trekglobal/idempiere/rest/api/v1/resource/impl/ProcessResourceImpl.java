@@ -62,6 +62,8 @@ import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
+import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ProcessResource;
 
@@ -77,26 +79,41 @@ public class ProcessResourceImpl implements ProcessResource {
 
 	@Override
 	public Response getProcesses(String filter) {
-		JsonArray processArray = new JsonArray();
-		StringBuilder where = new StringBuilder("AD_Form_ID IS NULL");
-		if (!Util.isEmpty(filter, true)) {
-			where.append(" AND (").append(filter).append(")");
-		}
-		Query query = new Query(Env.getCtx(), MProcess.Table_Name, where.toString(), null);
-		query.setApplyAccessFilter(true).setOnlyActiveRecords(true).setOrderBy("Value");
-		List<MProcess> processes = query.list();
-		MRole role = MRole.getDefault();
-		IPOSerializer serializer = IPOSerializer.getPOSerializer(MProcess.Table_Name, MTable.getClass(MProcess.Table_Name));
-		for(MProcess process : processes) {
-			if (role.getProcessAccess(process.getAD_Process_ID()) == null)
-				continue;
-				
-			JsonObject jsonObject = serializer.toJson(process, new String[] {"AD_Process_ID", "AD_Process_UU", "Value", "Name", "Description", "Help", "EntityType", "IsReport", "AD_ReportView_ID", "AD_PrintFormat_ID", "AD_Workflow_ID", "JasperReport"}, null);
-			jsonObject.addProperty("slug", TypeConverterUtils.slugify(process.getValue()));
-			processArray.add(jsonObject);
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			ConvertedQuery convertedStatement = converter.convertStatement(MProcess.Table_Name, filter);
 			
+			JsonArray processArray = new JsonArray();
+			StringBuilder where = new StringBuilder("AD_Form_ID IS NULL");
+			if (!Util.isEmpty(filter, true)) {
+				where.append(" AND (").append(convertedStatement.getWhereClause()).append(")");
+			}
+			Query query = new Query(Env.getCtx(), MProcess.Table_Name, where.toString(), null);
+			query.setApplyAccessFilter(true).setOnlyActiveRecords(true).setOrderBy("Value");
+			query.setParameters(convertedStatement.getParameters());
+
+			List<MProcess> processes = query.list();
+			MRole role = MRole.getDefault();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(MProcess.Table_Name, MTable.getClass(MProcess.Table_Name));
+			for(MProcess process : processes) {
+				if (role.getProcessAccess(process.getAD_Process_ID()) == null)
+					continue;
+
+				JsonObject jsonObject = serializer.toJson(process, new String[] {"AD_Process_ID", "AD_Process_UU", "Value", "Name", "Description", "Help", "EntityType", "IsReport", "AD_ReportView_ID", "AD_PrintFormat_ID", "AD_Workflow_ID", "JasperReport"}, null);
+				jsonObject.addProperty("slug", TypeConverterUtils.slugify(process.getValue()));
+				processArray.add(jsonObject);
+
+			}
+			return Response.ok(processArray.toString()).build();
+		} catch (Exception ex) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get process with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
-		return Response.ok(processArray.toString()).build();
 	}
 
 	@Override

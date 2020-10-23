@@ -70,6 +70,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
+import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -162,26 +164,44 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getModels(String filter) {
-		Query query = new Query(Env.getCtx(), MTable.Table_Name, filter != null ? filter : "", null);
-		query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
-		List<MTable> tables = query.setOrderBy("AD_Table.TableName").list();
-		JsonArray array = new JsonArray();
-		for(MTable table : tables) {
-			if (hasAccess(table, false)) {
-				JsonObject json = new JsonObject();
-				json.addProperty("id", table.getAD_Table_ID());
-				if (!Util.isEmpty(table.getAD_Table_UU())) {
-					json.addProperty("uid", table.getAD_Table_UU());
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			ConvertedQuery convertedStatement = converter.convertStatement(MTable.Table_Name, filter);
+
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
+
+			Query query = new Query(Env.getCtx(), MTable.Table_Name, convertedStatement.getWhereClause(), null);
+			query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
+			query.setParameters(convertedStatement.getParameters());
+
+			List<MTable> tables = query.setOrderBy("AD_Table.TableName").list();
+			JsonArray array = new JsonArray();
+			for(MTable table : tables) {
+				if (hasAccess(table, false)) {
+					JsonObject json = new JsonObject();
+					json.addProperty("id", table.getAD_Table_ID());
+					if (!Util.isEmpty(table.getAD_Table_UU())) {
+						json.addProperty("uid", table.getAD_Table_UU());
+					}
+					json.addProperty("model-name", table.getTableName().toLowerCase());
+					json.addProperty("name", table.getName());
+					if (!Util.isEmpty(table.getDescription())) {
+						json.addProperty("description", table.getDescription());
+					}
+					array.add(json);
 				}
-				json.addProperty("model-name", table.getTableName().toLowerCase());
-				json.addProperty("name", table.getName());
-				if (!Util.isEmpty(table.getDescription())) {
-					json.addProperty("description", table.getDescription());
-				}
-				array.add(json);
 			}
+			return Response.ok(array.toString()).build();			
+		} catch (Exception ex ) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get models with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
-		return Response.ok(array.toString()).build();
+
 	}
 
 	@Override
@@ -201,44 +221,61 @@ public class ModelResourceImpl implements ModelResource {
 		if (!Util.isEmpty(filter, true) ) {
 			whereClause = filter;
 		}
-		Query query = new Query(Env.getCtx(), table, whereClause, null);
-		query.setApplyAccessFilter(true, false)
-			 .setOnlyActiveRecords(true);
-		if (isValidOrderBy(table, order)) {
-			query.setOrderBy(order);
-		}
-		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
-		int rowCount = query.count();
-		int pageCount = 1;
-		if (top > MAX_RECORDS_SIZE || top <= 0)
-			top = MAX_RECORDS_SIZE;
 
-		if (rowCount > top) {
-			pageCount = (int)Math.ceil(rowCount / (double)top);
-		} 
-		query.setPageSize(top);
-		query.setRecordstoSkip(skip);
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
 
-		List<PO> list = query.list();
-		JsonArray array = new JsonArray();
-		if (list != null) {
-			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-			String[] includes = null;
-			for(PO po : list) {
-				if (!Util.isEmpty(select, true) && includes == null) {
-					includes = getIncludes(po, select);
-				}
-				JsonObject json = serializer.toJson(po, includes, null);
-				array.add(json);
+			Query query = new Query(Env.getCtx(), table, convertedStatement.getWhereClause(), null);
+			query.setApplyAccessFilter(true, false)
+			.setOnlyActiveRecords(true)
+			.setParameters(convertedStatement.getParameters());
+
+			if (isValidOrderBy(table, order)) {
+				query.setOrderBy(order);
 			}
-			return Response.ok(array.toString())
-					.header("X-Page-Count", pageCount)
-					.header("X-Records-Size", top)
-					.header("X-Skip-Records", skip)
-					.header("X-Row-Count", rowCount)
+			query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
+			int rowCount = query.count();
+			int pageCount = 1;
+			if (top > MAX_RECORDS_SIZE || top <= 0)
+				top = MAX_RECORDS_SIZE;
+
+			if (rowCount > top) {
+				pageCount = (int)Math.ceil(rowCount / (double)top);
+			} 
+			query.setPageSize(top);
+			query.setRecordstoSkip(skip);
+
+			List<PO> list = query.list();
+			JsonArray array = new JsonArray();
+			if (list != null) {
+				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+				String[] includes = null;
+				for(PO po : list) {
+					if (!Util.isEmpty(select, true) && includes == null) {
+						includes = getIncludes(po, select);
+					}
+					JsonObject json = serializer.toJson(po, includes, null);
+					array.add(json);
+				}
+				return Response.ok(array.toString())
+						.header("X-Page-Count", pageCount)
+						.header("X-Records-Size", top)
+						.header("X-Skip-Records", skip)
+						.header("X-Row-Count", rowCount)
+						.build();
+			} else {
+				return Response.ok(array.toString()).build();
+			}
+		} catch (Exception ex ) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get POs with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		} else {
-			return Response.ok(array.toString()).build();
 		}
 	}
 

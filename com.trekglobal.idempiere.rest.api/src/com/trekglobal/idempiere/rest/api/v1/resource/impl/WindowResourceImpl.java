@@ -43,6 +43,7 @@ import org.compiere.model.GridField;
 import org.compiere.model.GridTab;
 import org.compiere.model.GridWindow;
 import org.compiere.model.MField;
+import org.compiere.model.MForm;
 import org.compiere.model.MPInstance;
 import org.compiere.model.MProcess;
 import org.compiere.model.MQuery;
@@ -72,6 +73,8 @@ import com.trekglobal.idempiere.rest.api.json.IGridTabSerializer;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
+import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.util.GridTabPaging;
 import com.trekglobal.idempiere.rest.api.util.Paging;
@@ -92,22 +95,38 @@ public class WindowResourceImpl implements WindowResource {
 
 	@Override
 	public Response getWindows(String filter) {
-		JsonArray windowArray = new JsonArray();
-		Query query = new Query(Env.getCtx(), MWindow.Table_Name, filter != null ? filter : "", null);
-		query.setApplyAccessFilter(true).setOnlyActiveRecords(true).setOrderBy("Name");
-		List<MWindow> windows = query.list();
-		MRole role = MRole.getDefault();
-		IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
-		for(MWindow window : windows) {
-			if (role.getWindowAccess(window.getAD_Window_ID()) == null)
-				continue;
-				
-			JsonObject jsonObject = serializer.toJson(window, new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"}, null);
-			jsonObject.addProperty("slug", TypeConverterUtils.slugify(window.getName()));
-			windowArray.add(jsonObject);
-			
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			JsonArray windowArray = new JsonArray();
+			ConvertedQuery convertedStatement = converter.convertStatement(MForm.Table_Name, filter);
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
+
+			Query query = new Query(Env.getCtx(), MWindow.Table_Name, convertedStatement.getWhereClause(), null);
+			query.setApplyAccessFilter(true).setOnlyActiveRecords(true).setOrderBy("Name");
+			query.setParameters(convertedStatement.getParameters());
+
+			List<MWindow> windows = query.list();
+			MRole role = MRole.getDefault();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
+			for(MWindow window : windows) {
+				if (role.getWindowAccess(window.getAD_Window_ID()) == null)
+					continue;
+
+				JsonObject jsonObject = serializer.toJson(window, new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"}, null);
+				jsonObject.addProperty("slug", TypeConverterUtils.slugify(window.getName()));
+				windowArray.add(jsonObject);
+
+			}
+			return Response.ok(windowArray.toString()).build();
+		} catch (Exception ex) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get windows with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
-		return Response.ok(windowArray.toString()).build();
 	}
 
 	@Override
@@ -193,20 +212,36 @@ public class WindowResourceImpl implements WindowResource {
 					.build();
 		}
 		
-		StringBuilder whereClause = new StringBuilder("AD_Tab_ID=?");
-		if (!Util.isEmpty(filter, true)) {
-			whereClause.append(" AND (").append(filter).append(")");
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			StringBuilder whereClause = new StringBuilder("AD_Tab_ID=?");
+			ConvertedQuery convertedStatement = converter.convertStatement(MForm.Table_Name, filter);
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
+			
+			if (!Util.isEmpty(filter, true)) {
+				whereClause.append(" AND (").append(convertedStatement.getWhereClause()).append(")");
+			}
+			query = new Query(Env.getCtx(), MField.Table_Name, whereClause.toString(), null);
+			convertedStatement.addParameter(0, tabId);
+			
+			List<MField> fields = query.setParameters(convertedStatement.getParameters()).list();
+			JsonArray fieldArray = new JsonArray();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
+			for(MField field : fields ) {
+				JsonObject jsonObject = serializer.toJson(field, new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID", "MandatoryLogic"}, null);
+				fieldArray.add(jsonObject);
+			}
+
+			return Response.ok(fieldArray.toString()).build();
+		}  catch (Exception ex) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get TabFields with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
-		query = new Query(Env.getCtx(), MField.Table_Name, whereClause.toString(), null);
-		List<MField> fields = query.setParameters(tabId).list();
-		JsonArray fieldArray = new JsonArray();
-		IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
-		for(MField field : fields ) {
-			JsonObject jsonObject = serializer.toJson(field, new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID", "MandatoryLogic"}, null);
-			fieldArray.add(jsonObject);
-		}
-		
-		return Response.ok(fieldArray.toString()).build();
 	}
 	
 	@Override
