@@ -110,7 +110,8 @@ public class ConvertedQuery {
 			}
 			else if (displayType == DisplayType.YesNo) //	Boolean
 				addParameter(Boolean.valueOf("Y".equals(parameter) || "true".equals(parameter)));
-			else if (displayType == DisplayType.String || displayType == DisplayType.List) {
+			else if (displayType == DisplayType.String || displayType == DisplayType.List  || 
+					parameter.startsWith("'") && parameter.endsWith("'")) {
 				if (parameter.startsWith("'") && parameter.endsWith("'"))
 					addParameter(extractFromStringValue(parameter));
 				else 
