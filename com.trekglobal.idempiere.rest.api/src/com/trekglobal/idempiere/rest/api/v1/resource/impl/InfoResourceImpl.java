@@ -49,6 +49,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
+import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.InfoResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.info.InfoWindow;
@@ -71,20 +73,35 @@ public class InfoResourceImpl implements InfoResource {
 
 	@Override
 	public Response getInfoWindows(String filter) {
-		Query query = new Query(Env.getCtx(), MInfoWindow.Table_Name, filter != null ? filter : "", null);
-		query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
-		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
-		List<MInfoWindow> infoWindows = query.setOrderBy("AD_InfoWindow.Name").list();
-		JsonArray array = new JsonArray();
-		IPOSerializer serializer = IPOSerializer.getPOSerializer(MInfoWindow.Table_Name, MInfoWindow.class);
-		for(MInfoWindow infoWindow : infoWindows) {
-			if (hasAccess(infoWindow)) {
-				JsonObject json = serializer.toJson(infoWindow);
-				json.addProperty("slug", TypeConverterUtils.slugify(infoWindow.getName()));
-				array.add(json);
+		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+		try {
+			ConvertedQuery convertedStatement = converter.convertStatement(MInfoWindow.Table_Name, filter);
+
+			Query query = new Query(Env.getCtx(), MInfoWindow.Table_Name, convertedStatement.getWhereClause(), null);
+			query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
+			query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
+			query.setParameters(convertedStatement.getParameters());
+
+			List<MInfoWindow> infoWindows = query.setOrderBy("AD_InfoWindow.Name").list();
+			JsonArray array = new JsonArray();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(MInfoWindow.Table_Name, MInfoWindow.class);
+			for(MInfoWindow infoWindow : infoWindows) {
+				if (hasAccess(infoWindow)) {
+					JsonObject json = serializer.toJson(infoWindow);
+					json.addProperty("slug", TypeConverterUtils.slugify(infoWindow.getName()));
+					array.add(json);
+				}
 			}
+			return Response.ok(array.toString()).build();
+		} catch (Exception ex) {
+			return Response.status(converter.getResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+							.title("GET Error")
+							.append("Get InfoWindows with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
-		return Response.ok(array.toString()).build();
 	}
 
 	private boolean hasAccess(MInfoWindow infoWindow) {

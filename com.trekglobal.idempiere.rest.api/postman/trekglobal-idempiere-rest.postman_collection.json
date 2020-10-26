@@ -567,7 +567,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID=107",
+					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID eq 107",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -582,7 +582,7 @@
 					"query": [
 						{
 							"key": "filter",
-							"value": "C_TaxCategory_ID=107"
+							"value": "C_TaxCategory_ID eq 107"
 						}
 					]
 				},
@@ -952,7 +952,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows?filter=name = 'Bank / Cash'",
+					"raw": "http://localhost:8080/api/v1/windows?filter=name eq 'Bank / Cash'",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -966,7 +966,7 @@
 					"query": [
 						{
 							"key": "filter",
-							"value": "name = 'Bank / Cash'"
+							"value": "name eq 'Bank / Cash'"
 						}
 					]
 				},
@@ -1468,7 +1468,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/forms?filter=entityType <> 'D'",
+					"raw": "http://localhost:8080/api/v1/forms?filter=entityType neq 'D'",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -1482,7 +1482,7 @@
 					"query": [
 						{
 							"key": "filter",
-							"value": "entityType <> 'D'"
+							"value": "entityType neq 'D'"
 						}
 					]
 				},
@@ -1512,7 +1512,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/processes?filter=name like '%Business Partner%'",
+					"raw": "http://localhost:8080/api/v1/processes?filter=contains(name,'Business Partner')",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -1526,7 +1526,7 @@
 					"query": [
 						{
 							"key": "filter",
-							"value": "name like '%Business Partner%'"
+							"value": "contains(name,'Business Partner')"
 						}
 					]
 				},
