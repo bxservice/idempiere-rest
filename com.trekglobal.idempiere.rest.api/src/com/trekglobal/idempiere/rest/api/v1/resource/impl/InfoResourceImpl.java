@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -39,6 +40,7 @@ import org.compiere.model.MInfoColumn;
 import org.compiere.model.MInfoWindow;
 import org.compiere.model.MRole;
 import org.compiere.model.Query;
+import org.compiere.util.CLogger;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -62,9 +64,11 @@ import com.trekglobal.idempiere.rest.api.v1.resource.info.QueryResponse;
  */
 public class InfoResourceImpl implements InfoResource {
 
+	private final static CLogger log = CLogger.getCLogger(InfoResourceImpl.class);
+	
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
 	private static final int DEFAULT_PAGE_SIZE = 100;
-	
+
 	/**
 	 * default constructor 
 	 */
@@ -76,6 +80,7 @@ public class InfoResourceImpl implements InfoResource {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			ConvertedQuery convertedStatement = converter.convertStatement(MInfoWindow.Table_Name, filter);
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
 
 			Query query = new Query(Env.getCtx(), MInfoWindow.Table_Name, convertedStatement.getWhereClause(), null);
 			query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
@@ -94,6 +99,7 @@ public class InfoResourceImpl implements InfoResource {
 			}
 			return Response.ok(array.toString()).build();
 		} catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(converter.getResponseStatus())
 					.entity(new ErrorBuilder().status(converter.getResponseStatus())
 							.title("GET Error")

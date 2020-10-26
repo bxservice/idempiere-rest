@@ -74,6 +74,8 @@ import com.trekglobal.idempiere.rest.api.v1.resource.ProcessResource;
  */
 public class ProcessResourceImpl implements ProcessResource {
 
+	private final static CLogger log = CLogger.getCLogger(ProcessResourceImpl.class);
+
 	public ProcessResourceImpl() {
 	}
 
@@ -82,7 +84,8 @@ public class ProcessResourceImpl implements ProcessResource {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			ConvertedQuery convertedStatement = converter.convertStatement(MProcess.Table_Name, filter);
-			
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
+
 			JsonArray processArray = new JsonArray();
 			StringBuilder where = new StringBuilder("AD_Form_ID IS NULL");
 			if (!Util.isEmpty(filter, true)) {
@@ -106,6 +109,7 @@ public class ProcessResourceImpl implements ProcessResource {
 			}
 			return Response.ok(processArray.toString()).build();
 		} catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(converter.getResponseStatus())
 					.entity(new ErrorBuilder().status(converter.getResponseStatus())
 							.title("GET Error")
