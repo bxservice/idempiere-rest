@@ -89,6 +89,7 @@ public class FormResourceImpl implements FormResource {
 					.header("X-Row-Count", rowCount)
 					.build();
 		} catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(converter.getResponseStatus())
 					.entity(new ErrorBuilder().status(converter.getResponseStatus())
 							.title("GET Error")

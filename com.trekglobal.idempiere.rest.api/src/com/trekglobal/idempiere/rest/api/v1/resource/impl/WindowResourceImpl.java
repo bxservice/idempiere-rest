@@ -119,6 +119,7 @@ public class WindowResourceImpl implements WindowResource {
 			}
 			return Response.ok(windowArray.toString()).build();
 		} catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(converter.getResponseStatus())
 					.entity(new ErrorBuilder().status(converter.getResponseStatus())
 							.title("GET Error")
@@ -234,6 +235,7 @@ public class WindowResourceImpl implements WindowResource {
 
 			return Response.ok(fieldArray.toString()).build();
 		}  catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(converter.getResponseStatus())
 					.entity(new ErrorBuilder().status(converter.getResponseStatus())
 							.title("GET Error")
