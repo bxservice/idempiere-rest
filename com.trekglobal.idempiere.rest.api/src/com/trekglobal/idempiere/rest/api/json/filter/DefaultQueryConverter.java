@@ -51,7 +51,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	private Status status = Status.OK;
 
 	@Override
-	public ConvertedQuery convertStatement(String tableName, String queryStatement) {
+	public synchronized ConvertedQuery convertStatement(String tableName, String queryStatement) {
 		ConvertedQuery cache = convertCache.get(queryStatement);
 		if (cache != null) {
 			return cache;
