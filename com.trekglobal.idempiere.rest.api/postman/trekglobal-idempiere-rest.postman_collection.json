@@ -2,6 +2,7 @@
 	"info": {
 		"_postman_id": "66279549-4f8a-47d0-bee8-707a8d6a6cb3",
 		"name": "trekglobal-idempiere-rest",
+		"description": "Import or create an environment with the variables: host, port, protocol, userName, password, clientId, roleId, organizationId, warehouseId, language, sysuserName and syspassword\n\nRun POST api/v1/auth/tokens to get the first authentication token.\n\nThen run PUT api/v1/auth/tokens to get the second authentication token.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -47,15 +48,15 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userName\":\"GardenAdmin\",\"password\":\"GardenAdmin\"}"
+					"raw": "{\"userName\":\"{{userName}}\",\"password\":\"{{password}}\"}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/tokens",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -65,63 +66,7 @@
 				},
 				"description": "Create authentication token with user name and password. The return token is use as Authorization request header (Bearer {token}) for subsequent api/v1/auth call"
 			},
-			"response": [
-				{
-					"name": "api/v1/auth/tokens",
-					"originalRequest": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"type": "text",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"type": "text",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\"userName\":\"GardenAdmin\",\"password\":\"GardenAdmin\"}"
-						},
-						"url": {
-							"raw": "http://localhost:8080/api/v1/auth/tokens",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"api",
-								"v1",
-								"auth",
-								"tokens"
-							]
-						}
-					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
-						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Content-Length",
-							"value": "216"
-						},
-						{
-							"key": "Server",
-							"value": "Jetty(9.4.14.v20181114)"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"clients\": [\n        {\n            \"id\": 11,\n            \"name\": \"GardenWorld\"\n        }\n    ],\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsImlzcyI6ImlkZW1waWVyZS5vcmciLCJleHAiOjE1NjgyMTIzMTF9.doHygASK4aXAcF_jn-4HOlqyvyvfWdRcuPm2iotXqPE\"\n}"
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "api/v1/auth/roles?client={ad_client_id}",
@@ -140,12 +85,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/roles?client=11",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/roles?client={{clientId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -155,7 +100,7 @@
 					"query": [
 						{
 							"key": "client",
-							"value": "11"
+							"value": "{{clientId}}"
 						}
 					]
 				},
@@ -180,12 +125,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/organizations?client=11&role=102",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/organizations?client={{clientId}}&role={{roleId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -195,11 +140,11 @@
 					"query": [
 						{
 							"key": "client",
-							"value": "11"
+							"value": "{{clientId}}"
 						},
 						{
 							"key": "role",
-							"value": "102"
+							"value": "{{roleId}}"
 						}
 					]
 				},
@@ -224,12 +169,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/warehouses?client=11&role=102&organization=11",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/warehouses?client={{clientId}}&role={{roleId}}&organization={{organizationId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -239,15 +184,15 @@
 					"query": [
 						{
 							"key": "client",
-							"value": "11"
+							"value": "{{clientId}}"
 						},
 						{
 							"key": "role",
-							"value": "102"
+							"value": "{{roleId}}"
 						},
 						{
 							"key": "organization",
-							"value": "11"
+							"value": "{{organizationId}}"
 						}
 					]
 				},
@@ -272,12 +217,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/language?client=11",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/language?client={{clientId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -287,7 +232,7 @@
 					"query": [
 						{
 							"key": "client",
-							"value": "11"
+							"value": "{{clientId}}"
 						}
 					]
 				},
@@ -332,15 +277,15 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n  \"clientId\": 11,\n  \"roleId\": 102,\n  \"organizationId\": 11,\n  \"warehouseId\": 103,\n  \"language\": \"en_US\"\n}"
+					"raw": "{\n  \"clientId\": {{clientId}},\n  \"roleId\": {{roleId}},\n  \"organizationId\": {{organizationId}},\n  \"warehouseId\": {{warehouseId}},\n  \"language\": \"{{language}}\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/tokens",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -350,74 +295,7 @@
 				},
 				"description": "Update authentication token with client, role, organization and warehouse value. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
 			},
-			"response": [
-				{
-					"name": "api/v1/auth/tokens",
-					"originalRequest": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"clientId\": 11,\n  \"roleId\": 102,\n  \"organizationId\": 11,\n  \"warehouseId\": 103\n}"
-						},
-						"url": {
-							"raw": "http://localhost:8080/api/v1/auth/tokens?=",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"api",
-								"v1",
-								"auth",
-								"tokens"
-							],
-							"query": [
-								{
-									"key": "",
-									"value": ""
-								}
-							]
-						}
-					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
-						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Content-Length",
-							"value": "291"
-						},
-						{
-							"key": "Server",
-							"value": "Jetty(9.4.14.v20181114)"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsIk1fV2FyZWhvdXNlX0lEIjoxMDMsIkFEX1JvbGVfSUQiOjEwMiwiQURfVXNlcl9JRCI6MTAxLCJBRF9PcmdfSUQiOjExLCJpc3MiOiJpZGVtcGllcmUub3JnIiwiQURfQ2xpZW50X0lEIjoxMSwiZXhwIjoxNTY4MjEyMzgzfQ.QoHmDRltIwaBEu_vsgeWU_87--Ylqm7raLZRniEIpT4\"\n}"
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "api/v1/models",
@@ -441,12 +319,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -479,12 +357,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -518,12 +396,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/m_product?top=2&skip=3",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product?top=2&skip=3",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -567,12 +445,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax?filter=C_TaxCategory_ID eq 107",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?filter=C_TaxCategory_ID eq 107",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -612,12 +490,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order?select=DocumentNo,Description",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order?select=DocumentNo,Description",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -657,18 +535,18 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/ad_client/11/AD_Language",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/ad_client/{{clientId}}/AD_Language",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
 						"models",
 						"ad_client",
-						"11",
+						"{{clientId}}",
 						"AD_Language"
 					]
 				},
@@ -698,12 +576,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax/106?details=c_tax_acct",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax/106?details=c_tax_acct",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -744,12 +622,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax_acct/7df64952-88e0-4ebf-9f56-9cb899b555f8",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax_acct/7df64952-88e0-4ebf-9f56-9cb899b555f8",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -789,12 +667,12 @@
 					"raw": "{\n    \"AD_Org_ID\": {\n        \"id\": 0,\n        \"tableName\": \"AD_Org\"\n    },\n    \"isActive\": true,\n    \"name\": \"MyGST\",\n    \"description\": \"MyCanadian Federal Sales Tax\",\n    \"Parent_Tax_ID\": {\n        \"identifier\": \"GST/PST\",\n        \"tableName\": \"C_Tax\"\n    },\n    \"C_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"To_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"C_TaxCategory_ID\": {\n        \"identifier\": \"Standard\",\n        \"tableName\": \"C_TaxCategory\"\n    },\n    \"isDocumentLevel\": false,\n    \"validFrom\": \"01/01/2001\",\n    \"isSummary\": false,\n    \"rate\": \"7.0\",\n    \"requiresTaxCertificate\": false,\n    \"taxIndicator\": \"GST\",\n    \"isDefault\": false,\n    \"isTaxExempt\": false,\n    \"sOPOType\": {\n        \"id\": \"B\"\n    },\n    \"isSalesTax\": false,\n    \"tableName\": \"C_Tax\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -833,12 +711,12 @@
 					"raw": "{\n    \"id\": 1000000,\n    \"name\": \"MyGST\",\n    \"description\": \"My Sales Tax\",\n    \"validFrom\": \"01/01/2019\",\n    \"rate\": \"6.0\",\n    \"isSalesTax\": true,\n    \"taxIndicator\": \"GST\",\n    \"tableName\": \"C_Tax\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_tax/1000000",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax/1000000",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -874,12 +752,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/m_product/144",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product/144",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -914,12 +792,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -952,12 +830,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows?filter=name eq 'Bank / Cash'",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows?filter=name eq 'Bank / Cash'",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -996,12 +874,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1036,12 +914,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/bank-cash/fields",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/bank-cash/fields",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1078,12 +956,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1117,12 +995,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/100?details=account",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/100?details=account",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1163,12 +1041,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/account/100/bank-account-document",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/account/100/bank-account-document",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1206,12 +1084,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/bank-account-document/100",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/bank-account-document/100",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1252,12 +1130,12 @@
 					"raw": "{\n    \"id\": 100,\n    \"name\": \"My Check Book\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/bank-account-document/100",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/bank-account-document/100",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1298,12 +1176,12 @@
 					"raw": "{\n    \"AD_Org_ID\": {\n        \"identifier\": \"HQ\"\n    },\n    \"name\": \"My Check Book 2\",\n    \"isActive\": true,\n    \"paymentRule\": {\n        \"id\": \"S\"\n    },\n    \"currentNext\": 1000,\n    \"Check_PrintFormat_ID\": {\n        \"id\": 124\n    }\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/account/100/bank-account-document",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/account/100/bank-account-document",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1345,12 +1223,12 @@
 					"raw": "{\n    \"id\": 200084,\n    \"name\": \"Jan-19\",\n    \"endDate\": \"01/30/2019\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/bank-cash/tabs/bank-account-document/1000001",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/bank-account-document/1000001",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1391,12 +1269,12 @@
 					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" },\n\t\"deliveryViaRule\": \"P\",\n\t\"order-line\": [{\n\t\t\"M_Product_ID\": { \"identifier\": \"Azalea Bush\"},\n\t\t\"qtyEntered\": 1\n\t}],\n\t\"doc-action\": \"CO\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/sales-order",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/sales-order",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1430,12 +1308,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/forms",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/forms",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1468,12 +1346,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/forms?filter=entityType neq 'D'",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/forms?filter=entityType neq 'D'",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1512,12 +1390,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/processes?filter=contains(name,'Business Partner')",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes?filter=contains(name,'Business Partner')",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1556,12 +1434,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/processes/rv_bpartneropen",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes/rv_bpartneropen",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1616,12 +1494,12 @@
 					"raw": "{\n\t\"C_BPartner_ID\": { \"identifier\": \"C&W\" },\n\t\"report-type\" : \"HTML\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/processes/rv_bpartneropen",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes/rv_bpartneropen",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1655,12 +1533,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/files/{{processFileName}}?length={{processFileLength}}&nodeId={{processNodeId}}",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/files/{{processFileName}}?length={{processFileLength}}&nodeId={{processNodeId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1704,12 +1582,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1745,12 +1623,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments/zip",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments/zip",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1787,12 +1665,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1833,12 +1711,12 @@
 					"raw": "{\n\t\"name\": \"IDEMPIERE-4018.patch\",\n\t\"data\": \"IyBIRyBjaGFuZ2VzZXQgcGF0Y2gKIyBVc2VyIGVsYWluZXRhbgojIERhdGUgMTU2NTA4MDc0NSAtMjg4MDAKIyAgICAgIFR1ZSBBdWcgMDYgMTY6Mzk6MDUgMjAxOSArMDgwMAojIEJyYW5jaCByZWxlYXNlLTYuMgojIE5vZGUgSUQgMGY5ODMyZGM4ZGZlOWQ3Nzg5MDg5NjNkNWE3YTMyNzU3NDZkNzljMgojIFBhcmVudCAgMDJkNmJlYTQ3NjU2OTU4MzBhMjQxYjAyM2Q0Y2Q4Nzg3MGViMTZmNwpJREVNUElFUkUtNDAxOCBPcmRlciBMaW5lIFByaWNlRW50ZXJlZC9QcmljZUFjdHVhbCB3aXRoIGluY29ycmVjdCBQcmljZSBMaXN0IFZlcnNpb24KCmRpZmYgLXIgMDJkNmJlYTQ3NjU2IC1yIDBmOTgzMmRjOGRmZSBvcmcuYWRlbXBpZXJlLmJhc2Uvc3JjL29yZy9jb21waWVyZS9tb2RlbC9NUHJvZHVjdFByaWNpbmcuamF2YQotLS0gYS9vcmcuYWRlbXBpZXJlLmJhc2Uvc3JjL29yZy9jb21waWVyZS9tb2RlbC9NUHJvZHVjdFByaWNpbmcuamF2YQlUdWUgQXVnIDA2IDEyOjI5OjMzIDIwMTkgKzA4MDAKKysrIGIvb3JnLmFkZW1waWVyZS5iYXNlL3NyYy9vcmcvY29tcGllcmUvbW9kZWwvTVByb2R1Y3RQcmljaW5nLmphdmEJVHVlIEF1ZyAwNiAxNjozOTowNSAyMDE5ICswODAwCkBAIC0zNyw5ICszNyw2IEBACiAgKi8NCiBwdWJsaWMgY2xhc3MgTVByb2R1Y3RQcmljaW5nIGV4dGVuZHMgQWJzdHJhY3RQcm9kdWN0UHJpY2luZw0KIHsNCi0JDQotCXByaXZhdGUgU3RyaW5nIHRyeE5hbWU9bnVsbDsNCi0NCiAJLyoqDQogCSAqIE5ldyBjb25zdHJ1Y3RvciB0byBiZSB1c2VkIHdpdGggdGhlIFByb2R1Y3RQcmljZUZhY3Rvcmllcw0KIAkgKi8NCkBAIC04OCw4ICs4NSw2IEBACiAJCW1fdXNlVmVuZG9yQnJlYWsgPSB0aGVyZUFyZVZlbmRvckJyZWFrUmVjb3JkcyA+IDA7DQogCX0NCiANCi0JcHJpdmF0ZSBpbnQgCQltX01fUHJpY2VMaXN0X1ZlcnNpb25fSUQgPSAwOw0KLQlwcml2YXRlIFRpbWVzdGFtcCAJbV9QcmljZURhdGU7CQ0KIAkvKiogUHJlY2lzaW9uIC0xID0gbm8gcm91bmRpbmcJCSovDQogCXByaXZhdGUgaW50CQkgCW1fcHJlY2lzaW9uID0gLTE7DQogCQ0K\"\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order/1000022/attachments",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1875,12 +1753,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/m_product/144/attachments",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product/144/attachments",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1916,12 +1794,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/windows/sales-order/102/print",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/sales-order/102/print",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1956,12 +1834,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/reference/f973985f-3064-40de-b097-baed00bb8d5d",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/reference/f973985f-3064-40de-b097-baed00bb8d5d",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -1995,12 +1873,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/caches",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/caches",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2032,12 +1910,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/caches",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/caches",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2082,12 +1960,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2119,12 +1997,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2170,12 +2048,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2210,12 +2088,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs/{{logFileName}}",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs/{{logFileName}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2262,12 +2140,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs/rotate",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs/rotate",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2314,12 +2192,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/nodes/{{nodeId}}/logs",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2366,12 +2244,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2415,12 +2293,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/{{serverId}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2465,12 +2343,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/logs",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/{{serverId}}/logs",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2516,12 +2394,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/state",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/{{serverId}}/state",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2568,12 +2446,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/reload",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/reload",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2618,12 +2496,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/{{serverId}}/run",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/{{serverId}}/run",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2669,12 +2547,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/schedulers/100",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2720,12 +2598,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/schedulers/100",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2771,12 +2649,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/servers/schedulers/100",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/servers/schedulers/100",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2830,15 +2708,15 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userName\":\"SuperUser\",\"password\":\"System\"}"
+					"raw": "{\"userName\":\"{{sysuserName}}\",\"password\":\"{{syspassword}}\"}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/tokens",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2847,63 +2725,7 @@
 					]
 				}
 			},
-			"response": [
-				{
-					"name": "api/v1/auth/tokens",
-					"originalRequest": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"type": "text",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"type": "text",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\"userName\":\"GardenAdmin\",\"password\":\"GardenAdmin\"}"
-						},
-						"url": {
-							"raw": "http://localhost:8080/api/v1/auth/tokens",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"api",
-								"v1",
-								"auth",
-								"tokens"
-							]
-						}
-					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
-						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Content-Length",
-							"value": "216"
-						},
-						{
-							"key": "Server",
-							"value": "Jetty(9.4.14.v20181114)"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"clients\": [\n        {\n            \"id\": 11,\n            \"name\": \"GardenWorld\"\n        }\n    ],\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsImlzcyI6ImlkZW1waWVyZS5vcmciLCJleHAiOjE1NjgyMTIzMTF9.doHygASK4aXAcF_jn-4HOlqyvyvfWdRcuPm2iotXqPE\"\n}"
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "sysadmin api/v1/auth/tokens",
@@ -2945,12 +2767,12 @@
 					"raw": "{\n  \"clientId\": 0,\n  \"roleId\": 0,\n  \"organizationId\": 0\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8080/api/v1/auth/tokens?=",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens?=",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -2965,74 +2787,7 @@
 					]
 				}
 			},
-			"response": [
-				{
-					"name": "api/v1/auth/tokens",
-					"originalRequest": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json",
-								"type": "text"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{authToken}}",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"clientId\": 11,\n  \"roleId\": 102,\n  \"organizationId\": 11,\n  \"warehouseId\": 103\n}"
-						},
-						"url": {
-							"raw": "http://localhost:8080/api/v1/auth/tokens?=",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8080",
-							"path": [
-								"api",
-								"v1",
-								"auth",
-								"tokens"
-							],
-							"query": [
-								{
-									"key": "",
-									"value": ""
-								}
-							]
-						}
-					},
-					"status": "OK",
-					"code": 200,
-					"_postman_previewlanguage": "json",
-					"header": [
-						{
-							"key": "Content-Type",
-							"value": "application/json"
-						},
-						{
-							"key": "Content-Length",
-							"value": "291"
-						},
-						{
-							"key": "Server",
-							"value": "Jetty(9.4.14.v20181114)"
-						}
-					],
-					"cookie": [],
-					"body": "{\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsIk1fV2FyZWhvdXNlX0lEIjoxMDMsIkFEX1JvbGVfSUQiOjEwMiwiQURfVXNlcl9JRCI6MTAxLCJBRF9PcmdfSUQiOjExLCJpc3MiOiJpZGVtcGllcmUub3JnIiwiQURfQ2xpZW50X0lEIjoxMSwiZXhwIjoxNTY4MjEyMzgzfQ.QoHmDRltIwaBEu_vsgeWU_87--Ylqm7raLZRniEIpT4\"\n}"
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "api/v1/infos",
@@ -3069,12 +2824,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/infos",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/infos",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -3118,12 +2873,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/infos/{{infoSlug}}",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/infos/{{infoSlug}}",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -3168,12 +2923,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/infos/{{infoSlug}}/columns",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/infos/{{infoSlug}}/columns",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -3219,12 +2974,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/infos/support-users-vs-roles/processes",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/infos/support-users-vs-roles/processes",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -3270,12 +3025,12 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/infos/business-partner-info/relateds",
-					"protocol": "http",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/infos/business-partner-info/relateds",
+					"protocol": "{{protocol}}",
 					"host": [
-						"localhost"
+						"{{host}}"
 					],
-					"port": "8080",
+					"port": "{{port}}",
 					"path": [
 						"api",
 						"v1",
@@ -3286,6 +3041,28 @@
 				}
 			},
 			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "f99252ee-fad2-4ca9-a299-88ace3954be8",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "556ced2e-d25c-44a9-b7b9-c3f1f95931ad",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
 		}
 	],
 	"protocolProfileBehavior": {}
