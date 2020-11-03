@@ -266,6 +266,7 @@ public class AuthServiceImpl implements AuthService {
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, parameters.getClientId());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
+			responseNode.addProperty("userId", user.getAD_User_ID());
 		}
 		if (parameters.getLanguage() != null) {
 			builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
