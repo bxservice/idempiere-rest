@@ -34,13 +34,18 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.adempiere.util.LogAuthFailure;
+import org.compiere.model.I_AD_Preference;
 import org.compiere.model.MClient;
 import org.compiere.model.MOrg;
+import org.compiere.model.MPreference;
 import org.compiere.model.MRole;
 import org.compiere.model.MSession;
+import org.compiere.model.MTable;
 import org.compiere.model.MUser;
+import org.compiere.model.Query;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
+import org.compiere.util.Language;
 import org.compiere.util.Login;
 import org.compiere.util.Msg;
 import org.compiere.util.Util;
@@ -252,6 +257,7 @@ public class AuthServiceImpl implements AuthService {
 		JsonObject responseNode = new JsonObject();
 		String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 		Builder builder = JWT.create().withSubject(userName);
+		String defaultLanguage = Language.getBaseAD_Language();
 		if (parameters.getClientId() >= 0) {
 			builder.withClaim(LoginClaims.AD_Client_ID.name(), parameters.getClientId());
 			if (parameters.getRoleId() >= 0) {
@@ -267,10 +273,15 @@ public class AuthServiceImpl implements AuthService {
 			MUser user = MUser.get(Env.getCtx(), userName);
 			builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
 			responseNode.addProperty("userId", user.getAD_User_ID());
+			defaultLanguage = getPreferenceUserLanguage(user.getAD_User_ID());
 		}
 		if (parameters.getLanguage() != null) {
-			builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
+			defaultLanguage = parameters.getLanguage();
 		}
+
+		builder.withClaim(LoginClaims.AD_Language.name(), defaultLanguage);
+		responseNode.addProperty("language", defaultLanguage);
+
 		// Create AD_Session here and set the session in the token as another parameter
 		MSession session = MSession.get(Env.getCtx(), false);
 		if (session == null) {
@@ -290,6 +301,24 @@ public class AuthServiceImpl implements AuthService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 		return Response.ok(responseNode.toString()).build();
+	}
+	
+	/**
+	 * Returns the user preference language
+	 * if non exist - returns the client language
+	 * */
+	private String getPreferenceUserLanguage(int AD_User_ID) {
+		Query query = new Query(Env.getCtx(), 
+    			MTable.get(Env.getCtx(), I_AD_Preference.Table_ID), 
+    			" Attribute=? AND AD_User_ID=? AND PreferenceFor = 'W'",
+    			null);
+
+    	MPreference preference = query.setOnlyActiveRecords(true)
+    			.setApplyAccessFilter(true)
+    			.setParameters("Language", AD_User_ID)
+    			.first();
+    	
+    	return preference != null ? Language.getAD_Language(preference.getValue()) : MClient.get(Env.getCtx()).getAD_Language();
 	}
 
 }
