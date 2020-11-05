@@ -25,10 +25,15 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MColumn;
 import org.compiere.model.MRefList;
+import org.compiere.model.MRefTable;
 import org.compiere.model.MReference;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
@@ -81,10 +86,43 @@ public class ReferenceResourceImpl implements ReferenceResource {
         	referenceJsonObject.add("reflist", refListArray);
 
         	return Response.ok(referenceJsonObject.toString()).build();
+    	} else if (MReference.VALIDATIONTYPE_TableValidation.equals(ref.getValidationType())) {
+    		
+    		MRefTable refTable = MRefTable.get(ref.getAD_Reference_ID());
+    		if (refTable == null || refTable.get_ID() == 0)
+    			return Response.status(Status.NOT_FOUND)
+    					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid reference table id").append("No ref table match found for AD_Reference_ID: ").append(refID).build().toString())
+    					.build();
+
+    		MTable table = new MTable(Env.getCtx(), refTable.getAD_Table_ID(), null);
+    		query = new Query(Env.getCtx(), table, refTable.getWhereClause(), null);
+    		List<PO> list = query
+    				.setApplyAccessFilter(true, false)
+    				.setOnlyActiveRecords(true)
+    				.setOrderBy(refTable.getOrderByClause())
+    				.list();
+    		
+        	IPOSerializer serializer = IPOSerializer.getPOSerializer(MReference.Table_Name, MTable.getClass(table.getTableName()));
+        	JsonArray array = new JsonArray();
+    		if (list != null && !list.isEmpty()) {
+            	ArrayList<String> includes = new ArrayList<String>();
+            	
+            	includes.add(MColumn.getColumnName(Env.getCtx(), refTable.getAD_Key()));
+           		includes.add(MColumn.getColumnName(Env.getCtx(), refTable.getAD_Display()));
+            	if (refTable.isValueDisplayed())
+            		includes.add("Value");
+
+    			for (PO po : list) {
+    				JsonObject json = serializer.toJson(po, includes.toArray(new String[includes.size()]), null);
+    				array.add(json);
+    			}
+    		}
+
+    		return Response.ok(array.toString()).build();
     	} else {
-    		//Reference TableValidation and DataValidation not implemented
+    		//Reference DataValidation not implemented
     		return Response.status(Status.NOT_IMPLEMENTED)
-    				.entity(new ErrorBuilder().status(Status.NOT_IMPLEMENTED).title("References with table or data validation are not implemented.").append("Not implemented AD_Reference_ID: ").append(refID).build().toString())
+    				.entity(new ErrorBuilder().status(Status.NOT_IMPLEMENTED).title("References with data validation are not implemented.").append("Not implemented AD_Reference_ID: ").append(refID).build().toString())
     				.build();
     	}
 	}
