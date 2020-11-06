@@ -314,7 +314,6 @@ public class AuthServiceImpl implements AuthService {
     			null);
 
     	MPreference preference = query.setOnlyActiveRecords(true)
-    			.setApplyAccessFilter(true)
     			.setParameters("Language", AD_User_ID)
     			.first();
     	
