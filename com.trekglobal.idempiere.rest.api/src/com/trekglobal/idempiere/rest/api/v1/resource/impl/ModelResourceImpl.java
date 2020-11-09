@@ -49,6 +49,7 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
+import org.compiere.model.MColumn;
 import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
@@ -1046,12 +1047,15 @@ public class ModelResourceImpl implements ModelResource {
 
 		ArrayList<String> includes = new ArrayList<String>();
 
+		MTable mTable = MTable.get(po.get_Table_ID());
 		String[] columnNames = select.split("[,]");
 		for(String columnName : columnNames) {
 			if (po.get_ColumnIndex(columnName.trim()) < 0)
 				continue;
 
-			includes.add(columnName.trim());
+			MColumn mColumn = mTable.getColumn(columnName.trim());
+			if (MRole.getDefault().isColumnAccess(mTable.getAD_Table_ID(), mColumn.getAD_Column_ID(), true))
+				includes.add(columnName.trim());
 		}
 
 		return includes.toArray(new String[includes.size()]);
