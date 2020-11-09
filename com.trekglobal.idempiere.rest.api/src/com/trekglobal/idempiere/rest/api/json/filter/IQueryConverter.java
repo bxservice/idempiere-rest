@@ -42,7 +42,7 @@ public interface IQueryConverter {
 	 */
 	public ConvertedQuery convertStatement(String tableName, String queryStatement);
 	
-	public Status getResponseStatus();
+	public Status getErrorResponseStatus();
 	
 	/**
 	 * Get Query Converter based on the convention being used

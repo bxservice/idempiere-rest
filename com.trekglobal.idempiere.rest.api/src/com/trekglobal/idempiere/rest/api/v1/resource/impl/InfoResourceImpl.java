@@ -100,8 +100,8 @@ public class InfoResourceImpl implements InfoResource {
 			return Response.ok(array.toString()).build();
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+			return Response.status(converter.getErrorResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
 							.title("GET Error")
 							.append("Get InfoWindows with exception: ")
 							.append(ex.getMessage())

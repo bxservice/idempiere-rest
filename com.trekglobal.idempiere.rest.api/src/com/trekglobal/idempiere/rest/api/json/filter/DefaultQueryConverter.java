@@ -48,7 +48,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	private CCache<String, ConvertedQuery> convertCache = new CCache<String, ConvertedQuery>(null, "JSON_DB_Convert_Cache", 1000, 60, false);
 	private ConvertedQuery convertedQuery;
 	private MTable table;
-	private Status status = Status.OK;
+	private Status errorStatus = Status.INTERNAL_SERVER_ERROR; //Default error message when the exception is thrown outside of the converter
 
 	@Override
 	public synchronized ConvertedQuery convertStatement(String tableName, String queryStatement) {
@@ -89,7 +89,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				if (ODataUtils.isMethodCall(nextOperator)) {
 					sqlStatement = convertMethodWithParamsLiteral(nextOperator, null, true);
 				} else {
-					status = Status.BAD_REQUEST;
+					errorStatus = Status.BAD_REQUEST;
 					throw new AdempiereException("Operator NOT is only compatible with certain functions. Not with " + nextOperator);
 				}
 
@@ -148,13 +148,13 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		String strOperator = ODataUtils.getOperator(operator);
 
 		if (strOperator == null) {
-			status = Status.BAD_REQUEST;
+			errorStatus = Status.BAD_REQUEST;
 			throw new AdempiereException("Unsupported operator: " + operator);
 		}
 
 		MColumn column = table.getColumn(left.trim());
 		if (column == null || column.isSecure() || column.isEncrypted()) {
-			status = Status.BAD_REQUEST;
+			errorStatus = Status.BAD_REQUEST;
 			throw new AdempiereException("Invalid column for filter: " + left.trim());
 		}
 
@@ -167,7 +167,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				strOperator = " IS NOT NULL";
 				break;
 			default: 
-				status = Status.BAD_REQUEST;
+				errorStatus = Status.BAD_REQUEST;
 				throw new AdempiereException("Operator " + operator + " is not compatible with NULL comparision");
 			}
 		} else {
@@ -182,13 +182,13 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		String strOperator = ODataUtils.getOperator(operator);
 
 		if (strOperator == null) {
-			status = Status.BAD_REQUEST;
+			errorStatus = Status.BAD_REQUEST;
 			throw new AdempiereException("Unsupported operator:: " + operator);
 		}
 
 		MColumn column = table.getColumn(columnName);
 		if (column == null || column.isSecure() || column.isEncrypted()) {
-			status = Status.BAD_REQUEST;
+			errorStatus = Status.BAD_REQUEST;
 			throw new AdempiereException("Invalid column for filter: " + columnName.trim());
 		}
 
@@ -200,7 +200,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 
 		MColumn column = table.getColumn(columnName);
 		if (column == null || column.isSecure() || column.isEncrypted()) {
-			status = Status.BAD_REQUEST;
+			errorStatus = Status.BAD_REQUEST;
 			throw new AdempiereException("Invalid column for filter: " + columnName);
 		}
 
@@ -217,7 +217,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 			convertedQuery.addParameter(column, "'%"+ value + "'");
 			break;
 		default: 
-			status = Status.NOT_IMPLEMENTED;
+			errorStatus = Status.NOT_IMPLEMENTED;
 			throw new AdempiereException("Method call " + methodCall + " not implemented");
 		}
 
@@ -257,8 +257,8 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	}
 
 	@Override
-	public Status getResponseStatus() {
-		return status;
+	public Status getErrorResponseStatus() {
+		return errorStatus;
 	}
 
 }

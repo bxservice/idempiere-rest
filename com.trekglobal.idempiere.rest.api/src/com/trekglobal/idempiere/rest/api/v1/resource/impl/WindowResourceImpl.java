@@ -120,8 +120,8 @@ public class WindowResourceImpl implements WindowResource {
 			return Response.ok(windowArray.toString()).build();
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+			return Response.status(converter.getErrorResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
 							.title("GET Error")
 							.append("Get windows with exception: ")
 							.append(ex.getMessage())
@@ -236,8 +236,8 @@ public class WindowResourceImpl implements WindowResource {
 			return Response.ok(fieldArray.toString()).build();
 		}  catch (Exception ex) {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getResponseStatus())
+			return Response.status(converter.getErrorResponseStatus())
+					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
 							.title("GET Error")
 							.append("Get TabFields with exception: ")
 							.append(ex.getMessage())
