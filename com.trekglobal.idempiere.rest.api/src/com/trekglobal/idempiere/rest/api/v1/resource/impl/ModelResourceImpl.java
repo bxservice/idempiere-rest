@@ -567,6 +567,8 @@ public class ModelResourceImpl implements ModelResource {
 					   : query.setParameters(Integer.parseInt(id)).first();
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
+			if(attachment == null)
+				return Response.ok(array.toString()).build();
 			for(MAttachmentEntry entry : attachment.getEntries()) {
 				JsonObject entryJsonObject = new JsonObject();
 				entryJsonObject.addProperty("name", entry.getName());
