@@ -45,6 +45,7 @@ import org.compiere.util.Msg;
 import org.compiere.util.Util;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 
@@ -187,7 +188,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 			}
 			return null;
 		} else if(DisplayType.isText(displayType) || DisplayType.List==displayType) {
-			return value != null ? value.getAsString() : null;
+			return value != null && !(value instanceof JsonNull) ? value.getAsString() : null;
 		} else {
 			return null;
 		}
