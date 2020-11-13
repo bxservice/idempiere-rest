@@ -147,7 +147,9 @@ public class TypeConverterUtils {
 	public static Object fromJsonValue(GridField gridField, JsonElement value) {		
 		ITypeConverter typeConverter = getTypeConverter(gridField.getDisplayType(), value);
 		
-		if (typeConverter != null) {
+		if(value instanceof JsonNull) {
+			return null;
+		} else if (typeConverter != null) {
 			return typeConverter.fromJsonValue(gridField, value);
 		} else if (value != null && DisplayType.isText(gridField.getDisplayType())) {
 			return value.getAsString();
