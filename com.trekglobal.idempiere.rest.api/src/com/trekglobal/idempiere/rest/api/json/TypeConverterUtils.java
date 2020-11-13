@@ -26,11 +26,11 @@
 package com.trekglobal.idempiere.rest.api.json;
 
 import static org.compiere.util.DisplayType.Account;
+import static org.compiere.util.DisplayType.Binary;
 import static org.compiere.util.DisplayType.Location;
 import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
 import static org.compiere.util.DisplayType.Payment;
-import static org.compiere.util.DisplayType.Binary;
 
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -45,6 +45,7 @@ import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonPrimitive;
 
 /**
@@ -130,7 +131,7 @@ public class TypeConverterUtils {
 		
 		if (typeConverter != null) {
 			return typeConverter.fromJsonValue(column, value);
-		} else if (value != null && DisplayType.isText(column.getAD_Reference_ID())) {
+		} else if (value != null && !(value instanceof JsonNull) && DisplayType.isText(column.getAD_Reference_ID())) {
 			return value.getAsString();
 		} else {
 			return null;
@@ -149,7 +150,7 @@ public class TypeConverterUtils {
 		
 		if (typeConverter != null) {
 			return typeConverter.fromJsonValue(gridField, value);
-		} else if (value != null && DisplayType.isText(gridField.getDisplayType())) {
+		} else if (value != null && !(value instanceof JsonNull) && DisplayType.isText(gridField.getDisplayType())) {
 			return value.getAsString();
 		} else {
 			return null;
