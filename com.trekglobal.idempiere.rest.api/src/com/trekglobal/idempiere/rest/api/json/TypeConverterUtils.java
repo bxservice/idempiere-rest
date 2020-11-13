@@ -128,7 +128,9 @@ public class TypeConverterUtils {
 	public static Object fromJsonValue(MColumn column, JsonElement value) {		
 		ITypeConverter typeConverter = getTypeConverter(column.getAD_Reference_ID(), value);
 		
-		if (typeConverter != null) {
+		if(value instanceof JsonNull) {
+			return null;
+		} else if (typeConverter != null) {
 			return typeConverter.fromJsonValue(column, value);
 		} else if (value != null && DisplayType.isText(column.getAD_Reference_ID())) {
 			return value.getAsString();
