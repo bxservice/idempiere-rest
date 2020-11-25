@@ -227,6 +227,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	public static List<String> split(String expression){
 		List<String> operatorList = new LinkedList<String>();
 		int depth=0;
+		boolean singleQuotes=false;
 		StringBuilder sb = new StringBuilder();
 		for(int i=0; i< expression.length(); i++){
 			char c = expression.charAt(i);
@@ -234,7 +235,9 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				depth++;
 			}else if(c==')'){
 				depth--;
-			}else if(c==' ' && depth==0){
+			}else if(c=='\''){
+				singleQuotes=!singleQuotes;
+			}else if(c==' ' && depth==0 && !singleQuotes){
 				operatorList.add(sb.toString());
 				sb = new StringBuilder();
 				continue;
