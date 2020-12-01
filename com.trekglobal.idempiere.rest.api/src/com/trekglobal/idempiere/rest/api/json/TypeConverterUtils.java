@@ -34,15 +34,23 @@ import static org.compiere.util.DisplayType.Payment;
 
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.regex.Pattern;
+
+import javax.ws.rs.core.Response.Status;
 
 import org.adempiere.base.Service;
 import org.adempiere.base.ServiceQuery;
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
+import org.compiere.model.MRole;
+import org.compiere.model.MTable;
 import org.compiere.util.DisplayType;
+import org.compiere.util.Env;
+import org.compiere.util.Util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -255,5 +263,41 @@ public class TypeConverterUtils {
 	 */
 	public static boolean isUUID(String value) {
 		return value == null ? false : value.matches(UUID_REGEX);
+	}
+	
+	public static HashMap<String, ArrayList<String>> getIncludes(String tableName, String select, String details) {
+		
+		if (Util.isEmpty(select, true) || Util.isEmpty(tableName, true))
+			return null;
+
+		HashMap<String, ArrayList<String>> tableSelect = new HashMap<>();
+
+		boolean hasDetail = !Util.isEmpty(details, true); 
+		MTable mTable = MTable.get(Env.getCtx(), tableName);
+		String[] columnNames = select.split("[,]");
+		for(String columnName : columnNames) {
+			MTable table = mTable;
+			if (hasDetail && columnName.contains("/")) { //Detail select
+				String selectTableName = columnName.substring(0, columnName.indexOf("/")).trim();
+				if (details.toLowerCase().contains(selectTableName.toLowerCase())) {
+					table = MTable.get(Env.getCtx(), selectTableName);
+					columnName = columnName.substring(columnName.indexOf("/")+1, columnName.length());
+				} else {
+					throw new IDempiereRestException(selectTableName + " does not make part of the request body.", Status.BAD_REQUEST);
+				}
+			}
+			if (table.getColumnIndex(columnName.trim()) < 0)
+				throw new IDempiereRestException(columnName + " is not a valid column of table " + table.getTableName(), Status.BAD_REQUEST);
+
+			MColumn mColumn = table.getColumn(columnName.trim());
+			if (MRole.getDefault().isColumnAccess(table.getAD_Table_ID(), mColumn.getAD_Column_ID(), true)) {
+				if (tableSelect.get(table.getTableName()) == null)
+					tableSelect.put(table.getTableName(), new ArrayList<String>());
+				
+				tableSelect.get(table.getTableName()).add(columnName.trim());
+			}
+		}
+
+		return tableSelect;
 	}
 }

@@ -35,6 +35,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,6 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
-import org.compiere.model.MColumn;
 import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
@@ -69,6 +69,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
@@ -121,40 +122,58 @@ public class ModelResourceImpl implements ModelResource {
 		
 		boolean isUUID = TypeConverterUtils.isUUID(id);
 		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
-		if (po != null) {
-			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			String[] includes = null;
-			if (!Util.isEmpty(multiProperty, true)) {
-				includes = getIncludes(po, multiProperty);
-			} else if (!Util.isEmpty(singleProperty, true)) {
-				if (po.get_Value(singleProperty) == null) {
+		try {
+			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
+			query.setApplyAccessFilter(true, false);
+			PO po = isUUID ? query.setParameters(id).first()
+					: query.setParameters(Integer.parseInt(id)).first();
+			if (po != null) {
+				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
+				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, multiProperty, details);
+				String[] includes = null;
+				if (!Util.isEmpty(multiProperty, true)) {
+					includes =  includeParser != null && includeParser.get(table.getTableName()) != null ? 
+							includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
+								null;;
+				} else if (!Util.isEmpty(singleProperty, true)) {
+					if (po.get_Value(singleProperty) == null) {
+						return Response.status(Status.NOT_FOUND)
+								.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(singleProperty).build().toString())
+								.build();
+					}
+					includes = new String[] {singleProperty};
+				}
+				JsonObject json = serializer.toJson(po, includes, null);
+				if (!Util.isEmpty(details, true))
+					loadDetails(po, json, details, includeParser);
+				return Response.ok(json.toString()).build();
+			} else {
+				query.setApplyAccessFilter(false);
+				po = isUUID ? query.setParameters(id).first()
+						: query.setParameters(Integer.parseInt(id)).first();
+				if (po != null) {
+					return Response.status(Status.FORBIDDEN)
+							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
+							.build();
+				} else {
 					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(singleProperty).build().toString())
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
 							.build();
 				}
-				includes = new String[] {singleProperty};
 			}
-			JsonObject json = serializer.toJson(po, includes, null);
-			if (!Util.isEmpty(details, true))
-				loadDetails(po, json, details);
-			return Response.ok(json.toString()).build();
-		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+		} catch(Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title("GET Error")
+							.append("Get POs with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
 		}
 	}
 	
@@ -253,11 +272,13 @@ public class ModelResourceImpl implements ModelResource {
 			JsonArray array = new JsonArray();
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				String[] includes = null;
+				
+				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, select, null);
+				String[] includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
+						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
+						null;
+
 				for(PO po : list) {
-					if (!Util.isEmpty(select, true) && includes == null) {
-						includes = getIncludes(po, select);
-					}
 					JsonObject json = serializer.toJson(po, includes, null);
 					array.add(json);
 				}
@@ -271,9 +292,13 @@ public class ModelResourceImpl implements ModelResource {
 				return Response.ok(array.toString()).build();
 			}
 		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getErrorResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
 							.title("GET Error")
 							.append("Get POs with exception: ")
 							.append(ex.getMessage())
@@ -1012,12 +1037,13 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 
-	private void loadDetails(PO po, JsonObject jsonObject, String details) {
+	private void loadDetails(PO po, JsonObject jsonObject, String details, HashMap<String, ArrayList<String>> includeParser) {
 		if (Util.isEmpty(details, true))
 			return;
 		
 		String[] tableNames = details.split("[,]");
 		String keyColumn = po.get_TableName() + "_ID";
+		String[] includes;
 		for(String tableName : tableNames) {
 			MTable table = MTable.get(Env.getCtx(), tableName);
 			if (table == null)
@@ -1033,8 +1059,12 @@ public class ModelResourceImpl implements ModelResource {
 			if (childPOs != null && childPOs.size() > 0) {
 				JsonArray childArray = new JsonArray();
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+				includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
+						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
+						null;
+				
 				for(PO child : childPOs) {							
-					JsonObject childJsonObject = serializer.toJson(child, null, new String[] {keyColumn, "model-name"});
+					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
 					childArray.add(childJsonObject);
 				}
 				jsonObject.add(tableName, childArray);
@@ -1042,27 +1072,6 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
-	private String[] getIncludes(PO po, String select) {
-
-		if (Util.isEmpty(select, true))
-			return null;
-
-		ArrayList<String> includes = new ArrayList<String>();
-
-		MTable mTable = MTable.get(po.get_Table_ID());
-		String[] columnNames = select.split("[,]");
-		for(String columnName : columnNames) {
-			if (po.get_ColumnIndex(columnName.trim()) < 0)
-				continue;
-
-			MColumn mColumn = mTable.getColumn(columnName.trim());
-			if (MRole.getDefault().isColumnAccess(mTable.getAD_Table_ID(), mColumn.getAD_Column_ID(), true))
-				includes.add(columnName.trim());
-		}
-
-		return includes.toArray(new String[includes.size()]);
-	}
-
 	private boolean hasAccess(MTable table, boolean rw) {
 		MRole role = MRole.getDefault();
 		if (role == null)
