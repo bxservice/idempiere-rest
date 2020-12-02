@@ -52,7 +52,8 @@ public interface WindowResource {
 	 * @param filter optional where clause
 	 * @return json array of windows
 	 */
-	public Response getWindows(@QueryParam("filter") String filter);
+	public Response getWindows(@QueryParam("filter") String filter, @QueryParam("details") String details,
+			@QueryParam("select") String select);
 	
 	@Path("{windowSlug}/tabs")
 	@GET

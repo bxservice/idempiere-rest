@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +70,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IGridTabSerializer;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
@@ -90,11 +92,16 @@ public class WindowResourceImpl implements WindowResource {
 	private static final int DEFAULT_PAGE_SIZE = 100;
 	private static final CLogger log = CLogger.getCLogger(WindowResourceImpl.class);
 	
+	/** Default select values **/
+	private static final String[] WINDOW_SELECT_COLUMNS = new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"};
+	private static final String[] TAB_SELECT_COLUMNS = new String[] {"AD_Tab_ID", "AD_Tab_UU", "Name", "Description", "Help", "EntityType", "SeqNo", "TabLevel"};
+	private static final String[] FIELD_SELECT_COLUMNS = new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID", "MandatoryLogic"};
+	
 	public WindowResourceImpl() {
 	}
 
 	@Override
-	public Response getWindows(String filter) {
+	public Response getWindows(String filter, String details, String select) {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			JsonArray windowArray = new JsonArray();
@@ -108,20 +115,36 @@ public class WindowResourceImpl implements WindowResource {
 			List<MWindow> windows = query.list();
 			MRole role = MRole.getDefault();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
+
+			HashMap<String, ArrayList<String>> includes = TypeConverterUtils.getIncludes(MWindow.Table_Name, select, details);
+			String[] mainSelect = includes != null && includes.get(MWindow.Table_Name) != null ? 
+					includes.get(MWindow.Table_Name).toArray(new String[includes.get(MWindow.Table_Name).size()]) : 
+					WINDOW_SELECT_COLUMNS;
+
 			for(MWindow window : windows) {
 				if (role.getWindowAccess(window.getAD_Window_ID()) == null)
 					continue;
-
-				JsonObject jsonObject = serializer.toJson(window, new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"}, null);
+				
+				JsonObject jsonObject = serializer.toJson(window, mainSelect, null);
 				jsonObject.addProperty("slug", TypeConverterUtils.slugify(window.getName()));
+				if (!Util.isEmpty(details, true)) {
+					boolean addTabs = details.contains(MTab.Table_Name);
+					boolean addFields = details.contains(MField.Table_Name);
+					if (addTabs) {
+						jsonObject.add("tabs", getWindowTabs(window, includes, addFields));
+					}
+				}
 				windowArray.add(jsonObject);
-
 			}
 			return Response.ok(windowArray.toString()).build();
 		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getErrorResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
 							.title("GET Error")
 							.append("Get windows with exception: ")
 							.append(ex.getMessage())
@@ -157,19 +180,49 @@ public class WindowResourceImpl implements WindowResource {
 					.build();
 		}
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
-		JsonObject windowJsonObject = serializer.toJson(window, new String[] {"AD_Window_ID", "AD_Window_UU", "Name", "Description", "Help", "WindowType", "EntityType"}, null);
+		JsonObject windowJsonObject = serializer.toJson(window, WINDOW_SELECT_COLUMNS, null);
 		windowJsonObject.addProperty("slug", TypeConverterUtils.slugify(window.getName()));
+		windowJsonObject.add("tabs", getWindowTabs(window, null, false));
+		
+		return Response.ok(windowJsonObject.toString()).build();
+	}
+	
+	private JsonArray getWindowTabs(MWindow window, HashMap<String, ArrayList<String>> includes, boolean includeFields) {
 		MTab[] tabs = window.getTabs(false, null);
 		JsonArray tabArray = new JsonArray();
 		IPOSerializer tabSerializer = IPOSerializer.getPOSerializer(MTab.Table_Name, MTable.getClass(MTab.Table_Name));
+		
+		String[] tabSelect = TAB_SELECT_COLUMNS;
+		String[] fieldSelect = FIELD_SELECT_COLUMNS;
+		if (includes != null) {
+			if (includes.get(MTab.Table_Name) != null)
+				tabSelect = includes.get(MTab.Table_Name).toArray(new String[includes.get(MTab.Table_Name).size()]);
+			
+			if (includeFields && includes.get(MField.Table_Name) != null)
+				fieldSelect =  includes.get(MField.Table_Name).toArray(new String[includes.get(MField.Table_Name).size()]);
+		}
+	
+		
 		for(MTab tab : tabs) {
-			JsonObject tabJsonObject = tabSerializer.toJson(tab, new String[] {"AD_Tab_ID", "AD_Tab_UU", "Name", "Description", "Help", "EntityType", "SeqNo", "TabLevel"}, null);
+			JsonObject tabJsonObject = tabSerializer.toJson(tab, tabSelect, null);
 			tabJsonObject.addProperty("slug", TypeConverterUtils.slugify(tab.getName()));
+			
+			if (includeFields) {
+				MField[] fields = tab.getFields(false, null);
+				JsonArray fieldArray = new JsonArray();
+				IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
+				for(MField field : fields) {
+					if (!field.isDisplayed())
+						continue;
+					JsonObject jsonObject = serializer.toJson(field, fieldSelect, null);
+					fieldArray.add(jsonObject);
+				}
+				tabJsonObject.add("fields", fieldArray);
+			}
+
 			tabArray.add(tabJsonObject);
 		}
-		windowJsonObject.add("tabs", tabArray);
-		
-		return Response.ok(windowJsonObject.toString()).build();
+		return tabArray;
 	}
 
 	@Override
@@ -229,7 +282,7 @@ public class WindowResourceImpl implements WindowResource {
 			JsonArray fieldArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
 			for(MField field : fields ) {
-				JsonObject jsonObject = serializer.toJson(field, new String[] {"AD_Field_ID", "AD_Field_UU", "Name", "Description", "Help", "EntityType", "AD_Reference_ID", "AD_Column_ID", "MandatoryLogic"}, null);
+				JsonObject jsonObject = serializer.toJson(field, FIELD_SELECT_COLUMNS, null);
 				fieldArray.add(jsonObject);
 			}
 
