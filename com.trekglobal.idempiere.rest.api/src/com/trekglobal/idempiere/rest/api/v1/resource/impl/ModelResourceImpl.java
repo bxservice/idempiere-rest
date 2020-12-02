@@ -48,6 +48,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.DatatypeConverter;
 
+import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
 import org.compiere.model.MRole;
@@ -333,6 +334,10 @@ public class ModelResourceImpl implements ModelResource {
 			PO po = serializer.fromJson(jsonObject, table);
 			po.set_TrxName(trx.getTrxName());
 			try {
+				if (! po.validForeignKeys()) {
+					String msg = CLogger.retrieveErrorString("Foreign key validation error");
+					throw new AdempiereException(msg);
+				}
 				po.saveEx();
 			} catch (Exception ex) {
 				trx.rollback();
@@ -359,6 +364,10 @@ public class ModelResourceImpl implements ModelResource {
 									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
 									childPO.set_TrxName(trx.getTrxName());
 									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
+									if (! childPO.validForeignKeys()) {
+										String msg = CLogger.retrieveErrorString("Foreign key validation error");
+										throw new AdempiereException(msg);
+									}
 									childPO.saveEx();
 									childJsonObject = serializer.toJson(childPO);
 									savedArray.add(childJsonObject);
@@ -449,6 +458,10 @@ public class ModelResourceImpl implements ModelResource {
 			po = serializer.fromJson(jsonObject, po);
 			po.set_TrxName(trx.getTrxName());
 			try {
+				if (! po.validForeignKeys()) {
+					String msg = CLogger.retrieveErrorString("Foreign key validation error");
+					throw new AdempiereException(msg);
+				}
 				po.saveEx();
 			} catch (Exception ex) {
 				trx.rollback();
@@ -482,6 +495,10 @@ public class ModelResourceImpl implements ModelResource {
 										childPO = childSerializer.fromJson(childJsonObject, childPO);
 									}
 									childPO.set_TrxName(trx.getTrxName());
+									if (! childPO.validForeignKeys()) {
+										String msg = CLogger.retrieveErrorString("Foreign key validation error");
+										throw new AdempiereException(msg);
+									}
 									childPO.saveEx();
 									childJsonObject = serializer.toJson(childPO);
 									savedArray.add(childJsonObject);
