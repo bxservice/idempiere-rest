@@ -59,6 +59,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
@@ -109,9 +110,13 @@ public class ProcessResourceImpl implements ProcessResource {
 			}
 			return Response.ok(processArray.toString()).build();
 		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getErrorResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
 							.title("GET Error")
 							.append("Get process with exception: ")
 							.append(ex.getMessage())

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.MForm;
 import org.compiere.model.MRole;
@@ -39,6 +40,7 @@ import org.compiere.util.Env;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
@@ -89,9 +91,13 @@ public class FormResourceImpl implements FormResource {
 					.header("X-Row-Count", rowCount)
 					.build();
 		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getErrorResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
 							.title("GET Error")
 							.append("Get forms with exception: ")
 							.append(ex.getMessage())

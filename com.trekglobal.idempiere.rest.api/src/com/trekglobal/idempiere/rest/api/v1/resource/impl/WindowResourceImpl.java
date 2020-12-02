@@ -288,9 +288,13 @@ public class WindowResourceImpl implements WindowResource {
 
 			return Response.ok(fieldArray.toString()).build();
 		}  catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(converter.getErrorResponseStatus())
-					.entity(new ErrorBuilder().status(converter.getErrorResponseStatus())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
 							.title("GET Error")
 							.append("Get TabFields with exception: ")
 							.append(ex.getMessage())

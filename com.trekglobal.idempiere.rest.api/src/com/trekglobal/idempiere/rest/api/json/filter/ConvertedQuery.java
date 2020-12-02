@@ -31,9 +31,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.ws.rs.core.Response.Status;
+
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
+
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 
 public class ConvertedQuery {
 	
@@ -115,12 +119,12 @@ public class ConvertedQuery {
 				if (parameter.startsWith("'") && parameter.endsWith("'"))
 					addParameter(extractFromStringValue(parameter));
 				else 
-					throw new AdempiereException("String values must be put between single quotes");
+					throw new IDempiereRestException("String values must be put between single quotes. ColumnName: " + column.getName(), Status.BAD_REQUEST);
 			}
 			else 
 				addParameter(parameter);
 		} catch (Exception e) {
-			throw new AdempiereException("Error convertig parameter with value: " + parameter + " - " + e.getMessage());
+			throw new IDempiereRestException("Error convertig parameter with value: " + parameter + " - " + e.getMessage(), Status.BAD_REQUEST);
 		}
 	}
 	
