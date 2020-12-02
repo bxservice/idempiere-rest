@@ -42,8 +42,6 @@ public interface IQueryConverter {
 	 */
 	public ConvertedQuery convertStatement(String tableName, String queryStatement);
 	
-	public Status getErrorResponseStatus();
-	
 	/**
 	 * Get Query Converter based on the convention being used
 	 * @param converterName
