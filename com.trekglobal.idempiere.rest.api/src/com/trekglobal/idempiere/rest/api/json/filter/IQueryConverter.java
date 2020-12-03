@@ -27,8 +27,6 @@ package com.trekglobal.idempiere.rest.api.json.filter;
 
 import java.util.List;
 
-import javax.ws.rs.core.Response.Status;
-
 import org.adempiere.base.Service;
 
 public interface IQueryConverter {

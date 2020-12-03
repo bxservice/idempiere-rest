@@ -30,7 +30,6 @@ import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
-import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
 import org.compiere.util.CCache;
