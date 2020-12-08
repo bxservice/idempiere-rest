@@ -95,7 +95,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				value = po.get_Value(i);
 
 			if (value != null) {
-				String propertyName = TypeConverterUtils.toPropertyName(columnName);
+				String propertyName = columnName;
 				Object jsonValue = TypeConverterUtils.toJsonValue(column, value);
 				if (jsonValue != null) {
 					if (jsonValue instanceof Number)
