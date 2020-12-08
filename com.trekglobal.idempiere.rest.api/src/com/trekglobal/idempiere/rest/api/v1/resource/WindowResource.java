@@ -52,8 +52,8 @@ public interface WindowResource {
 	 * @param filter optional where clause
 	 * @return json array of windows
 	 */
-	public Response getWindows(@QueryParam("filter") String filter, @QueryParam("details") String details,
-			@QueryParam("select") String select);
+	public Response getWindows(@QueryParam("$filter") String filter, @QueryParam("$expand") String details,
+			@QueryParam("$select") String select);
 	
 	@Path("{windowSlug}/tabs")
 	@GET
@@ -75,7 +75,7 @@ public interface WindowResource {
 	 * @param filter optional where clause
 	 * @return json array of tab field 
 	 */
-	public Response getTabFields(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @QueryParam("filter") String filter);
+	public Response getTabFields(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @QueryParam("$filter") String filter);
 	
 	@Path("{windowSlug}")
 	@GET
@@ -88,7 +88,7 @@ public interface WindowResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getWindowRecords(@PathParam("windowSlug") String windowSlug, @QueryParam("filter") String filter, @QueryParam("sort_column") String sortColumn, @QueryParam("page_no") int pageNo);
+	public Response getWindowRecords(@PathParam("windowSlug") String windowSlug, @QueryParam("$filter") String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
 	
 	@Path("{windowSlug}/{recordId}")
 	@GET
@@ -100,7 +100,7 @@ public interface WindowResource {
 	 * @param details optional comma separated list of child tabs to retrieve
 	 * @return json representation of record
 	 */
-	public Response getWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam("details") String details);
+	public Response getWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam("$expand") String details);
 	
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}/{childTabSlug}")
 	@GET
@@ -117,7 +117,7 @@ public interface WindowResource {
 	 * @return json array of child tab records
 	 */
 	public Response getChildTabRecords(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, 
-			@PathParam("childTabSlug") String childTabSlug, @QueryParam("filter") String filter, @QueryParam("sort_column") String sortColumn, @QueryParam("page_no") int pageNo);
+			@PathParam("childTabSlug") String childTabSlug, @QueryParam("$filter") String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
 
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}")
 	@GET
@@ -130,7 +130,7 @@ public interface WindowResource {
 	 * @param details optional comma separated list of child tabs to retrieve
 	 * @return json representation of record
 	 */
-	public Response getTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam("details") String details);
+	public Response getTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam("$expand") String details);
 	
 	@Path("{windowSlug}/{recordId}")
 	@PUT
@@ -226,7 +226,7 @@ public interface WindowResource {
 	 * @param reportType print output type
 	 * @return json representation of record
 	 */
-	public Response printWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam("report_type") String reportType);
+	public Response printWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam("$report_type") String reportType);
 	
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}/print")
 	@GET
@@ -239,6 +239,6 @@ public interface WindowResource {
 	 * @param reportType print output type
 	 * @return json representation of record
 	 */
-	public Response printTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam("report_type") String reportType);
+	public Response printTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam("$report_type") String reportType);
 }
 

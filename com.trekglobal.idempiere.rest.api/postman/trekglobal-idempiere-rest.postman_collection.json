@@ -375,7 +375,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/models/{table name}?top={number of records}&skip={number of records to skip}",
+			"name": "api/v1/models/{table name}?$top={number of records}&$skip={number of records to skip}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -396,7 +396,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product?top=2&skip=3",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product?$top=2&$skip=3",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -410,11 +410,11 @@
 					],
 					"query": [
 						{
-							"key": "top",
+							"key": "$top",
 							"value": "2"
 						},
 						{
-							"key": "skip",
+							"key": "$skip",
 							"value": "3"
 						}
 					]
@@ -424,7 +424,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/models/{table name}?filter={where clause}",
+			"name": "api/v1/models/{table name}?$filter={where clause}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -445,7 +445,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?filter=C_TaxCategory_ID eq 107",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?$filter=C_TaxCategory_ID eq 107",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -459,7 +459,7 @@
 					],
 					"query": [
 						{
-							"key": "filter",
+							"key": "$filter",
 							"value": "C_TaxCategory_ID eq 107"
 						}
 					]
@@ -469,7 +469,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/models/{table name}?select={columnname list}",
+			"name": "api/v1/models/{table name}?$select={columnname list}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -490,7 +490,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order?select=DocumentNo,Description",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order?$select=DocumentNo,Description",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -504,7 +504,7 @@
 					],
 					"query": [
 						{
-							"key": "select",
+							"key": "$select",
 							"value": "DocumentNo,Description"
 						}
 					]
@@ -555,7 +555,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/models/{table name}/{id}?details={child tables}",
+			"name": "api/v1/models/{table name}/{id}?$expand={child tables}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -576,7 +576,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax/106?details=c_tax_acct",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax/106?$expand=c_tax_acct",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -591,7 +591,7 @@
 					],
 					"query": [
 						{
-							"key": "details",
+							"key": "$expand",
 							"value": "c_tax_acct"
 						}
 					]
@@ -809,7 +809,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/windows?filter={where clause}",
+			"name": "api/v1/windows?$filter={where clause}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -830,7 +830,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows?filter=name eq 'Bank / Cash'",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows?$filter=name eq 'Bank / Cash'",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -843,7 +843,7 @@
 					],
 					"query": [
 						{
-							"key": "filter",
+							"key": "$filter",
 							"value": "name eq 'Bank / Cash'"
 						}
 					]
@@ -974,7 +974,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/windows/{window slug}/{id}?details={child tab slug}",
+			"name": "api/v1/windows/{window slug}/{id}?$expand={child tab slug}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -995,7 +995,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/100?details=account",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/100?$expand=account",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -1010,7 +1010,7 @@
 					],
 					"query": [
 						{
-							"key": "details",
+							"key": "$expand",
 							"value": "account"
 						}
 					]
@@ -1325,7 +1325,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/forms?filter={where clause}",
+			"name": "api/v1/forms?$filter={where clause}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1346,7 +1346,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/forms?filter=entityType neq 'D'",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/forms?$filter=entityType neq 'D'",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -1359,7 +1359,7 @@
 					],
 					"query": [
 						{
-							"key": "filter",
+							"key": "$filter",
 							"value": "entityType neq 'D'"
 						}
 					]
@@ -1390,7 +1390,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes?filter=contains(name,'Business Partner')",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes?$filter=contains(name,'Business Partner')",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"

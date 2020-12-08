@@ -56,8 +56,8 @@ public interface ModelResource {
 	 * @param select optional comma separated list of columns to retrieve
 	 * @return json representation of record
 	 */
-	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("details") String details, 
-			@QueryParam("select") String select);
+	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$expand") String details, 
+			@QueryParam("$select") String select);
 
 	@Path("{tableName}/{id}/{property}")
 	@GET
@@ -82,8 +82,8 @@ public interface ModelResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("filter") String filter, @QueryParam("orderby") String order, 
-			@QueryParam("select") String select, @QueryParam("top") int top, @DefaultValue("0") @QueryParam("skip") int skip);
+	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
+			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -92,7 +92,7 @@ public interface ModelResource {
 	 * @param filter optional where clause
 	 * @return json array of model
 	 */
-	public Response getModels(@QueryParam("filter") String filter);
+	public Response getModels(@QueryParam("$filter") String filter);
 	
 	@Path("{tableName}")
 	@POST

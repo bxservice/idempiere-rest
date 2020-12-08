@@ -50,7 +50,7 @@ public interface ProcessResource {
 	 * @param filter
 	 * @return json array of process
 	 */
-	public Response getProcesses(@QueryParam("filter") String filter);
+	public Response getProcesses(@QueryParam("$filter") String filter);
 	
 	@Path("{processSlug}")
 	@GET

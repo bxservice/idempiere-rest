@@ -49,7 +49,7 @@ public interface InfoResource {
 	 * @param filter optional where clause
 	 * @return json array of infowindows
 	 */
-	public Response getInfoWindows(@QueryParam("filter") String filter);
+	public Response getInfoWindows(@QueryParam("$filter") String filter);
 	
 	@Path("{slug}")
 	@GET
@@ -64,8 +64,8 @@ public interface InfoResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("parameters") String parameters, @QueryParam("where_clause") String whereClause, 
-			@QueryParam("order_by") String orderBy, @DefaultValue("0") @QueryParam("page_no") int pageNo);
+	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("$parameters") String parameters, @QueryParam("$where_clause") String whereClause, 
+			@QueryParam("$order_by") String orderBy, @DefaultValue("0") @QueryParam("$page_no") int pageNo);
 	
 
 	@Path("{slug}/columns")
