@@ -47,7 +47,7 @@ public interface FormResource {
 	 * @param filter optional where clause
 	 * @return Json array of forms
 	 */
-	public Response getForms(@QueryParam("filter") String filter);
+	public Response getForms(@QueryParam("$filter") String filter);
 
 }
 
