@@ -72,10 +72,8 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 		
 		if (displayType == DisplayType.Integer) {
 			return value.intValue();
-		} else if (displayType == DisplayType.Quantity) {
-			return value.doubleValue();
 		} else {
-			return DisplayType.getNumberFormat(displayType).format(value);
+			return value;
 		}
 	}
 	
