@@ -97,7 +97,7 @@ public class DefaultGridTabSerializer implements IGridTabSerializer, IGridTabSer
 			if (gridField.isEncrypted() || column.isSecure())
 				continue;
 			
-			String propertyName = TypeConverterUtils.toPropertyName(column.getColumnName());
+			String propertyName = column.getColumnName();
 			Object jsonValue = TypeConverterUtils.toJsonValue(gridField, value);
 			if (jsonValue != null) {
 				if (jsonValue instanceof Number)
@@ -124,9 +124,11 @@ public class DefaultGridTabSerializer implements IGridTabSerializer, IGridTabSer
 			String columnName = gridField.getColumnName();
 			MColumn column = MColumn.get(Env.getCtx(), gridField.getAD_Column_ID());
 			String propertyName = TypeConverterUtils.toPropertyName(columnName);
-			if (!jsonFields.contains(propertyName))
+			if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
 				continue;
 			JsonElement jsonField = json.get(propertyName);
+			if (jsonField == null)
+				jsonField = json.get(columnName);
 			if (jsonField == null) {
 				if (gridTab.isNew()) {
 					gridField.setValue(gridField.getDefault(), true);
