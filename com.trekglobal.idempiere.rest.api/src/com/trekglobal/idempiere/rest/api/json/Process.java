@@ -78,6 +78,7 @@ public class Process {
 			String propertyName = TypeConverterUtils.toPropertyName(columnName);
 			GridFieldVO gridFieldVO = GridFieldVO.createParameter(Env.getCtx(), 0, 0, 0, 0, columnName, processPara.getName(), processPara.getAD_Reference_ID(), 
 					processPara.getAD_Reference_Value_ID(), processPara.isMandatory(), false, "");
+			gridFieldVO.AD_Column_ID = processPara.getAD_Process_Para_ID();
 			GridField gridField = new GridField(gridFieldVO);
 			JsonElement element = jsonObject.get(propertyName);
 			if (element != null) {			

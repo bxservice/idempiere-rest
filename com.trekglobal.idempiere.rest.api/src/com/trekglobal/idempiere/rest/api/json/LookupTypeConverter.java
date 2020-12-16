@@ -25,6 +25,7 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.Lookup;
 import org.compiere.model.MAccountLookup;
@@ -34,6 +35,7 @@ import org.compiere.model.MLocatorLookup;
 import org.compiere.model.MLookupFactory;
 import org.compiere.model.MPAttributeLookup;
 import org.compiere.model.MPaymentLookup;
+import org.compiere.model.MProcessPara;
 import org.compiere.model.MRole;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
@@ -70,8 +72,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object toJsonValue(GridField field, Object value) {
-		MColumn column = field.getAD_Column_ID() > 0 ? MColumn.get(Env.getCtx(), field.getAD_Column_ID()) : null;
-		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), column != null ? column.getReferenceTableName() : null, value);
+		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), getReferenceTableNameFromField(field), value);
 	}
 
 	@Override
@@ -81,10 +82,23 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object fromJsonValue(GridField field, JsonElement value) {
-		MColumn column = field.getAD_Column_ID() > 0 ? MColumn.get(Env.getCtx(), field.getAD_Column_ID()) : null;
-		return fromJsonValue(field.getDisplayType(), column != null ? column.getReferenceTableName() : null, value);
+		return fromJsonValue(field.getDisplayType(), getReferenceTableNameFromField(field), value);
 	}
 	
+	private String getReferenceTableNameFromField(GridField field) {
+		String refTableName = null;
+		if (field.getVO().isProcess) {
+			MProcessPara pp = field.getAD_Column_ID() > 0 ? MProcessPara.get(field.getAD_Column_ID()) : null;
+			if (pp != null)
+				refTableName = pp.getReferenceTableName();
+		} else {
+			MColumn column = field.getAD_Column_ID() > 0 ? MColumn.get(Env.getCtx(), field.getAD_Column_ID()) : null;
+			if (column != null)
+				refTableName = column.getReferenceTableName();
+		}
+		return refTableName;
+	}
+
 	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value) {
 		if (lookup != null) {
 			JsonObject ref = new JsonObject();
@@ -186,9 +200,17 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				if (id > 0)
 					return id;
 			}
-			return null;
+			throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
+		} else if (value != null && value.isJsonPrimitive()) {
+			JsonPrimitive primitive = (JsonPrimitive) value;
+			if (primitive.isNumber())
+				return primitive.getAsInt();
+			else
+				return primitive.getAsString();
 		} else if(DisplayType.isText(displayType) || DisplayType.List==displayType) {
 			return value != null && !(value instanceof JsonNull) ? value.getAsString() : null;
+		} else if (value != null) {
+			throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
 		} else {
 			return null;
 		}
