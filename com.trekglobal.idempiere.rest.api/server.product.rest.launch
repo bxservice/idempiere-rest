@@ -161,6 +161,7 @@
         <setEntry value="org.apache.commons.lang3@default:default"/>
         <setEntry value="org.apache.commons.lang@default:default"/>
         <setEntry value="org.apache.commons.logging@default:default"/>
+        <setEntry value="org.apache.commons.math3@default:default"/>
         <setEntry value="org.apache.commons.net@default:default"/>
         <setEntry value="org.apache.cxf.cxf-core@default:default"/>
         <setEntry value="org.apache.cxf.cxf-rt-bindings-soap@default:default"/>

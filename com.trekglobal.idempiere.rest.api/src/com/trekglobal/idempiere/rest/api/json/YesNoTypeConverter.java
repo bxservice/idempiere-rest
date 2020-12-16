@@ -76,9 +76,9 @@ public class YesNoTypeConverter implements ITypeConverter<Object> {
 	private Object fromJsonValue(int displayType, JsonElement value) {
 		JsonPrimitive primitive = (JsonPrimitive) value;
 		if (primitive.isBoolean()) {
-			return primitive.getAsBoolean();
+			return primitive.getAsBoolean() ? "Y" : "N";
 		} else {
-			return ("y".equalsIgnoreCase(value.toString()) || "true".equalsIgnoreCase(value.toString()));
+			return ("y".equalsIgnoreCase(value.toString()) || "true".equalsIgnoreCase(value.toString())) ? "Y" : "N";
 		}
 	}
 }

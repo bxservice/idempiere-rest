@@ -25,10 +25,19 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
+import org.adempiere.exceptions.AdempiereException;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.StringUtils;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
 import org.compiere.model.MPInstance;
@@ -48,8 +57,12 @@ import org.idempiere.distributed.IClusterService;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
 import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
 
 /**
@@ -222,12 +235,15 @@ public class Process {
 		processInfoJson.addProperty("summary", processInfo.getSummary());
 		processInfoJson.addProperty("isError", processInfo.isError());
 		if (processInfo.getPDFReport() != null) {
-			processInfoJson.addProperty("reportFile", processInfo.getPDFReport().getAbsolutePath());
-			processInfoJson.addProperty("reportFileLength", processInfo.getPDFReport().length());
+			File file = processInfo.getPDFReport();
+			String property = "reportFile";
+			addFile(processInfoJson, file, property, "pdf");
 		}
 		if (processInfo.getExportFile() != null) {
-			processInfoJson.addProperty("exportFile", processInfo.getExportFile().getAbsolutePath());
-			processInfoJson.addProperty("exportFileLength", processInfo.getExportFile().length());
+			File file = processInfo.getExportFile();
+			String extension = processInfo.getExportFileExtension();
+			String property = "exportFile";
+			addFile(processInfoJson, file, property, extension);
 		}
 		IClusterService service = ClusterUtil.getClusterService();
 		if (service != null && service.getLocalMember() != null) {
@@ -259,6 +275,43 @@ public class Process {
 		}
 		
 		return processInfoJson;
+	}
+
+	private static void addFile(JsonObject processInfoJson, File file, String property, String extension) {
+		JsonElement jsonElement = null;
+		JsonParser parser = new JsonParser();
+		try {
+			if ("json".equals(extension)) {
+				FileReader reader = new FileReader(file.getAbsolutePath());
+				JsonReader jsonReader = new JsonReader(reader);
+				jsonElement = parser.parse(jsonReader);
+			} else {
+				// treat as binary
+				ByteArrayOutputStream ba= loadFile(file);
+				String base64String = StringUtils.newStringUtf8(Base64.encodeBase64(ba.toByteArray()));
+				jsonElement = new JsonPrimitive(base64String);
+			}
+		} catch (JsonIOException | JsonSyntaxException | FileNotFoundException e) {
+			throw new AdempiereException("Could not create JSON element from file " + file.getAbsolutePath(), e);
+		}
+		if (jsonElement != null)
+			processInfoJson.add(property, jsonElement);
+		processInfoJson.addProperty(property + "Name", file.getName());
+		processInfoJson.addProperty(property + "Length", file.length());
+	}
+
+	private static ByteArrayOutputStream loadFile(File file) throws FileNotFoundException {
+		FileInputStream fis = new FileInputStream(file);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		byte[] buf = new byte[1024];
+		try {
+			for (int readNum; (readNum = fis.read(buf)) != -1;) {
+				bos.write(buf, 0, readNum); //no doubt here is 0
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+		return bos;
 	}
 
 }
