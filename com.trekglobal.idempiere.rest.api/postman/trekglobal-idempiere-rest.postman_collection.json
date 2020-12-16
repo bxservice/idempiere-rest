@@ -1491,7 +1491,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"C_BPartner_ID\": { \"identifier\": \"C&W\" },\n\t\"report-type\" : \"HTML\"\n}"
+					"raw": "{\n\t\"C_BPartner_ID\": \"117,114\",\n\t\"report-type\" : \"HTML\"\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes/rv_bpartneropen",
