@@ -160,7 +160,7 @@ public class ProcessResourceImpl implements ProcessResource {
 			JsonObject parameterJsonObject = serializer.toJson(parameter, null, new String[] {"AD_Client_ID", "AD_Org_ID", "AD_Process_ID", 
 					"FieldLength", "IsCentrallyMaintained", "IsEncrypted", "AD_Element_ID", "ColumnName", "IsActive",
 					"Created", "CreatedBy", "Updated", "UpdatedBy"});
-			String propertyName = TypeConverterUtils.toPropertyName(parameter.getColumnName());
+			String propertyName = parameter.getColumnName();
 			parameterJsonObject.addProperty("parameterName", propertyName);
 			parameterArray.add(parameterJsonObject);
 		}

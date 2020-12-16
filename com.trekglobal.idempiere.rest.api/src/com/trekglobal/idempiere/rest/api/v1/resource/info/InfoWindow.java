@@ -621,7 +621,7 @@ public class InfoWindow {
 					}
 					Object value = rs.getObject(columnInfo.getColumnName());
 					if (value != null) {
-						String propertyName = TypeConverterUtils.toPropertyName(columnInfo.getColumnName());
+						String propertyName = columnInfo.getColumnName();
 						Object jsonValue = field != null ? TypeConverterUtils.toJsonValue(field, value) : TypeConverterUtils.toJsonValue(column, value); 
 						if (jsonValue != null) {
 							if (jsonValue instanceof Number)

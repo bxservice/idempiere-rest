@@ -125,7 +125,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			String columnName = poInfo.getColumnName(i);
 			MColumn column = table.getColumn(columnName);
 			String propertyName = TypeConverterUtils.toPropertyName(columnName);
-			if (!jsonFields.contains(propertyName)) {
+			if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName)) {
 				setDefaultValue(po, column);
 				continue;
 			}
@@ -133,6 +133,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				continue;
 			
 			JsonElement field = json.get(propertyName);
+			if (field == null)
+				field = json.get(columnName);
 			if (field == null) {
 				setDefaultValue(po, column);
 				continue;
@@ -154,9 +156,11 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			String columnName = poInfo.getColumnName(i);
 			MColumn column = table.getColumn(columnName);
 			String propertyName = TypeConverterUtils.toPropertyName(columnName);
-			if (!jsonFields.contains(propertyName))
+			if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
 				continue;
 			JsonElement field = json.get(propertyName);
+			if (field == null)
+				field = json.get(columnName);
 			if (field == null)
 				continue;
 			if (!column.isUpdateable())
