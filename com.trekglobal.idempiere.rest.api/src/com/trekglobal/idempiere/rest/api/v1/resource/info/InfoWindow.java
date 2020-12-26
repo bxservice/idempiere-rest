@@ -219,7 +219,7 @@ public class InfoWindow {
 		}
 		else if (DisplayType.isLookup(infoColumn.getAD_Reference_ID()))
 		{
-			if (infoColumn.getAD_Reference_ID() == DisplayType.List)
+			if (DisplayType.isList(infoColumn.getAD_Reference_ID()))
 			{
 				columnInfo = new ColumnInfo(infoColumn.get_Translation("Name"), colSQL, ValueNamePair.class, (String)null, infoColumn.isReadOnly());
 			}
