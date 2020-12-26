@@ -207,7 +207,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				return primitive.getAsInt();
 			else
 				return primitive.getAsString();
-		} else if(DisplayType.isText(displayType) || DisplayType.List==displayType) {
+		} else if(DisplayType.isText(displayType) || DisplayType.isList(displayType)) {
 			return value != null && !(value instanceof JsonNull) ? value.getAsString() : null;
 		} else if (value != null) {
 			throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
