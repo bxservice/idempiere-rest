@@ -82,7 +82,7 @@ public interface ModelResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
+	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$expand") String details, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
 			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip);
 	
 	@GET
