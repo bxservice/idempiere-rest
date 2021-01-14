@@ -231,7 +231,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String filter, String order, String select, int top, int skip) {
+	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -278,13 +278,15 @@ public class ModelResourceImpl implements ModelResource {
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 				
-				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, select, null);
+				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, select, details);
 				String[] includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
 						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
 						null;
 
 				for(PO po : list) {
 					JsonObject json = serializer.toJson(po, includes, null);
+					if (!Util.isEmpty(details, true))
+						loadDetails(po, json, details, includeParser);
 					array.add(json);
 				}
 				return Response.ok(array.toString())
