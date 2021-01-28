@@ -145,6 +145,9 @@ public class Process {
 			}
 		}
 		
+		//Save Process Instance
+		pInstance.saveEx();
+
 		return pInstance;
 	}
 	
