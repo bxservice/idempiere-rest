@@ -36,4 +36,13 @@ public interface ITokenSecretProvider {
 	 * @return token secret
 	 */
 	public String getSecret();
+
+	public default String getKeyId() {
+		return "idempiere";
+	}
+
+	public default String getIssuer() {
+		return "idempiere.org";
+	}
+
 }

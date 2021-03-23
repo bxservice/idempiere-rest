@@ -53,11 +53,27 @@ public class TokenUtils {
 	}
 
 	/**
+	 *
+	 * @return token key id
+	 */
+	public static String getTokenKeyId() {
+		ITokenSecretProvider provider = Service.locator().locate(ITokenSecretProvider.class).getService();
+		if (provider != null) {
+			return provider.getKeyId();
+		}
+		return DefaultTokenSecretProvider.instance.getKeyId();
+	}
+
+	/**
 	 * 
 	 * @return issuer of token
 	 */
 	public static String getTokenIssuer() {
-		return "idempiere.org";
+		ITokenSecretProvider provider = Service.locator().locate(ITokenSecretProvider.class).getService();
+		if (provider != null) {
+			return provider.getIssuer();
+		}
+		return DefaultTokenSecretProvider.instance.getIssuer();
 	}
 
 	/**
