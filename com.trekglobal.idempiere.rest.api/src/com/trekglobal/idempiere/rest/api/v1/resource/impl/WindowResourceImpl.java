@@ -136,7 +136,9 @@ public class WindowResourceImpl implements WindowResource {
 				}
 				windowArray.add(jsonObject);
 			}
-			return Response.ok(windowArray.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("windows", windowArray);
+			return Response.ok(json.toString()).build();
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -286,7 +288,9 @@ public class WindowResourceImpl implements WindowResource {
 				fieldArray.add(jsonObject);
 			}
 
-			return Response.ok(fieldArray.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("fields", fieldArray);
+			return Response.ok(json.toString()).build();
 		}  catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -335,7 +339,9 @@ public class WindowResourceImpl implements WindowResource {
 			GridTab gridTab = gridWindow.getTab(i);
 			if (gridTab.getTabLevel()==0) {
 				QueryResult queryResult = query(gridTab, filter, sortColumn, pageNo);
-				return Response.ok(queryResult.jsonArray.toString())
+				JsonObject json = new JsonObject();
+				json.add("window-records", queryResult.jsonArray);
+				return Response.ok(json.toString())
 						.header("X-Page-Count", queryResult.pageCount)
 						.header("X-Page-Size", queryResult.pageSize)
 						.header("X-Page-Number", queryResult.pageNo)
@@ -414,7 +420,9 @@ public class WindowResourceImpl implements WindowResource {
 				if (!gridWindow.isTabInitialized(i))
 					gridWindow.initTab(i);
 				QueryResult queryResult = query(gridTab, filter, sortColumn, pageNo);
-				return Response.ok(queryResult.jsonArray.toString())
+				JsonObject json = new JsonObject();
+				json.add("childtab-records", queryResult.jsonArray);
+				return Response.ok(json.toString())
 						.header("X-Page-Count", queryResult.pageCount)
 						.header("X-Page-Size", queryResult.pageSize)
 						.header("X-Page-Number", queryResult.pageNo)

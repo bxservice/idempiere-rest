@@ -98,7 +98,9 @@ public class InfoResourceImpl implements InfoResource {
 					array.add(json);
 				}
 			}
-			return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("infowindows", array);
+			return Response.ok(json.toString()).build();
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -164,7 +166,9 @@ public class InfoResourceImpl implements InfoResource {
 		infoWindow.setQueryParameters(paraMap);
 		QueryResponse queryResponse = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
 		JsonArray array = queryResponse.getRecords();
-		ResponseBuilder response = Response.ok(array.toString());
+		JsonObject json = new JsonObject();
+		json.add("infowindowrecords", array);
+		ResponseBuilder response = Response.ok(json.toString());
 		if (array.size() > 0) {
 			pageNo = queryResponse.getPageNo();
 			response.header("X-Page", pageNo);
@@ -211,7 +215,9 @@ public class InfoResourceImpl implements InfoResource {
 			JsonObject json = serializer.toJson(infoColumn);
 			array.add(json);
 		}
-		return Response.ok(array.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("infowindowcolumns", array);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override
@@ -248,7 +254,9 @@ public class InfoResourceImpl implements InfoResource {
 			json.addProperty("slug", slug);
 			array.add(json);
 		}
-		return Response.ok(array.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("infowindowprocesses", array);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override
@@ -285,7 +293,9 @@ public class InfoResourceImpl implements InfoResource {
 			json.addProperty("slug", slug);
 			array.add(json);
 		}
-		return Response.ok(array.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("infowindowrelateds", array);
+		return Response.ok(json.toString()).build();
 	}
 
 }

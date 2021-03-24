@@ -108,7 +108,9 @@ public class ProcessResourceImpl implements ProcessResource {
 				processArray.add(jsonObject);
 
 			}
-			return Response.ok(processArray.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("processes", processArray);
+			return Response.ok(json.toString()).build();
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -218,7 +220,9 @@ public class ProcessResourceImpl implements ProcessResource {
 			JsonObject jsonObject = toJsonObject(instance);
 			instanceArray.add(jsonObject);
 		}
-		return Response.ok(instanceArray.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("jobs", instanceArray);
+		return Response.ok(json.toString()).build();
 	}
 	
 	@Override
