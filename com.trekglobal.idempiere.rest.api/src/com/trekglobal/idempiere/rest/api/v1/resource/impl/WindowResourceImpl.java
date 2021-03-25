@@ -340,6 +340,10 @@ public class WindowResourceImpl implements WindowResource {
 			if (gridTab.getTabLevel()==0) {
 				QueryResult queryResult = query(gridTab, filter, sortColumn, pageNo);
 				JsonObject json = new JsonObject();
+				json.addProperty("page-count", queryResult.pageCount);
+				json.addProperty("page-size", queryResult.pageSize);
+				json.addProperty("page-number", queryResult.pageNo);
+				json.addProperty("row-count", queryResult.rowCount);
 				json.add("window-records", queryResult.jsonArray);
 				return Response.ok(json.toString())
 						.header("X-Page-Count", queryResult.pageCount)
@@ -421,6 +425,10 @@ public class WindowResourceImpl implements WindowResource {
 					gridWindow.initTab(i);
 				QueryResult queryResult = query(gridTab, filter, sortColumn, pageNo);
 				JsonObject json = new JsonObject();
+				json.addProperty("page-count", queryResult.pageCount);
+				json.addProperty("page-size", queryResult.pageSize);
+				json.addProperty("page-number", queryResult.pageNo);
+				json.addProperty("row-count", queryResult.rowCount);
 				json.add("childtab-records", queryResult.jsonArray);
 				return Response.ok(json.toString())
 						.header("X-Page-Count", queryResult.pageCount)

@@ -292,7 +292,11 @@ public class ModelResourceImpl implements ModelResource {
 					array.add(json);
 				}
 				JsonObject json = new JsonObject();
-				json.add(table.getTableName().toLowerCase()+"-collection", array);
+				json.addProperty("page-count", pageCount);
+				json.addProperty("records-size", top);
+				json.addProperty("skip-records", skip);
+				json.addProperty("row-count", rowCount);
+				json.add("records", array);
 				return Response.ok(json.toString())
 						.header("X-Page-Count", pageCount)
 						.header("X-Records-Size", top)
@@ -301,7 +305,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			} else {
 				JsonObject json = new JsonObject();
-				json.add(table.getTableName().toLowerCase()+"-collection", array);
+				json.add("records", array);
 				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
