@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.xml.bind.DatatypeConverter;
 
 import org.adempiere.util.LogAuthFailure;
 import org.compiere.model.I_AD_Preference;
@@ -40,6 +41,7 @@ import org.compiere.model.MOrg;
 import org.compiere.model.MPreference;
 import org.compiere.model.MRole;
 import org.compiere.model.MSession;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.Query;
@@ -132,9 +134,9 @@ public class AuthServiceImpl implements AuthService {
 				}
 			}
 			Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
-			builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt);
+			builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
 			try {
-				String token = builder.sign(Algorithm.HMAC256(TokenUtils.getTokenSecret()));
+				String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
 				responseNode.addProperty("token", token);
 			} catch (IllegalArgumentException | JWTCreationException | UnsupportedEncodingException e) {
 				e.printStackTrace();
@@ -292,9 +294,9 @@ public class AuthServiceImpl implements AuthService {
 		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
 		
 		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
-		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt);
+		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
 		try {
-			String token = builder.sign(Algorithm.HMAC256(TokenUtils.getTokenSecret()));
+			String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
 			responseNode.addProperty("token", token);
 		} catch (IllegalArgumentException | JWTCreationException | UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -318,6 +320,32 @@ public class AuthServiceImpl implements AuthService {
     			.first();
     	
     	return preference != null ? Language.getAD_Language(preference.getValue()) : MClient.get(Env.getCtx()).getAD_Language();
+	}
+
+	/* (non-Javadoc)
+	 * @see org.idempiere.rest.api.v1.AuthService#getJWK()
+	 */
+	@Override
+	public Response getJWK() {
+		JsonObject jwks = new JsonObject();
+		if (MSysConfig.getBooleanValue("IDEMPIERE_REST_EXPOSE_JWK", false)) {
+			JsonArray keys = new JsonArray();
+			JsonObject key = new JsonObject();
+			try {
+				key.addProperty("alg", Algorithm.HMAC512(TokenUtils.getTokenSecret()).getName());
+			} catch (IllegalArgumentException | UnsupportedEncodingException e) {
+				e.printStackTrace();
+				return Response.status(Status.BAD_REQUEST).build();
+			}
+			key.addProperty("k", DatatypeConverter.printBase64Binary(TokenUtils.getTokenSecret().getBytes()));
+			key.addProperty("kid", TokenUtils.getTokenKeyId());
+			key.addProperty("kty", "oct");
+			keys.add(key);
+
+			jwks.add("keys", keys);
+		}
+
+		return Response.ok(jwks.toString()).build();
 	}
 
 }

@@ -109,4 +109,13 @@ public interface AuthService {
 	 * @return new auth token
 	 */
 	public Response changeLoginParameters(LoginParameters loginRole);
+
+	@Path("auth/jwk")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get JWK
+	 * @return jwk keys
+	 */
+	public Response getJWK();
 }
