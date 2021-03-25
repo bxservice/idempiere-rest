@@ -41,6 +41,7 @@ import org.compiere.model.MAttachment;
 import org.compiere.model.MClient;
 import org.compiere.model.MNote;
 import org.compiere.model.MPInstance;
+import org.compiere.model.MPInstanceLog;
 import org.compiere.model.MProcess;
 import org.compiere.model.MProcessPara;
 import org.compiere.model.MRole;
@@ -53,6 +54,7 @@ import org.compiere.process.ServerProcessCtl;
 import org.compiere.util.CLogger;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
 import org.compiere.util.Util;
 
 import com.google.gson.Gson;
@@ -390,6 +392,9 @@ public class ProcessResourceImpl implements ProcessResource {
 					}
 					if (attachment != null)
 						attachment.saveEx();
+					MPInstanceLog il = instance.addLog(null, 0, null, Msg.parseTranslation(m_ctx, "@Created@ @AD_Note_ID@ " + note.getAD_Note_ID())
+							MNote.Table_ID, note.getAD_Note_ID());
+					il.saveEx();
 				}
 			} catch (Exception e) {
 				CLogger.getCLogger(getClass()).log(Level.SEVERE, e.getLocalizedMessage());				
