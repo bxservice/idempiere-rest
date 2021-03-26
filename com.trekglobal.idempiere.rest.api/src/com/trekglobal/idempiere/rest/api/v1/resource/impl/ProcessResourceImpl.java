@@ -392,7 +392,7 @@ public class ProcessResourceImpl implements ProcessResource {
 					}
 					if (attachment != null)
 						attachment.saveEx();
-					MPInstanceLog il = instance.addLog(null, 0, null, Msg.parseTranslation(m_ctx, "@Created@ @AD_Note_ID@ " + note.getAD_Note_ID())
+					MPInstanceLog il = instance.addLog(null, 0, null, Msg.parseTranslation(m_ctx, "@Created@ @AD_Note_ID@ " + note.getAD_Note_ID()),
 							MNote.Table_ID, note.getAD_Note_ID());
 					il.saveEx();
 				}
