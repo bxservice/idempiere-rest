@@ -212,7 +212,9 @@ public class ModelResourceImpl implements ModelResource {
 					array.add(json);
 				}
 			}
-			return Response.ok(array.toString()).build();			
+			JsonObject json = new JsonObject();
+			json.add("models", array);
+			return Response.ok(json.toString()).build();			
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -289,14 +291,22 @@ public class ModelResourceImpl implements ModelResource {
 						loadDetails(po, json, details, includeParser);
 					array.add(json);
 				}
-				return Response.ok(array.toString())
+				JsonObject json = new JsonObject();
+				json.addProperty("page-count", pageCount);
+				json.addProperty("records-size", top);
+				json.addProperty("skip-records", skip);
+				json.addProperty("row-count", rowCount);
+				json.add("records", array);
+				return Response.ok(json.toString())
 						.header("X-Page-Count", pageCount)
 						.header("X-Records-Size", top)
 						.header("X-Skip-Records", skip)
 						.header("X-Row-Count", rowCount)
 						.build();
 			} else {
-				return Response.ok(array.toString()).build();
+				JsonObject json = new JsonObject();
+				json.add("records", array);
+				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
@@ -624,7 +634,9 @@ public class ModelResourceImpl implements ModelResource {
 					array.add(entryJsonObject);
 				}
 			}
-			return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("attachments", array);
+			return Response.ok(json.toString()).build();
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()

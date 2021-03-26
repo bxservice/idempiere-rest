@@ -91,7 +91,9 @@ public class NodeResourceImpl implements NodeResource {
 			node.addProperty("port", member.getPort());
 			nodes.add(node);
 		}
-		return Response.ok(nodes.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("nodes", nodes);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override
@@ -170,7 +172,9 @@ public class NodeResourceImpl implements NodeResource {
 			log.addProperty("fileSize", logInfo.getFileSize());
 			logs.add(log);
 		}
-		return Response.ok(logs.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("logs", logs);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override

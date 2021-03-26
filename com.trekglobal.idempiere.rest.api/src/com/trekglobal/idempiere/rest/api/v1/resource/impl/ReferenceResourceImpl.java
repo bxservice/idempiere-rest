@@ -118,7 +118,9 @@ public class ReferenceResourceImpl implements ReferenceResource {
     			}
     		}
 
-    		return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("reftable", array);
+    		return Response.ok(json.toString()).build();
     	} else {
     		//Reference DataValidation not implemented
     		return Response.status(Status.NOT_IMPLEMENTED)

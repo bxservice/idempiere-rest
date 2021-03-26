@@ -73,8 +73,9 @@ public class CacheResourceImpl implements CacheResource {
 				cache.addProperty("nodeId", cacheInfo.getNodeId());
 			caches.add(cache);
 		}
-		
-		return Response.ok(caches.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("caches", caches);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override

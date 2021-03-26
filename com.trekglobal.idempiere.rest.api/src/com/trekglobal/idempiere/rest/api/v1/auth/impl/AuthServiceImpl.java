@@ -164,7 +164,9 @@ public class AuthServiceImpl implements AuthService {
 				node.addProperty("name", role.getName());
 				array.add(node);
 			}
-			return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("roles", array);
+			return Response.ok(json.toString()).build();
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();
@@ -195,7 +197,9 @@ public class AuthServiceImpl implements AuthService {
 					array.add(node);
 				}
 			}
-			return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("organizations", array);
+			return Response.ok(json.toString()).build();
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();
@@ -228,7 +232,9 @@ public class AuthServiceImpl implements AuthService {
 					array.add(node);
 				}
 			}
-			return Response.ok(array.toString()).build();
+			JsonObject json = new JsonObject();
+			json.add("warehouses", array);
+			return Response.ok(json.toString()).build();
 		} catch (IllegalArgumentException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();

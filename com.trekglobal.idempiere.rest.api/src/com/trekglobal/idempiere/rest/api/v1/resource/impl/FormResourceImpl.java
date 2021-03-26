@@ -87,7 +87,9 @@ public class FormResourceImpl implements FormResource {
 				formArray.add(jsonObject);
 				
 			}
-			return Response.ok(formArray.toString())
+			JsonObject json = new JsonObject();
+			json.add("forms", formArray);
+			return Response.ok(json.toString())
 					.header("X-Row-Count", rowCount)
 					.build();
 		} catch (Exception ex) {

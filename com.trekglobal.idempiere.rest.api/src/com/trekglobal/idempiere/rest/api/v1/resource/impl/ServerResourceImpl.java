@@ -85,7 +85,9 @@ public class ServerResourceImpl implements ServerResource {
 			server.addProperty("started", instance.isStarted());
 			servers.add(server);
 		}
-		return Response.ok(servers.toString()).build();
+		JsonObject json = new JsonObject();
+		json.add("servers", servers);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override
@@ -146,7 +148,10 @@ public class ServerResourceImpl implements ServerResource {
 			log.addProperty("error", instanceLog.isError());
 			logs.add(log);
 		}
-		return Response.ok(logs.toString()).build();
+		
+		JsonObject json = new JsonObject();
+		json.add("logs", logs);
+		return Response.ok(json.toString()).build();
 	}
 
 	@Override
