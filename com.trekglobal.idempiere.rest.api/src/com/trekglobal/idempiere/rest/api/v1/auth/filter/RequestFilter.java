@@ -74,6 +74,9 @@ public class RequestFilter implements ContainerRequestFilter {
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
 				&& requestContext.getUriInfo().getPath().endsWith("v1/auth/tokens")
 				)
+			|| (   HttpMethod.GET.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/jwk")
+					)
 			) {
 			return;
 		}
@@ -101,7 +104,7 @@ public class RequestFilter implements ContainerRequestFilter {
 	}
 
 	private void validate(String token) throws IllegalArgumentException, UnsupportedEncodingException {
-		Algorithm algorithm = Algorithm.HMAC256(TokenUtils.getTokenSecret());
+		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
 		JWTVerifier verifier = JWT.require(algorithm)
 		        .withIssuer(TokenUtils.getTokenIssuer())
 		        .build(); //Reusable verifier instance
