@@ -13,7 +13,7 @@ RETURNS TEXT AS $$
   ),
   -- replaces anything that's not a letter, number, hyphen('-'), or underscore('_') with a hyphen('-')
   "hyphenated" AS (
-    SELECT regexp_replace("value", '[^a-z0-9\\-_]+', '-', 'gi') AS "value"
+    SELECT regexp_replace("value", '[^a-z0-9\\-]+', '-', 'gi') AS "value"
     FROM "lowercase"
   ),
   -- trims hyphens('-') if they exist on the head or tail of the string
