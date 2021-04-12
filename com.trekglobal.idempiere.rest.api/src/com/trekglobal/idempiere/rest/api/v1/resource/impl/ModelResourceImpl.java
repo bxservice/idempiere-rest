@@ -61,6 +61,7 @@ import org.compiere.process.ProcessInfo;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
 import org.compiere.wf.MWorkflow;
@@ -580,7 +581,9 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			try {
 				po.deleteEx(true);
-				return Response.ok().build();
+				JsonObject json = new JsonObject();
+				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
+				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
 				log.log(Level.SEVERE, ex.getMessage(), ex);
 				return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -983,7 +986,9 @@ public class ModelResourceImpl implements ModelResource {
 							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
 							.build();
 				}
-				return Response.ok().build();
+				JsonObject json = new JsonObject();
+				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
+				return Response.ok(json.toString()).build();
 			} else {
 				return Response.status(Status.NOT_FOUND)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
@@ -1039,7 +1044,9 @@ public class ModelResourceImpl implements ModelResource {
 										.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
 										.build();
 							}
-							return Response.ok().build();							
+							JsonObject json = new JsonObject();
+							json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
+							return Response.ok(json.toString()).build();
 						} else {
 							return Response.status(Status.INTERNAL_SERVER_ERROR)
 									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Fail to remove attachment entry").build().toString())
