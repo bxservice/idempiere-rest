@@ -58,6 +58,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginParameters;
@@ -100,7 +101,9 @@ public class AuthServiceImpl implements AuthService {
             }
         	logAuthFailure.log(x_Forward_IP, "/api", credential.getUserName(), loginErrMsg);
 
-			return Response.status(Status.UNAUTHORIZED).build();
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(loginErrMsg).build().toString())
+					.build();
 		} else {
 			JsonObject responseNode = new JsonObject();
 			JsonArray clientNodes = new JsonArray(); 
