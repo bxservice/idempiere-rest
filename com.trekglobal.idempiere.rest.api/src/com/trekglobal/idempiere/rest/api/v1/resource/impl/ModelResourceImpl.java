@@ -86,7 +86,8 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
 public class ModelResourceImpl implements ModelResource {
 
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
-	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
+	//iDempiereConsulting __23/04/2021 ---- Default aumentato...
+	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", /*100*/500);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 
 	/**
@@ -256,9 +257,15 @@ public class ModelResourceImpl implements ModelResource {
 			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
 
 			Query query = new Query(Env.getCtx(), table, convertedStatement.getWhereClause(), null);
-			query.setApplyAccessFilter(true, false)
-			.setOnlyActiveRecords(true)
+			//iDempiereConsulting __23/04/2021 ---- Lettura completa, sì access; con filtro (whereClause) bypass access....
+//				query.setApplyAccessFilter(true, false)
+//				.setOnlyActiveRecords(true)
+//				.setParameters(convertedStatement.getParameters());
+			if(whereClause.isEmpty())
+				query = query.setApplyAccessFilter(true, false);
+			query.setOnlyActiveRecords(true)
 			.setParameters(convertedStatement.getParameters());
+			//iDempiereConsulting __23/04/2021 -------- END
 
 			if (isValidOrderBy(table, order)) {
 				query.setOrderBy(order);
@@ -272,8 +279,13 @@ public class ModelResourceImpl implements ModelResource {
 			if (rowCount > top) {
 				pageCount = (int)Math.ceil(rowCount / (double)top);
 			} 
-			query.setPageSize(top);
-			query.setRecordstoSkip(skip);
+			
+			//iDempiereConsulting __23/04/2021 ---- Lettura completa, sì access; con filtro (whereClause) bypass access....
+			if(whereClause.isEmpty()) {
+				query.setPageSize(top);
+				query.setRecordstoSkip(skip);
+			}
+			//iDempiereConsulting __23/04/2021 -------- END
 
 			List<PO> list = query.list();
 			JsonArray array = new JsonArray();
