@@ -48,6 +48,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.DatatypeConverter;
 
+import org.adempiere.base.event.EventManager;
+import org.adempiere.base.event.EventProperty;
+import org.adempiere.base.event.IEventManager;
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
@@ -65,6 +68,7 @@ import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
 import org.compiere.wf.MWorkflow;
+import org.osgi.service.event.Event;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -89,6 +93,7 @@ public class ModelResourceImpl implements ModelResource {
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
 	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
+	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
 
 	/**
 	 * default constructor
@@ -346,6 +351,7 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			PO po = serializer.fromJson(jsonObject, table);
 			po.set_TrxName(trx.getTrxName());
+			fireBeforeRestSaveEvent(po);
 			try {
 				if (! po.validForeignKeys()) {
 					String msg = CLogger.retrieveErrorString("Foreign key validation error");
@@ -377,7 +383,8 @@ public class ModelResourceImpl implements ModelResource {
 									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
 									childPO.set_TrxName(trx.getTrxName());
 									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-									if (! childPO.validForeignKeys()) {
+									fireBeforeRestSaveEvent(po);
+								if (! childPO.validForeignKeys()) {
 										String msg = CLogger.retrieveErrorString("Foreign key validation error");
 										throw new AdempiereException(msg);
 									}
@@ -470,6 +477,7 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			po = serializer.fromJson(jsonObject, po);
 			po.set_TrxName(trx.getTrxName());
+			fireBeforeRestSaveEvent(po);
 			try {
 				if (! po.validForeignKeys()) {
 					String msg = CLogger.retrieveErrorString("Foreign key validation error");
@@ -508,6 +516,7 @@ public class ModelResourceImpl implements ModelResource {
 										childPO = childSerializer.fromJson(childJsonObject, childPO);
 									}
 									childPO.set_TrxName(trx.getTrxName());
+									fireBeforeRestSaveEvent(childPO);
 									if (! childPO.validForeignKeys()) {
 										String msg = CLogger.retrieveErrorString("Foreign key validation error");
 										throw new AdempiereException(msg);
@@ -557,6 +566,20 @@ public class ModelResourceImpl implements ModelResource {
 		} finally {
 			trx.close();
 		}
+	}
+
+	/**
+	 * Fire the PO_BEFORE_REST_SAVE event, to catch and manipulate the object before the model beforeSave
+	 * @param po
+	 */
+	private void fireBeforeRestSaveEvent(PO po) {
+		Event event = EventManager.newEvent(PO_BEFORE_REST_SAVE,
+				new EventProperty(EventManager.EVENT_DATA, po), new EventProperty("tableName", po.get_TableName()));
+		EventManager.getInstance().sendEvent(event);
+		@SuppressWarnings("unchecked")
+		List<String> errors = (List<String>) event.getProperty(IEventManager.EVENT_ERROR_MESSAGES);
+		if (errors != null && !errors.isEmpty())
+			throw new AdempiereException(errors.get(0));
 	}
 
 	@Override
