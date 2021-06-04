@@ -67,7 +67,7 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object toJsonValue(int displayType, Number value) {
-		if (!DisplayType.isNumeric(displayType))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button))
 			return null;
 		
 		if (displayType == DisplayType.Integer) {
@@ -78,7 +78,7 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object fromJsonValue(int displayType, JsonElement value) {
-		if (!DisplayType.isNumeric(displayType))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button))
 			return null;
 		
 		JsonPrimitive primitive = (JsonPrimitive) value;
