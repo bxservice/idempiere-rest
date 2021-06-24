@@ -31,6 +31,7 @@ import static org.compiere.util.DisplayType.Location;
 import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
 import static org.compiere.util.DisplayType.Payment;
+import static org.compiere.util.DisplayType.Button;
 
 import java.text.Normalizer;
 import java.text.Normalizer.Form;

@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.json;
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
+import static org.compiere.util.DisplayType.Button;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
