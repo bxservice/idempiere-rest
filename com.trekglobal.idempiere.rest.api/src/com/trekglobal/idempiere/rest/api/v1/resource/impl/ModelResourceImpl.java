@@ -155,7 +155,7 @@ public class ModelResourceImpl implements ModelResource {
 				
 				EntityTag eTag = ETagUtil.getHash(po);
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -232,7 +232,7 @@ public class ModelResourceImpl implements ModelResource {
 			
 			EntityTag eTag = ETagUtil.getHash(array);
 			if(!Util.isEmpty(ifNoneMatch)) {
-				EntityTag reqETag = new EntityTag(ifNoneMatch);
+				EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 				if(ETagUtil.evaluate(eTag, reqETag)) {
 					return Response.status(304).tag(eTag).build();
 				}
@@ -307,7 +307,7 @@ public class ModelResourceImpl implements ModelResource {
 				
 				EntityTag eTag = ETagUtil.getHash(list);
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -342,7 +342,7 @@ public class ModelResourceImpl implements ModelResource {
 			} else {
 				EntityTag eTag = ETagUtil.getHash(array);
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -694,7 +694,7 @@ public class ModelResourceImpl implements ModelResource {
 				
 				eTag = ETagUtil.getHash(attachment.getEntries());
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -712,7 +712,7 @@ public class ModelResourceImpl implements ModelResource {
 			if(eTag == null) {
 				eTag = ETagUtil.getHash(array);
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -763,7 +763,7 @@ public class ModelResourceImpl implements ModelResource {
 				
 				EntityTag eTag = ETagUtil.getHash(attachment.getEntries());
 				if(!Util.isEmpty(ifNoneMatch)) {
-					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 					if(ETagUtil.evaluate(eTag, reqETag)) {
 						return Response.status(304).tag(eTag).build();
 					}
@@ -918,7 +918,7 @@ public class ModelResourceImpl implements ModelResource {
 						try {
 							EntityTag eTag = ETagUtil.getHash(entry);
 							if(!Util.isEmpty(ifNoneMatch)) {
-								EntityTag reqETag = new EntityTag(ifNoneMatch);
+								EntityTag reqETag = EntityTag.valueOf(ifNoneMatch);
 								if(ETagUtil.evaluate(eTag, reqETag)) {
 									return Response.status(304).tag(eTag).build();
 								}
