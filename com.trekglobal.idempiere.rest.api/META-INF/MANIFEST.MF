@@ -51,7 +51,8 @@ Require-Bundle: org.adempiere.base;bundle-version="2.0.0",
  com.google.gson;bundle-version="2.8.2",
  org.adempiere.plugin.utils,
  org.eclipse.osgi.services,
- org.apache.commons.math3
+ org.apache.commons.math3,
+ org.apache.commons.lang3;bundle-version="3.1.0"
 Bundle-ClassPath: .,
  lib/java-jwt-3.3.0.jar
 Export-Package: com.trekglobal.idempiere.rest.api,

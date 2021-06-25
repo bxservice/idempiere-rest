@@ -29,6 +29,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -57,7 +58,7 @@ public interface ModelResource {
 	 * @return json representation of record
 	 */
 	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$expand") String details, 
-			@QueryParam("$select") String select);
+			@QueryParam("$select") String select, @HeaderParam("If-None-Match") String ifNoneMatch);
 
 	@Path("{tableName}/{id}/{property}")
 	@GET
@@ -69,7 +70,7 @@ public interface ModelResource {
 	 * @param propertyName columnName to be retrieved
 	 * @return json representation of record
 	 */
-	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName);
+	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName, @HeaderParam("If-None-Match") String ifNoneMatch);
 
 	@Path("{tableName}")
 	@GET
@@ -83,7 +84,7 @@ public interface ModelResource {
 	 * @return json array of records
 	 */
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$expand") String details, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
-			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip);
+			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip, @HeaderParam("If-None-Match") String ifNoneMatch);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -92,7 +93,7 @@ public interface ModelResource {
 	 * @param filter optional where clause
 	 * @return json array of model
 	 */
-	public Response getModels(@QueryParam("$filter") String filter);
+	public Response getModels(@QueryParam("$filter") String filter, @HeaderParam("If-None-Match") String ifNoneMatch);
 	
 	@Path("{tableName}")
 	@POST
@@ -143,7 +144,7 @@ public interface ModelResource {
 	 * @param id record id/uuid
 	 * @return json array of attachment item
 	 */
-	public Response getAttachments(@PathParam("tableName") String tableName, @PathParam("id") String id);
+	public Response getAttachments(@PathParam("tableName") String tableName, @PathParam("id") String id, @HeaderParam("If-None-Match") String ifNoneMatch);
 	
 	@Path("{tableName}/{id}/attachments/zip")
 	@GET
@@ -154,7 +155,7 @@ public interface ModelResource {
 	 * @param id record id/uuid
 	 * @return zip file binary stream
 	 */
-	public Response getAttachmentsAsZip(@PathParam("tableName") String tableName, @PathParam("id") String id);
+	public Response getAttachmentsAsZip(@PathParam("tableName") String tableName, @PathParam("id") String id, @HeaderParam("If-None-Match") String ifNoneMatch);
 	
 	@Path("{tableName}/{id}/attachments/zip")
 	@POST
@@ -179,7 +180,7 @@ public interface ModelResource {
 	 * @param fileName name of an attachment item
 	 * @return binary stream of an attachment item
 	 */
-	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName);
+	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName, @HeaderParam("If-None-Match") String ifNoneMatch);
 	
 	@Path("{tableName}/{id}/attachments")
 	@POST
