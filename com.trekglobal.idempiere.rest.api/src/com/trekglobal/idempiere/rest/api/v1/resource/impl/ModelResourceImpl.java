@@ -44,6 +44,7 @@ import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.DatatypeConverter;
@@ -80,6 +81,7 @@ import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
+import com.trekglobal.idempiere.rest.api.util.ETagUtil;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -102,8 +104,8 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPO(String tableName, String id, String details, String select) {
-		return getPO(tableName, id, details, select, null);
+	public Response getPO(String tableName, String id, String details, String select, String ifNoneMatch) {
+		return getPO(tableName, id, details, select, null, ifNoneMatch);
 	}
 	
 	/**
@@ -115,7 +117,7 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param singleProperty single column
 	 * @return
 	 */
-	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty) {
+	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String ifNoneMatch) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -150,10 +152,19 @@ public class ModelResourceImpl implements ModelResource {
 					}
 					includes = new String[] {singleProperty};
 				}
+				
+				EntityTag eTag = ETagUtil.getHash(po);
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+				
 				JsonObject json = serializer.toJson(po, includes, null);
 				if (!Util.isEmpty(details, true))
 					loadDetails(po, json, details, includeParser);
-				return Response.ok(json.toString()).build();
+				return Response.ok(json.toString()).tag(eTag).build();
 			} else {
 				query.setApplyAccessFilter(false);
 				po = isUUID ? query.setParameters(id).first()
@@ -185,12 +196,12 @@ public class ModelResourceImpl implements ModelResource {
 	}
 	
 	@Override
-	public Response getPOProperty(String tableName, String id, String propertyName) {
-		return getPO(tableName, id, null, null, propertyName);
+	public Response getPOProperty(String tableName, String id, String propertyName, String ifNoneMatch) {
+		return getPO(tableName, id, null, null, propertyName, ifNoneMatch);
 	}
 
 	@Override
-	public Response getModels(String filter) {
+	public Response getModels(String filter, String ifNoneMatch) {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			ConvertedQuery convertedStatement = converter.convertStatement(MTable.Table_Name, filter);
@@ -218,9 +229,18 @@ public class ModelResourceImpl implements ModelResource {
 					array.add(json);
 				}
 			}
+			
+			EntityTag eTag = ETagUtil.getHash(array);
+			if(!Util.isEmpty(ifNoneMatch)) {
+				EntityTag reqETag = new EntityTag(ifNoneMatch);
+				if(ETagUtil.evaluate(eTag, reqETag)) {
+					return Response.status(304).tag(eTag).build();
+				}
+			}
+			
 			JsonObject json = new JsonObject();
 			json.add("models", array);
-			return Response.ok(json.toString()).build();			
+			return Response.ok(json.toString()).tag(eTag).build();			
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -239,7 +259,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip) {
+	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip, String ifNoneMatch) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -284,6 +304,15 @@ public class ModelResourceImpl implements ModelResource {
 			List<PO> list = query.list();
 			JsonArray array = new JsonArray();
 			if (list != null) {
+				
+				EntityTag eTag = ETagUtil.getHash(list);
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+				
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 				
 				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, select, details);
@@ -308,11 +337,20 @@ public class ModelResourceImpl implements ModelResource {
 						.header("X-Records-Size", top)
 						.header("X-Skip-Records", skip)
 						.header("X-Row-Count", rowCount)
+						.tag(eTag)
 						.build();
 			} else {
+				EntityTag eTag = ETagUtil.getHash(array);
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+				
 				JsonObject json = new JsonObject();
 				json.add("records", array);
-				return Response.ok(json.toString()).build();
+				return Response.ok(json.toString()).tag(eTag).build();
 			}
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
@@ -630,7 +668,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachments(String tableName, String id) {
+	public Response getAttachments(String tableName, String id, String ifNoneMatch) {
 		JsonArray array = new JsonArray();
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
@@ -651,7 +689,17 @@ public class ModelResourceImpl implements ModelResource {
 					   : query.setParameters(Integer.parseInt(id)).first();
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
+			EntityTag eTag = null;
 			if (attachment != null) {
+				
+				eTag = ETagUtil.getHash(attachment.getEntries());
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+				
 				for(MAttachmentEntry entry : attachment.getEntries()) {
 					JsonObject entryJsonObject = new JsonObject();
 					entryJsonObject.addProperty("name", entry.getName());
@@ -660,9 +708,20 @@ public class ModelResourceImpl implements ModelResource {
 					array.add(entryJsonObject);
 				}
 			}
+			
+			if(eTag == null) {
+				eTag = ETagUtil.getHash(array);
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+			}
+			
 			JsonObject json = new JsonObject();
 			json.add("attachments", array);
-			return Response.ok(json.toString()).build();
+			return Response.ok(json.toString()).tag(eTag).build();
 		} else {
 			query.setApplyAccessFilter(false);
 			po = isUUID ? query.setParameters(id).first()
@@ -680,7 +739,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachmentsAsZip(String tableName, String id) {
+	public Response getAttachmentsAsZip(String tableName, String id, String ifNoneMatch) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -701,10 +760,19 @@ public class ModelResourceImpl implements ModelResource {
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
+				
+				EntityTag eTag = ETagUtil.getHash(attachment.getEntries());
+				if(!Util.isEmpty(ifNoneMatch)) {
+					EntityTag reqETag = new EntityTag(ifNoneMatch);
+					if(ETagUtil.evaluate(eTag, reqETag)) {
+						return Response.status(304).tag(eTag).build();
+					}
+				}
+				
 				File zipFile = attachment.saveAsZip();
 				if (zipFile != null) {
 					FileStreamingOutput fso = new FileStreamingOutput(zipFile);
-					return Response.ok(fso).build();
+					return Response.ok(fso).tag(eTag).build();
 				}
 			}
 			return Response.status(Status.NO_CONTENT).build();
@@ -824,7 +892,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachmentEntry(String tableName, String id, String fileName) {
+	public Response getAttachmentEntry(String tableName, String id, String fileName, String ifNoneMatch) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -848,12 +916,20 @@ public class ModelResourceImpl implements ModelResource {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
 					if (entry.getName().equals(fileName)) {
 						try {
+							EntityTag eTag = ETagUtil.getHash(entry);
+							if(!Util.isEmpty(ifNoneMatch)) {
+								EntityTag reqETag = new EntityTag(ifNoneMatch);
+								if(ETagUtil.evaluate(eTag, reqETag)) {
+									return Response.status(304).tag(eTag).build();
+								}
+							}
+							
 							Path tempPath = Files.createTempDirectory(tableName);
 							File tempFolder = tempPath.toFile();
 							File zipFile = new File(tempFolder, fileName);
 							zipFile = entry.getFile(zipFile);
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
-							return Response.ok(fso).build();
+							return Response.ok(fso).tag(eTag).build();
 						} catch (IOException ex) {
 							log.log(Level.SEVERE, ex.getMessage(), ex);
 							return Response.status(Status.INTERNAL_SERVER_ERROR)
