@@ -195,6 +195,7 @@ public class TypeConverterUtils {
 					|| displayType == Account
 					|| displayType == PAttribute
 					|| displayType == Payment
+					|| displayType == DisplayType.Image
 					|| DisplayType.isLookup(displayType)) {
 				return new LookupTypeConverter();
 			} else if (displayType == Binary) {
