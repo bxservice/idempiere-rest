@@ -383,7 +383,7 @@ public class ModelResourceImpl implements ModelResource {
 									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
 									childPO.set_TrxName(trx.getTrxName());
 									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-									fireBeforeRestSaveEvent(po);
+									fireBeforeRestSaveEvent(childPO);
 								if (! childPO.validForeignKeys()) {
 										String msg = CLogger.retrieveErrorString("Foreign key validation error");
 										throw new AdempiereException(msg);
