@@ -83,7 +83,8 @@ public interface ModelResource {
 	 * @return json array of records
 	 */
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$expand") String details, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
-			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip);
+			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip,
+			@QueryParam("$valrule") String validationRuleID, @QueryParam("$context") String context);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
