@@ -69,6 +69,63 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/auth/tokens",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "cb2e194f-86cc-4a22-8e44-c1d86ee63040",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"clientId\": {{clientId}},\n  \"roleId\": {{roleId}},\n  \"organizationId\": {{organizationId}},\n  \"warehouseId\": {{warehouseId}},\n  \"language\": \"{{language}}\"\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					]
+				},
+				"description": "Update authentication token with client, role, organization and warehouse value. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/auth/roles?client={ad_client_id}",
 			"request": {
 				"method": "GET",
@@ -241,63 +298,6 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/auth/tokens",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"id": "cb2e194f-86cc-4a22-8e44-c1d86ee63040",
-						"exec": [
-							"var jsonData = pm.response.json();",
-							"pm.environment.set(\"authToken\", jsonData.token);",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "PUT",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{authToken}}",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n  \"clientId\": {{clientId}},\n  \"roleId\": {{roleId}},\n  \"organizationId\": {{organizationId}},\n  \"warehouseId\": {{warehouseId}},\n  \"language\": \"{{language}}\"\n}"
-				},
-				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
-					"protocol": "{{protocol}}",
-					"host": [
-						"{{host}}"
-					],
-					"port": "{{port}}",
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"tokens"
-					]
-				},
-				"description": "Update authentication token with client, role, organization and warehouse value. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
-			},
-			"response": []
-		},
-		{
 			"name": "api/v1/models",
 			"request": {
 				"method": "GET",
@@ -371,6 +371,59 @@
 					]
 				},
 				"description": "Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100."
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}?$valrule",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_uom?$valrule=210&$context=M_Product_ID:124&$select=name",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_uom"
+					],
+					"query": [
+						{
+							"key": "$valrule",
+							"value": "210"
+						},
+						{
+							"key": "$context",
+							"value": "M_Product_ID:124"
+						},
+						{
+							"key": "$select",
+							"value": "name"
+						}
+					]
+				},
+				"description": "Get records for table with filter from validation ruyle and passing context"
 			},
 			"response": []
 		},
