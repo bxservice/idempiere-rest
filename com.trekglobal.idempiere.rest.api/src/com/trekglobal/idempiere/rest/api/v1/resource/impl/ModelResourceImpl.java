@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -281,8 +282,8 @@ public class ModelResourceImpl implements ModelResource {
 				if (validationRule.getCode() != null) {
 					if (!Util.isEmpty(convertedWhereClause))
 						convertedWhereClause =  convertedWhereClause + " AND ";
-					convertedWhereClause = convertedWhereClause + validationRule.getCode();
-					
+					convertedWhereClause = convertedWhereClause + "(" + validationRule.getCode() + ")";
+
 					if (!Util.isEmpty(context)) {
 						convertedWhereClause = parseContext(convertedWhereClause, context);
 					}
@@ -384,7 +385,7 @@ public class ModelResourceImpl implements ModelResource {
 			Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
 		}
 		
-		parsedWhereClause = Env.parseContext(Env.getCtx(), windowNo, parsedWhereClause, true, true);
+		parsedWhereClause = Env.parseContext(Env.getCtx(), windowNo, parsedWhereClause, false, true);
 		Env.clearWinContext(windowNo);
 
 		return parsedWhereClause;
@@ -397,7 +398,10 @@ public class ModelResourceImpl implements ModelResource {
 	 * @return
 	 */
 	private boolean isValidContextValue(String value) {
-		return !Util.isEmpty(value) && !value.contains(";");
+		// At the moment accept context values just composed by letters, numbers, space and dash (for UUID)
+		// this is mainly to avoid the usage of strange characters (like semicolon or quotes) opening the door for SQL injection
+		final String sanitize = "^[A-Za-z0-9\\s\\-]+$";
+		return Pattern.matches(sanitize, value);
 	}
 
 	@Override
