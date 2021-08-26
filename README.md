@@ -1,5 +1,5 @@
 
-# Experimental iDempiere Rest API
+# iDempiere Rest API
 
 ## Projects:
 * com.trekglobal.idempiere.extensions.parent - parent pom project
@@ -35,5 +35,3 @@
 * at your idempiere instance's root folder (for instance, /opt/idempiere), run ./update-rest-extensions.sh <file or url path to com.trekglobal.idempiere.extensions.p2/target/repository>
 * for e.g, if your source is at /ws/idempiere-rest, ./update-rest-extensions.sh file:////ws/idempiere-rest/com.trekglobal.idempiere.extensions.p2/target/repository
 * if the bundle doesn't auto start after deployment (with STARTING status), at osgi console, run "sta com.trekglobal.idempiere.rest.api" to activate the plugin
-
-this is consider experimental at this point, so use it at your own risk.
