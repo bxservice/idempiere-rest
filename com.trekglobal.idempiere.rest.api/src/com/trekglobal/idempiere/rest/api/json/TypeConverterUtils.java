@@ -48,6 +48,8 @@ import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.model.MRole;
 import org.compiere.model.MTable;
+import org.compiere.model.PO;
+import org.compiere.model.Query;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
@@ -261,8 +263,30 @@ public class TypeConverterUtils {
 	 * @param value
 	 * @return true if value is a UUID identifier
 	 */
-	public static boolean isUUID(String value) {
+	private static boolean isUUID(String value) {
 		return value == null ? false : value.matches(UUID_REGEX);
+	}
+	
+	public static PO getPO(String tableName, String recordID, boolean fullyQualified, boolean RW) {
+		boolean isUUID = isUUID(recordID);
+		
+		String keyColumn = getKeyColumn(tableName, isUUID);
+		
+		Query query = new Query(Env.getCtx(), tableName, keyColumn + "=?", null);
+		
+		if (fullyQualified || RW)
+			query.setApplyAccessFilter(fullyQualified, RW);
+		
+		if (isUUID)
+			query.setParameters(recordID);
+		else
+			query.setParameters(Integer.parseInt(recordID));
+		
+		return query.first();
+	}
+	
+	private static String getKeyColumn(String tableName, boolean isUUID) {
+		return isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 	}
 	
 	public static HashMap<String, ArrayList<String>> getIncludes(String tableName, String select, String details) {
