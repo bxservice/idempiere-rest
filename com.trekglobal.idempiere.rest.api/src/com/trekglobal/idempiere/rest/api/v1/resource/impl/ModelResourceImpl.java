@@ -40,7 +40,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -57,6 +59,7 @@ import org.compiere.model.MAttachmentEntry;
 import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
+import org.compiere.model.MValRule;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.process.DocAction;
@@ -93,7 +96,12 @@ public class ModelResourceImpl implements ModelResource {
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
 	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
+	
+	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
+	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
 	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
+	
+	private static final AtomicInteger windowNoAtomic = new AtomicInteger();
 
 	/**
 	 * default constructor
@@ -239,7 +247,8 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip) {
+	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
+			String validationRuleID, String context) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -255,13 +264,33 @@ public class ModelResourceImpl implements ModelResource {
 		if (!Util.isEmpty(filter, true) ) {
 			whereClause = filter;
 		}
-
+		
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
-			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
+			String convertedWhereClause = convertedStatement.getWhereClause();
+			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedWhereClause);
+			
+			if (validationRuleID != null) {
+				MValRule validationRule = getValidationRule(validationRuleID);
+				if (validationRule == null ||validationRule.getAD_Val_Rule_ID() == 0) {
+					return Response.status(Status.NOT_FOUND)
+							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid validation rule").append("No match found for validation with ID: ").append(validationRuleID).build().toString())
+							.build();
+				}
 
-			Query query = new Query(Env.getCtx(), table, convertedStatement.getWhereClause(), null);
+				if (validationRule.getCode() != null) {
+					if (!Util.isEmpty(convertedWhereClause))
+						convertedWhereClause =  convertedWhereClause + " AND ";
+					convertedWhereClause = convertedWhereClause + "(" + validationRule.getCode() + ")";
+
+					if (!Util.isEmpty(context)) {
+						convertedWhereClause = parseContext(convertedWhereClause, context);
+					}
+				}
+			}
+
+			Query query = new Query(Env.getCtx(), table, convertedWhereClause, null);
 			query.setApplyAccessFilter(true, false)
 			.setOnlyActiveRecords(true)
 			.setParameters(convertedStatement.getParameters());
@@ -328,6 +357,51 @@ public class ModelResourceImpl implements ModelResource {
 							.build().toString())
 					.build();
 		}
+	}
+	
+	private MValRule getValidationRule(String validationRuleID) {
+		boolean isUUID = TypeConverterUtils.isUUID(validationRuleID);
+		
+		if (!isUUID)
+			return MValRule.get(Integer.parseInt(validationRuleID));
+		else {
+			String keyColumn = PO.getUUIDColumnName(MValRule.Table_Name);
+			Query query = new Query(Env.getCtx(), MValRule.Table_Name, keyColumn + "=?", null);
+			return query.setParameters(validationRuleID).first();
+		}
+	}
+	
+	private String parseContext(String whereClause, String context) {
+		String parsedWhereClause = whereClause;
+		int windowNo = windowNoAtomic.getAndIncrement();
+
+		for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
+			String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);
+			String contextName = namevaluePair[0];
+			String contextValue = namevaluePair[1];
+			
+			if (!isValidContextValue(contextValue)) 
+				continue;
+			Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
+		}
+		
+		parsedWhereClause = Env.parseContext(Env.getCtx(), windowNo, parsedWhereClause, false, true);
+		Env.clearWinContext(windowNo);
+
+		return parsedWhereClause;
+	}
+	
+	/**
+	 * Validates the context value to avoid
+	 * potential SQL injection
+	 * @param value
+	 * @return
+	 */
+	private boolean isValidContextValue(String value) {
+		// At the moment accept context values just composed by letters, numbers, space and dash (for UUID)
+		// this is mainly to avoid the usage of strange characters (like semicolon or quotes) opening the door for SQL injection
+		final String sanitize = "^[A-Za-z0-9\\s\\-]+$";
+		return Pattern.matches(sanitize, value);
 	}
 
 	@Override
