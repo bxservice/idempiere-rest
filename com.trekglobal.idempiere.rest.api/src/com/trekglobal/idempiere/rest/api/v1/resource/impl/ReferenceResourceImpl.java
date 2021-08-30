@@ -61,13 +61,7 @@ public class ReferenceResourceImpl implements ReferenceResource {
 	@Override
 	public Response getList(String refID) {
 
-		boolean isUUID = TypeConverterUtils.isUUID(refID);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(MReference.Table_Name) : 
-			MReference.COLUMNNAME_AD_Reference_ID;
-
-		Query query = new Query(Env.getCtx(), MReference.Table_Name, keyColumn + "=?", null);
-		MReference ref = isUUID ? query.setParameters(refID).first()
-				   : query.setParameters(Integer.parseInt(refID)).first();
+		MReference ref = (MReference) TypeConverterUtils.getPO(MReference.Table_Name, refID, false, false);
 
 		if (ref == null) {
 			return Response.status(Status.NOT_FOUND)
@@ -95,7 +89,7 @@ public class ReferenceResourceImpl implements ReferenceResource {
     					.build();
 
     		MTable table = new MTable(Env.getCtx(), refTable.getAD_Table_ID(), null);
-    		query = new Query(Env.getCtx(), table, refTable.getWhereClause(), null);
+    		Query query = new Query(Env.getCtx(), table, refTable.getWhereClause(), null);
     		List<PO> list = query
     				.setApplyAccessFilter(true, false)
     				.setOnlyActiveRecords(true)

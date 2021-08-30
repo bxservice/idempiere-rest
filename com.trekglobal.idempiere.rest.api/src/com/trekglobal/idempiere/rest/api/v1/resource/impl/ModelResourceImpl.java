@@ -135,13 +135,9 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
 		try {
-			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-			query.setApplyAccessFilter(true, false);
-			PO po = isUUID ? query.setParameters(id).first()
-					: query.setParameters(Integer.parseInt(id)).first();
+			PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+
 			if (po != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
 				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, multiProperty, details);
@@ -163,9 +159,8 @@ public class ModelResourceImpl implements ModelResource {
 					loadDetails(po, json, details, includeParser);
 				return Response.ok(json.toString()).build();
 			} else {
-				query.setApplyAccessFilter(false);
-				po = isUUID ? query.setParameters(id).first()
-						: query.setParameters(Integer.parseInt(id)).first();
+				po = TypeConverterUtils.getPO(tableName, id, false, false);
+
 				if (po != null) {
 					return Response.status(Status.FORBIDDEN)
 							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -360,15 +355,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 	
 	private MValRule getValidationRule(String validationRuleID) {
-		boolean isUUID = TypeConverterUtils.isUUID(validationRuleID);
-		
-		if (!isUUID)
-			return MValRule.get(Integer.parseInt(validationRuleID));
-		else {
-			String keyColumn = PO.getUUIDColumnName(MValRule.Table_Name);
-			Query query = new Query(Env.getCtx(), MValRule.Table_Name, keyColumn + "=?", null);
-			return query.setParameters(validationRuleID).first();
-		}
+		return (MValRule) TypeConverterUtils.getPO(MValRule.Table_Name, validationRuleID, false, false);
 	}
 	
 	private String parseContext(String whereClause, String context) {
@@ -522,16 +509,9 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, true);
-		PO po = isUUID ? query.setParameters(id).first()
-					 : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, true);
 		if (po == null) {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					 	: query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -669,12 +649,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean uuid = TypeConverterUtils.isUUID(id);
-		String keyColumn = uuid ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, true);
-		PO po = uuid ? query.setParameters(id).first()
-					 : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, true);
 		if (po != null) {
 			try {
 				po.deleteEx(true);
@@ -688,9 +663,8 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			query.setApplyAccessFilter(false);
-			po = uuid ? query.setParameters(id).first()
-					  : query.setParameters(Integer.parseInt(id)).first(); 
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
+
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -717,12 +691,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -738,9 +707,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("attachments", array);
 			return Response.ok(json.toString()).build();
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -766,12 +733,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -783,9 +745,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -830,12 +790,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
@@ -882,9 +837,7 @@ public class ModelResourceImpl implements ModelResource {
 															
 			return Response.status(Status.CREATED).build();
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -910,12 +863,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -939,9 +887,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -997,12 +943,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
@@ -1038,9 +979,8 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
+
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -1066,12 +1006,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -1092,9 +1027,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -1120,12 +1053,8 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		boolean isUUID = TypeConverterUtils.isUUID(id);
-		String keyColumn = isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
-		Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-		query.setApplyAccessFilter(true, false);
-		PO po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+
+		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -1161,9 +1090,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			query.setApplyAccessFilter(false);
-			po = isUUID ? query.setParameters(id).first()
-					   : query.setParameters(Integer.parseInt(id)).first();
+			po = TypeConverterUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
