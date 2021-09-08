@@ -476,7 +476,8 @@ public class ModelResourceImpl implements ModelResource {
 						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
 						.build();
 			}
-			
+
+			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
 			if (detailMap.size() > 0) {
 				for(String childTableName : detailMap.keySet()) {
@@ -603,6 +604,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 			
+			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
 			if (detailMap.size() > 0) {
 				for(String field : detailMap.keySet()) {
