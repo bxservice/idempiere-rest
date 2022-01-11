@@ -100,6 +100,7 @@ public class ModelResourceImpl implements ModelResource {
 	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
 	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
 	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
+	public static final String PO_AFTER_REST_SAVE = "idempiere-rest/po/afterSave";
 	
 	private static final AtomicInteger windowNoAtomic = new AtomicInteger();
 
@@ -412,13 +413,14 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			PO po = serializer.fromJson(jsonObject, table);
 			po.set_TrxName(trx.getTrxName());
-			fireBeforeRestSaveEvent(po);
+			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, true);
 			try {
 				if (! po.validForeignKeys()) {
 					String msg = CLogger.retrieveErrorString("Foreign key validation error");
 					throw new AdempiereException(msg);
 				}
 				po.saveEx();
+				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (Exception ex) {
 				trx.rollback();
 				log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -444,12 +446,13 @@ public class ModelResourceImpl implements ModelResource {
 									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
 									childPO.set_TrxName(trx.getTrxName());
 									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-									fireBeforeRestSaveEvent(childPO);
+									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
 								if (! childPO.validForeignKeys()) {
 										String msg = CLogger.retrieveErrorString("Foreign key validation error");
 										throw new AdempiereException(msg);
 									}
 									childPO.saveEx();
+									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
 									childJsonObject = serializer.toJson(childPO);
 									savedArray.add(childJsonObject);
 								}
@@ -532,13 +535,14 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			po = serializer.fromJson(jsonObject, po);
 			po.set_TrxName(trx.getTrxName());
-			fireBeforeRestSaveEvent(po);
+			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
 			try {
 				if (! po.validForeignKeys()) {
 					String msg = CLogger.retrieveErrorString("Foreign key validation error");
 					throw new AdempiereException(msg);
 				}
 				po.saveEx();
+				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (Exception ex) {
 				trx.rollback();
 				log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -571,12 +575,13 @@ public class ModelResourceImpl implements ModelResource {
 										childPO = childSerializer.fromJson(childJsonObject, childPO);
 									}
 									childPO.set_TrxName(trx.getTrxName());
-									fireBeforeRestSaveEvent(childPO);
+									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
 									if (! childPO.validForeignKeys()) {
 										String msg = CLogger.retrieveErrorString("Foreign key validation error");
 										throw new AdempiereException(msg);
 									}
 									childPO.saveEx();
+									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
 									childJsonObject = serializer.toJson(childPO);
 									savedArray.add(childJsonObject);
 								}
@@ -625,12 +630,13 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	/**
-	 * Fire the PO_BEFORE_REST_SAVE event, to catch and manipulate the object before the model beforeSave
+	 * Fire the PO_BEFORE_REST_SAVE/PO_AFTER_REST_SAVE event, to catch and manipulate the object before the model beforeSave/afterSave
 	 * @param po
 	 */
-	private void fireBeforeRestSaveEvent(PO po) {
-		Event event = EventManager.newEvent(PO_BEFORE_REST_SAVE,
-				new EventProperty(EventManager.EVENT_DATA, po), new EventProperty("tableName", po.get_TableName()));
+	private void fireRestSaveEvent(PO po, String topic, boolean isNew) {
+		Event event = EventManager.newEvent(topic,
+				new EventProperty(EventManager.EVENT_DATA, po), new EventProperty("tableName", po.get_TableName()),
+				new EventProperty("isNew", isNew));
 		EventManager.getInstance().sendEvent(event);
 		@SuppressWarnings("unchecked")
 		List<String> errors = (List<String>) event.getProperty(IEventManager.EVENT_ERROR_MESSAGES);
