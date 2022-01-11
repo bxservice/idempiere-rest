@@ -214,6 +214,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
 						: column.getAD_Reference_ID(), 0, false, false, "");
+			vo.DefaultValue = column.getDefaultValue();
 			GridField gridField = new GridField(vo);
 			Object defaultValue = gridField.getDefault();
 			if (defaultValue != null) {
