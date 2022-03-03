@@ -17,7 +17,7 @@
 		<download.maven.version>1.4.1</download.maven.version>
 		<lifecycle.mapping.version>1.0.0</lifecycle.mapping.version>
 		<!-- default value of properties, use when run without profile -->
-		<idempiere.core.repository.url>file:///${basedir}/../../iDempiere8.2/org.idempiere.p2/target/repository</idempiere.core.repository.url>
+		<idempiere.core.repository.url>file:///${basedir}/../../brerp/org.idempiere.p2/target/repository</idempiere.core.repository.url>
 	</properties>
 
 	<build>
