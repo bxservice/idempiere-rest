@@ -297,10 +297,10 @@ public class ModelResourceImpl implements ModelResource {
 			query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 			int rowCount = query.count();
 			int pageCount = 1;
-			if (top > MAX_RECORDS_SIZE || top <= 0)
+			if (MAX_RECORDS_SIZE > 0 && (top > MAX_RECORDS_SIZE || top <= 0))
 				top = MAX_RECORDS_SIZE;
 
-			if (rowCount > top) {
+			if (top > 0 && rowCount > top) {
 				pageCount = (int)Math.ceil(rowCount / (double)top);
 			} 
 			query.setPageSize(top);
@@ -327,12 +327,14 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("records-size", top);
 				json.addProperty("skip-records", skip);
 				json.addProperty("row-count", rowCount);
+				json.addProperty("array-count", array.size());
 				json.add("records", array);
 				return Response.ok(json.toString())
 						.header("X-Page-Count", pageCount)
 						.header("X-Records-Size", top)
 						.header("X-Skip-Records", skip)
 						.header("X-Row-Count", rowCount)
+						.header("X-Array-Count", array.size())
 						.build();
 			} else {
 				JsonObject json = new JsonObject();
