@@ -87,7 +87,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				String nextOperator = literals.get(++i);
 
 				if (ODataUtils.isMethodCall(nextOperator)) {
-					sqlStatement = convertMethodWithParamsLiteral(nextOperator, null, true);
+					sqlStatement = convertMethodWithParamsLiteral(nextOperator, true);
 				} else {
 					throw new IDempiereRestException("Operator NOT is only compatible with certain functions. Not with " + nextOperator, Status.BAD_REQUEST);
 				}
@@ -99,19 +99,8 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 					convertedQuery.appendWhereClause("(");
 					convertLiterals(subliterals);
 					convertedQuery.appendWhereClause(")");
-				} else if (ODataUtils.isMethodCall(literal)) {
-					String methodName = ODataUtils.getMethodCall(literal);
-
-					if (ODataUtils.isMethodWithParameters(methodName)) {
-						sqlStatement = convertMethodWithParamsLiteral(literal, methodName, false);
-					} else {
-						//It contains a binary operator - f.i tolower(name) eq 'garden'
-						String columnName = ODataUtils.getFirstParameter(methodName, literal);
-						String operator = literals.get(++i);
-						String right = literals.get(++i);
-
-						sqlStatement = convertMethodBinaryOperator(methodName, columnName, operator, right);
-					}
+				} else if (ODataUtils.isMethodCall(literal) && ODataUtils.isMethodWithParameters(ODataUtils.getMethodCall(literal))) {
+					sqlStatement = convertMethodWithParamsLiteral(literal, false);
 				} else {
 					String left = literal;
 					String operator = literals.get(++i);
@@ -124,10 +113,9 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		}
 	}
 	
-	private String convertMethodWithParamsLiteral(String literal, String methodName, boolean isNot) {
+	private String convertMethodWithParamsLiteral(String literal, boolean isNot) {
 
-		if (methodName == null)
-			methodName = ODataUtils.getMethodCall(literal);
+		String methodName = ODataUtils.getMethodCall(literal);
 
 		String leftParameter = ODataUtils.getFirstParameter(methodName, literal);
 		String columnName = leftParameter;
@@ -140,80 +128,127 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		}
 
 		String value = ODataUtils.getSecondParameter(methodName, literal);
-		return convertMethodCall(methodName, leftParameter, columnName, value, isNot);
+		return leftParameter + convertMethodCall(methodName, columnName, value, isNot);
 	}
 
 	private String convertBinaryOperator(String left, String operator, String right) {
+		String leftParameter = null;
 		String strOperator = ODataUtils.getOperator(operator);
+		String rightParameter = null;
 
 		if (strOperator == null) {
 			throw new IDempiereRestException("Unsupported operator: " + operator, Status.BAD_REQUEST);
 		}
-
-		MColumn column = table.getColumn(left.trim());
-		if (column == null || column.isSecure() || column.isEncrypted()) {
-			throw new IDempiereRestException("Invalid column for filter: " + left.trim(), Status.BAD_REQUEST);
+		MColumn column = null;
+		if (left.contains("(")) {
+			//Another method, f.i contains(tolower(name),'admin')
+			String innerMethodName = ODataUtils.getMethodCall(left);
+			String columnName = ODataUtils.getFirstParameter(innerMethodName, left);
+			column = table.getColumn(columnName.trim());
+			if (column == null || column.isSecure() || column.isEncrypted()) {
+				throw new IDempiereRestException("Invalid column for filter: " + columnName.trim(), Status.BAD_REQUEST);
+			}
+			leftParameter = ODataUtils.getSQLFunction(innerMethodName, columnName, false);
+		} else {
+			column = table.getColumn(left.trim());
+			if (column == null || column.isSecure() || column.isEncrypted()) {
+				throw new IDempiereRestException("Invalid column for filter: " + left.trim(), Status.BAD_REQUEST);
+			}
+			leftParameter = column.getColumnName();
 		}
-
+		
 		if ("null".equals(right)) {
 			switch (operator) {
 			case ODataUtils.EQUALS:
-				strOperator = " IS NULL";
+				strOperator = " IS ";
+				rightParameter = "NULL";
 				break;
 			case ODataUtils.NOT_EQUALS:
-				strOperator = " IS NOT NULL";
+				strOperator = " IS NOT ";
+				rightParameter = "NULL";
 				break;
 			default: 
 				throw new IDempiereRestException("Operator " + operator + " is not compatible with NULL comparision", Status.BAD_REQUEST);
 			}
 		} else {
-			convertedQuery.addParameter(column, right);
-			strOperator = strOperator + " ?";
+			// Get Right Value
+			if (right.contains("(")) {
+				//Another method, f.i tolower(name)
+				String innerMethodName = ODataUtils.getMethodCall(right);
+				String innerValue = ODataUtils.getFirstParameter(innerMethodName, right);
+				MColumn columnRight = table.getColumn(innerValue.trim());
+				if (columnRight != null) {
+					if(columnRight.isSecure() || columnRight.isEncrypted()) {
+						throw new IDempiereRestException("Invalid column for filter: " + innerValue.trim(), Status.BAD_REQUEST);
+					}
+					
+					rightParameter = ODataUtils.getSQLFunction(innerMethodName, columnRight.getColumnName(), false);
+				} else {
+					convertedQuery.addParameter(column, innerValue);
+					rightParameter = ODataUtils.getSQLFunction(innerMethodName, "?", false);
+				}
+			} else {
+				// Check Right is Column
+				MColumn columnRight = table.getColumn(right.trim());
+				if (columnRight != null) {
+					if(columnRight.isSecure() || columnRight.isEncrypted()) {
+						throw new IDempiereRestException("Invalid column for filter: " + right.trim(), Status.BAD_REQUEST);
+					}
+					rightParameter = columnRight.getColumnName();
+				} else {
+					convertedQuery.addParameter(column, right);
+					rightParameter = " ?";
+				}
+			}
 		}
 
-		return column.getColumnName() + strOperator;
+		return leftParameter + strOperator + rightParameter;
 	}
 	
-	private String convertMethodBinaryOperator(String methodCall, String columnName, String operator, String right) {
-		String strOperator = ODataUtils.getOperator(operator);
-
-		if (strOperator == null) {
-			throw new IDempiereRestException("Unsupported operator:: " + operator, Status.BAD_REQUEST);
-		}
-
-		MColumn column = table.getColumn(columnName);
-		if (column == null || column.isSecure() || column.isEncrypted()) {
-			throw new IDempiereRestException("Invalid column for filter: " + columnName.trim(), Status.BAD_REQUEST);
-		}
-
-		convertedQuery.addParameter(column, right);
-		return ODataUtils.getSQLFunction(methodCall, columnName, false) + " = ?";
-	}
-
-	private String convertMethodCall(String methodCall, String leftParameter, String columnName, String value, boolean isNot) {
-
+	private String convertMethodCall(String methodCall, String columnName, String value, boolean isNot) {
+		String rightParameter = "?";
+		String innerMethodName = null;
 		MColumn column = table.getColumn(columnName);
 		if (column == null || column.isSecure() || column.isEncrypted()) {
 			throw new IDempiereRestException("Invalid column for filter: " + columnName, Status.BAD_REQUEST);
 		}
-
-		value = ConvertedQuery.extractFromStringValue(value);
-
-		switch (methodCall) {
-		case ODataUtils.CONTAINS:
-			convertedQuery.addParameter(column, "'%"+ value + "%'");
-			break;
-		case ODataUtils.STARTSWITH:
-			convertedQuery.addParameter(column, "'" + value + "%'");
-			break;
-		case ODataUtils.ENDSWITH:
-			convertedQuery.addParameter(column, "'%"+ value + "'");
-			break;
-		default: 
-			throw new IDempiereRestException("Method call " + methodCall + " not implemented", Status.NOT_IMPLEMENTED);
+		
+		// Check Right is Column
+		if (value.contains("(")) {
+			//Another method, f.i contains(tolower(name),'admin')
+			innerMethodName = ODataUtils.getMethodCall(value);
+			value = ODataUtils.getFirstParameter(innerMethodName, value);
+			rightParameter = ODataUtils.getSQLFunction(innerMethodName, "?", false);
 		}
+		
+		MColumn columnRight = table.getColumn(value.trim());
+		if (columnRight != null) {
+			if (columnRight.isSecure() || columnRight.isEncrypted()) {
+				throw new IDempiereRestException("Invalid column for filter: " + value.trim(), Status.BAD_REQUEST);
+			}
+			if(innerMethodName != null)
+				rightParameter = ODataUtils.getSQLFunction(innerMethodName, columnRight.getColumnName(), false);
+			else
+				rightParameter = columnRight.getColumnName();
+		} else {
+			value = ConvertedQuery.extractFromStringValue(value);
 
-		return leftParameter + ODataUtils.getSQLFunction(methodCall, columnName, isNot);
+			switch (methodCall) {
+			case ODataUtils.CONTAINS:
+				convertedQuery.addParameter(column, "'%"+ value + "%'");
+				break;
+			case ODataUtils.STARTSWITH:
+				convertedQuery.addParameter(column, "'" + value + "%'");
+				break;
+			case ODataUtils.ENDSWITH:
+				convertedQuery.addParameter(column, "'%"+ value + "'");
+				break;
+			default: 
+				throw new IDempiereRestException("Method call " + methodCall + " not implemented", Status.NOT_IMPLEMENTED);
+			}
+		}
+		
+		return ODataUtils.getSQLMethodOperator(methodCall, isNot) +  rightParameter;
 	}
 
 	public static List<String> split(String expression){
