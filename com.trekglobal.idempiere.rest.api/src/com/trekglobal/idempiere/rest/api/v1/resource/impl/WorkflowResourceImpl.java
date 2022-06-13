@@ -26,6 +26,7 @@
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -33,20 +34,28 @@ import javax.ws.rs.core.Response.Status;
 import org.compiere.model.I_AD_WF_Activity;
 import org.compiere.model.MUser;
 import org.compiere.model.Query;
+import org.compiere.util.CLogger;
+import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
+import org.compiere.util.Trx;
 import org.compiere.util.Util;
 import org.compiere.wf.MWFActivity;
+import org.compiere.wf.MWFProcess;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.WorkflowResource;
 
 public class WorkflowResourceImpl implements WorkflowResource {
+
+	private static final CLogger log = CLogger.getCLogger(WorkflowResourceImpl.class);
 
 	@Override
 	public Response getNodes() {
@@ -105,6 +114,7 @@ public class WorkflowResourceImpl implements WorkflowResource {
 				.setParameters(false, MWFActivity.WFSTATE_Suspended, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID)
 				.setClient_ID()
 				.setOnlyActiveRecords(true)
+				.setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
 				.list();
 	}
 	
@@ -116,24 +126,75 @@ public class WorkflowResourceImpl implements WorkflowResource {
 		}
 		json.addProperty("model-name", activity.get_TableName().toLowerCase());
 		json.addProperty("node-name", activity.getNodeName());
-		if (!Util.isEmpty(activity.getNodeDescription())) {
-			json.addProperty("node-description", activity.getNodeDescription());
-		}
+		json.addProperty("priority", activity.getPriority());
+		String summary = activity.getSummary();
+		if (!Util.isEmpty(summary, true))
+			json.addProperty("summary", summary);
+		String nodeDesc = activity.getNodeDescription();
+		if (!Util.isEmpty(nodeDesc, true))
+			json.addProperty("node-description", nodeDesc);
+		String nodeHelp = activity.getNodeHelp();
+		if (!Util.isEmpty(nodeHelp, true))
+			json.addProperty("node-help", nodeHelp);
+		String history = activity.getHistoryHTML();
+		if (!Util.isEmpty(history, true))
+			json.addProperty("history-records", history);
+		int tableId = activity.getAD_Table_ID();
+		if (tableId > 0)
+			json.addProperty("ad_table_id", tableId);
+		int recordId = activity.getRecord_ID();
+		if (recordId > 0)
+			json.addProperty("record_id", recordId);
 		
 		return json;
 	}
 	
 	@Override
 	public Response approve(String nodeId, String jsonText) {
-		System.out.println("approve node: "+ nodeId);
-		System.out.println(jsonText);
-		return null;
+		log.info("approve node: "+ nodeId);
+		log.info(jsonText);
+		int userId = Env.getAD_User_ID(Env.getCtx());
+		Trx trx = null;
+		try {
+			trx = Trx.get(Trx.createTrxName("RWFA"), true);
+			trx.setDisplayName(getClass().getName()+"_approve");
+			MWFActivity activity = (MWFActivity) RestUtils.getPO(MWFActivity.Table_Name, nodeId, true, true);
+			activity.set_TrxName(trx.getTrxName());
+			if (!activity.getNode().isUserApproval()) {
+				trx.rollback();
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Not approval node").build().toString())
+						.build();
+			}
+			String textMsg = null;
+			if (!Util.isEmpty(jsonText, true)) {
+				JsonParser parser = new JsonParser();
+				textMsg = getMessageProperty((JsonObject) parser.parse(jsonText));
+			}
+			activity.setUserChoice(userId, "Y", DisplayType.YesNo, textMsg);
+			MWFProcess wfpr = new MWFProcess(activity.getCtx(), activity.getAD_WF_Process_ID(), activity.get_TrxName());
+			wfpr.checkCloseActivities(activity.get_TrxName());
+			trx.commit();
+		} catch (Exception ex) {
+			if (trx != null)
+				trx.rollback();
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(Status.INTERNAL_SERVER_ERROR)
+					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Approve error").append("Approve error with exception: ").append(ex.getMessage()).build().toString())
+					.build();
+		} finally {
+			if (trx != null)
+				trx.close();
+		}
+		JsonObject json = new JsonObject();
+		json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Approved"));
+		return Response.ok(json.toString()).build();
 	}
 	
 	@Override
 	public Response reject(String nodeId, String jsonText) {
-		System.out.println("Reject node: "+ nodeId);
-		System.out.println(jsonText);
+		log.info("Reject node: "+ nodeId);
+		log.info(jsonText);
 		return null;
 	}
 
@@ -179,15 +240,15 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	
 	@Override
 	public Response setUserChoice(String nodeId, String jsonText) {
-		System.out.println("setuserchoice node: "+ nodeId);
-		System.out.println(jsonText);
+		log.info("setuserchoice node: "+ nodeId);
+		log.info(jsonText);
 		return null;
 	}
 
 	@Override
 	public Response acknowledge(String nodeId, String jsonText) {
-		System.out.println("aknowledge node: "+ nodeId);
-		System.out.println(jsonText);
+		log.info("acknowledge node: "+ nodeId);
+		log.info(jsonText);
 		return null;
 	}
 }
