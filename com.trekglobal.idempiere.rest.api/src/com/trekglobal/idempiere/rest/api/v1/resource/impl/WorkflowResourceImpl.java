@@ -62,11 +62,29 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	}
 	
 	private List<MWFActivity> getUserUnprocessedSuspendedActivities(String userid) {
-		final String whereClause = "Processed=? AND WFState=? AND AD_User_ID=?";
+		final String whereClause = 
+				"AD_WF_Activity.Processed=? AND AD_WF_Activity.WFState=? AND ("
+				//	Owner of Activity
+				+ " AD_WF_Activity.AD_User_ID=?"	//	#1
+				//	Invoker (if no invoker = all)
+				+ " OR EXISTS (SELECT * FROM AD_WF_Responsible r WHERE AD_WF_Activity.AD_WF_Responsible_ID=r.AD_WF_Responsible_ID"
+				+ " AND r.ResponsibleType='H' AND COALESCE(r.AD_User_ID,0)=0 AND COALESCE(r.AD_Role_ID,0)=0 AND (AD_WF_Activity.AD_User_ID=? OR AD_WF_Activity.AD_User_ID IS NULL))"	//	#2
+				//  Responsible User
+				+ " OR EXISTS (SELECT * FROM AD_WF_Responsible r WHERE AD_WF_Activity.AD_WF_Responsible_ID=r.AD_WF_Responsible_ID"
+				+ " AND r.ResponsibleType='H' AND r.AD_User_ID=?)"		//	#3
+				//	Responsible Role
+				+ " OR EXISTS (SELECT * FROM AD_WF_Responsible r INNER JOIN AD_User_Roles ur ON (r.AD_Role_ID=ur.AD_Role_ID)"
+				+ " WHERE AD_WF_Activity.AD_WF_Responsible_ID=r.AD_WF_Responsible_ID AND r.ResponsibleType='R' AND ur.AD_User_ID=? AND ur.isActive = 'Y')"	//	#4
+				///* Manual Responsible */ 
+				+ " OR EXISTS (SELECT * FROM AD_WF_ActivityApprover r "
+				+ " WHERE AD_WF_Activity.AD_WF_Activity_ID=r.AD_WF_Activity_ID AND r.AD_User_ID=? AND r.isActive = 'Y')" 
+				+ ")";
+		
+		int AD_User_ID = getAD_User_ID(userid);
 		
 		return new Query(Env.getCtx(), I_AD_WF_Activity.Table_Name, whereClause, null)
+				.setParameters(false, MWFActivity.WFSTATE_Suspended, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID)
 				.setClient_ID()
-				.setParameters(false, MWFActivity.WFSTATE_Suspended, getAD_User_ID(userid))
 				.setOnlyActiveRecords(true)
 				.list();
 	}
