@@ -120,7 +120,7 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	}
 
 	@Override
-	public Response aknowledge(String nodeId, String jsonText) {
+	public Response acknowledge(String nodeId, String jsonText) {
 		System.out.println("aknowledge node: "+ nodeId);
 		System.out.println(jsonText);
 		return null;

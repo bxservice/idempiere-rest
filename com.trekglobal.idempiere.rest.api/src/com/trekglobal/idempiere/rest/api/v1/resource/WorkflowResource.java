@@ -109,5 +109,5 @@ public interface WorkflowResource {
 	 * @param json body containing nodeId and a msg optionally
 	 * @return json representation updated node
 	 */
-	public Response aknowledge(@PathParam("id") String nodeId, String jsonText);
+	public Response acknowledge(@PathParam("id") String nodeId, String jsonText);
 }
