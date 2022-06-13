@@ -28,8 +28,10 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.util.List;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.I_AD_WF_Activity;
+import org.compiere.model.MUser;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
@@ -37,6 +39,8 @@ import org.compiere.wf.MWFActivity;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.WorkflowResource;
 
 public class WorkflowResourceImpl implements WorkflowResource {
@@ -49,7 +53,13 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	@Override
 	public Response getNodes(String userid) {
 
-		List<MWFActivity> activities = getUserUnprocessedSuspendedActivities(userid);
+		int AD_User_ID = getAD_User_ID(userid);
+		if (AD_User_ID <= 0)
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("User not found").append("No user found matching id ").append(userid).build().toString())
+					.build();
+
+		List<MWFActivity> activities = getUserUnprocessedSuspendedActivities(AD_User_ID);
 
 		JsonArray array = new JsonArray();
 		for (MWFActivity activity : activities) {
@@ -61,7 +71,15 @@ public class WorkflowResourceImpl implements WorkflowResource {
 		return Response.ok(json.toString()).build();
 	}
 	
-	private List<MWFActivity> getUserUnprocessedSuspendedActivities(String userid) {
+	private int getAD_User_ID(String userId) {
+		if (Util.isEmpty(userId)) 
+			return Env.getAD_User_ID(Env.getCtx());
+		
+		MUser user = (MUser) RestUtils.getPO(MUser.Table_Name, userId, true, false);
+		return user == null ? -1 : user.getAD_User_ID(); 
+	}
+	
+	private List<MWFActivity> getUserUnprocessedSuspendedActivities(int AD_User_ID) {
 		final String whereClause = 
 				"AD_WF_Activity.Processed=? AND AD_WF_Activity.WFState=? AND ("
 				//	Owner of Activity
@@ -80,18 +98,11 @@ public class WorkflowResourceImpl implements WorkflowResource {
 				+ " WHERE AD_WF_Activity.AD_WF_Activity_ID=r.AD_WF_Activity_ID AND r.AD_User_ID=? AND r.isActive = 'Y')" 
 				+ ")";
 		
-		int AD_User_ID = getAD_User_ID(userid);
-		
 		return new Query(Env.getCtx(), I_AD_WF_Activity.Table_Name, whereClause, null)
 				.setParameters(false, MWFActivity.WFSTATE_Suspended, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID)
 				.setClient_ID()
 				.setOnlyActiveRecords(true)
 				.list();
-	}
-	
-	//TODO handle when the UUID is sent instead of the ID
-	private int getAD_User_ID(String userId) {
-		return userId != null ? Integer.parseInt(userId) : Env.getAD_User_ID(Env.getCtx()); 
 	}
 	
 	private JsonObject getActivityJsonObject(MWFActivity activity) {
