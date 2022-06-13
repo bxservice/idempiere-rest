@@ -74,6 +74,7 @@ import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IGridTabSerializer;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
@@ -116,7 +117,7 @@ public class WindowResourceImpl implements WindowResource {
 			MRole role = MRole.getDefault();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MWindow.Table_Name, MTable.getClass(MWindow.Table_Name));
 
-			HashMap<String, ArrayList<String>> includes = TypeConverterUtils.getIncludes(MWindow.Table_Name, select, details);
+			HashMap<String, ArrayList<String>> includes = RestUtils.getIncludes(MWindow.Table_Name, select, details);
 			String[] mainSelect = includes != null && includes.get(MWindow.Table_Name) != null ? 
 					includes.get(MWindow.Table_Name).toArray(new String[includes.get(MWindow.Table_Name).size()]) : 
 					WINDOW_SELECT_COLUMNS;
