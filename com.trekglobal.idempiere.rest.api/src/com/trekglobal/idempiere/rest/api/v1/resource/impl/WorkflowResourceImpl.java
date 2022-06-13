@@ -37,7 +37,10 @@ import org.compiere.util.Env;
 import org.compiere.util.Util;
 import org.compiere.wf.MWFActivity;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
@@ -51,12 +54,12 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	}
 
 	@Override
-	public Response getNodes(String userid) {
+	public Response getNodes(String userId) {
 
-		int AD_User_ID = getAD_User_ID(userid);
+		int AD_User_ID = getAD_User_ID(userId);
 		if (AD_User_ID <= 0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("User not found").append("No user found matching id ").append(userid).build().toString())
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("User not found").append("No user found matching id ").append(userId).build().toString())
 					.build();
 
 		List<MWFActivity> activities = getUserUnprocessedSuspendedActivities(AD_User_ID);
@@ -136,11 +139,44 @@ public class WorkflowResourceImpl implements WorkflowResource {
 
 	@Override
 	public Response forward(String nodeId, String jsonText) {
-		System.out.println("forward node: "+ nodeId);
-		System.out.println(jsonText);
+		Gson gson = new GsonBuilder().create();
+		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
+		MUser user = getForwardToUser(jsonObject);
+		if (user == null)
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST)
+					.title("userTo property is mandatory.")
+					.append("userTo property is not set or it has an invalid value").build().toString())
+					.build();
+		else if (user.getAD_User_ID() == Env.getAD_User_ID(Env.getCtx()))
+			return Response.status(Status.BAD_REQUEST)
+					.entity(new ErrorBuilder().status(Status.BAD_REQUEST)
+					.title("userTo cannot be the same as the current user")
+					.build().toString())
+					.build();
+		
+		//TODO: logic to forward the node
+		
 		return null;
 	}
-
+	
+	private MUser getForwardToUser(JsonObject jsonObject) {
+		JsonElement jsonElement = jsonObject.get("userTo");
+		if (jsonElement == null || !jsonElement.isJsonPrimitive() || Util.isEmpty(jsonElement.getAsString(), true))
+			return null;
+		
+		String userId = jsonElement.getAsString();
+		return  (MUser) RestUtils.getPO(MUser.Table_Name, userId, true, false);
+	}
+	
+	private String getMessageProperty(JsonObject jsonObject) {
+		JsonElement jsonElement = jsonObject.get("message");
+		if (jsonElement == null || !jsonElement.isJsonPrimitive() || Util.isEmpty(jsonElement.getAsString(), true))
+			return "";
+		
+		return jsonElement.getAsString();		
+	}
+	
 	@Override
 	public Response setUserChoice(String nodeId, String jsonText) {
 		System.out.println("setuserchoice node: "+ nodeId);
