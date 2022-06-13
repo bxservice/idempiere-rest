@@ -3306,7 +3306,7 @@
 				"description": "Forward node by id to a userTo"
 			},
 			"response": []
-		},
+		}
 	],
 	"event": [
 		{
