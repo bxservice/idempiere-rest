@@ -297,9 +297,9 @@ public class AuthServiceImpl implements AuthService {
 		MSession session = MSession.get(Env.getCtx(), false);
 		if (session == null) {
 			session = MSession.get(Env.getCtx(), true);
+			session.setWebSession("idempiere-rest");
+			session.saveEx();
 		}
-		session.setWebSession("idempiere-rest");
-		session.saveEx();
 		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
 		
 		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
