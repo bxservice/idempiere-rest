@@ -155,17 +155,20 @@ public class WorkflowResourceImpl implements WorkflowResource {
 		log.info(jsonText);
 		int userId = Env.getAD_User_ID(Env.getCtx());
 		Trx trx = null;
+		MWFActivity activity = null;
 		try {
 			trx = Trx.get(Trx.createTrxName("RWFA"), true);
 			trx.setDisplayName(getClass().getName()+"_approve");
-			MWFActivity activity = (MWFActivity) RestUtils.getPO(MWFActivity.Table_Name, nodeId, true, true);
+			activity = (MWFActivity) RestUtils.getPO(MWFActivity.Table_Name, nodeId, true, true);
+			if (activity == null)
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Activity not found").build().toString())
+						.build();
 			activity.set_TrxName(trx.getTrxName());
-			if (!activity.getNode().isUserApproval()) {
-				trx.rollback();
+			if (!activity.getNode().isUserApproval())
 				return Response.status(Status.NOT_FOUND)
 						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Not approval node").build().toString())
 						.build();
-			}
 			String textMsg = null;
 			if (!Util.isEmpty(jsonText, true)) {
 				JsonParser parser = new JsonParser();
@@ -187,7 +190,10 @@ public class WorkflowResourceImpl implements WorkflowResource {
 				trx.close();
 		}
 		JsonObject json = new JsonObject();
-		json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Approved"));
+		json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Updated"));
+		String history = activity.getHistoryHTML();
+		if (!Util.isEmpty(history, true))
+			json.addProperty("history-records", history);
 		return Response.ok(json.toString()).build();
 	}
 	
