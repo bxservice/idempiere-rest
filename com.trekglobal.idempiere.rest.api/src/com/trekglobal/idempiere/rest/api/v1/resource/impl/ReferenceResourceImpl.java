@@ -44,7 +44,7 @@ import org.compiere.util.ValueNamePair;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
-import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ReferenceResource;
 
@@ -61,7 +61,7 @@ public class ReferenceResourceImpl implements ReferenceResource {
 	@Override
 	public Response getList(String refID) {
 
-		MReference ref = (MReference) TypeConverterUtils.getPO(MReference.Table_Name, refID, false, false);
+		MReference ref = (MReference) RestUtils.getPO(MReference.Table_Name, refID, false, false);
 
 		if (ref == null) {
 			return Response.status(Status.NOT_FOUND)
