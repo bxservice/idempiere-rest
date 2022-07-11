@@ -61,6 +61,7 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  */
 public class RequestFilter implements ContainerRequestFilter {
 	public static final String LOGIN_NAME = "#LoginName";
+	public static final String LOGIN_CLIENTS = "#LoginClients";
 
 	public RequestFilter() {
 	}
@@ -112,7 +113,12 @@ public class RequestFilter implements ContainerRequestFilter {
 		String userName = jwt.getSubject();
 		ServerContext.setCurrentInstance(new Properties());
 		Env.setContext(Env.getCtx(), LOGIN_NAME, userName);
-		Claim claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
+		Claim claim = jwt.getClaim(LoginClaims.Clients.name());
+		if (!claim.isNull()) {
+			String clients = claim.asString();
+			Env.setContext(Env.getCtx(), LOGIN_CLIENTS, clients);
+		}
+		claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
 		int AD_Client_ID = 0;
 		if (!claim.isNull()) {
 			AD_Client_ID = claim.asInt();
