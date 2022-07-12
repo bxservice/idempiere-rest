@@ -220,7 +220,7 @@ public class AuthServiceImpl implements AuthService {
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, role.getAD_Role_ID());
-			MOrg org = new MOrg(Env.getCtx(), organizationId, null);
+			MOrg org = MOrg.get(organizationId);
 			KeyNamePair knp = new KeyNamePair(org.getAD_Org_ID(), org.getName());
 			Login login = new Login(Env.getCtx());
 			KeyNamePair[] warehouses = login.getWarehouses(knp);
@@ -275,81 +275,31 @@ public class AuthServiceImpl implements AuthService {
 	 * @return
 	 */
 	private Response processLoginParameters(LoginParameters parameters, String userName, String clients) {
-		// TODO: LoginType??
 		JsonObject responseNode = new JsonObject();
 		Builder builder = JWT.create().withSubject(userName);
 		String defaultLanguage = Language.getBaseAD_Language();
 		int clientId = parameters.getClientId();
-		boolean clientValid = false;
-		if (clientId >= 0 && !Util.isEmpty(clients)) {
-			for (String clientAllowed : clients.split(",")) {
-				if (clientId == Integer.valueOf(clientAllowed)) {
-					clientValid = true;
-					break;
-				}
-			}
-		}
-		if (clientValid) {
+		boolean isValidClient = isValidClient(clientId, clients);
+		
+		if (isValidClient) {
 			builder.withClaim(LoginClaims.AD_Client_ID.name(), clientId);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, clientId);
 			MUser user = MUser.get(Env.getCtx(), userName);
 			builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
 			responseNode.addProperty("userId", user.getAD_User_ID());
 			defaultLanguage = getPreferenceUserLanguage(user.getAD_User_ID());
-			MClient client = MClient.get(Env.getCtx(), clientId);
-			KeyNamePair knpc = new KeyNamePair(client.getAD_Client_ID(), client.getName());
-			Login login = new Login(Env.getCtx());
-			KeyNamePair[] roles = login.getRoles(userName, knpc, ROLE_TYPES_WEBSERVICE);
-			boolean roleValid = false;
+
 			int roleId = parameters.getRoleId();
-			if (roleId >= 0) {
-				for (KeyNamePair roleAllowed : roles) {
-					if (roleId == roleAllowed.getKey()) {
-						roleValid = true;
-						break;
-					}
-				}
-			}
-			if (roleValid) {
+			int orgId = parameters.getOrganizationId();
+			int warehouseId = parameters.getWarehouseId();
+			String errorMessage = validateLoginParameters(userName, clientId, roleId, orgId, warehouseId);
+			
+			if (Util.isEmpty(errorMessage)) {
 				builder.withClaim(LoginClaims.AD_Role_ID.name(), roleId);
-				boolean orgValid = false;
-				int orgId = parameters.getOrganizationId();
-				if (orgId >= 0) {
-					MRole role = MRole.get(Env.getCtx(), roleId);
-					KeyNamePair knpr = new KeyNamePair(role.getAD_Role_ID(), role.getName());
-					KeyNamePair[] orgs = login.getOrgs(knpr);
-					for (KeyNamePair orgAllowed : orgs) {
-						if (orgId == orgAllowed.getKey()) {
-							orgValid = true;
-							break;
-						}
-					}
-				}
-				if (orgValid) {
-					builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
-					boolean warehouseValid = false;
-					int warehouseId = parameters.getWarehouseId();
-					if (orgId > 0 && warehouseId > 0) {
-						MOrg org = new MOrg(Env.getCtx(), orgId, null);
-						KeyNamePair knpo = new KeyNamePair(org.getAD_Org_ID(), org.getName());
-						KeyNamePair[] warehouses = login.getWarehouses(knpo);
-						for (KeyNamePair warehouseAllowed : warehouses) {
-							if (warehouseId == warehouseAllowed.getKey()) {
-								warehouseValid = true;
-								break;
-							}
-						}
-						if (warehouseValid) {
-							builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
-						} else {
-							return unauthorized("Invalid warehouseId", userName);
-						}
-					}
-				} else {
-					return unauthorized("Invalid organizationId", userName);
-				}
+				builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
+				builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
 			} else {
-				return unauthorized("Invalid roleId", userName);
+				return unauthorized(errorMessage, userName);
 			}
 		} else {
 			return unauthorized("Invalid clientId", userName);
@@ -385,6 +335,83 @@ public class AuthServiceImpl implements AuthService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 		return Response.ok(responseNode.toString()).build();
+	}
+	
+	private boolean isValidClient(int clientID, String clients) {
+		if (clientID >= 0 && !Util.isEmpty(clients)) {
+			for (String allowedClient : clients.split(",")) {
+				if (clientID == Integer.valueOf(allowedClient)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	private String validateLoginParameters(String userName, int clientId, int roleId, int orgId, int warehouseId) {
+		MClient client = MClient.get(Env.getCtx(), clientId);
+		KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+		Login login = new Login(Env.getCtx());
+		KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+		boolean isValidRole = isValidRole(roleId, roles);
+
+		if (isValidRole) {
+			boolean isValidOrg = isValidOrg(orgId, roleId, login);
+			if (isValidOrg) {
+				boolean warehouseValid = isValidWarehouse(orgId, warehouseId, login);
+					if (!warehouseValid) 
+						return "Invalid warehouseId";
+			} else {
+				return "Invalid organizationId";
+			}
+		} else {
+			return "Invalid roleId";
+		}
+		
+		return "";
+	}
+	
+	private boolean isValidRole(int roleId, KeyNamePair[] roles) {
+		if (roleId >= 0 && roles != null) {
+			for (KeyNamePair roleAllowed : roles) {
+				if (roleId == roleAllowed.getKey()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	private boolean isValidOrg(int orgId, int roleId, Login login) {
+		if (orgId >= 0) {
+			MRole role = MRole.get(Env.getCtx(), roleId);
+			KeyNamePair rolesKeyNamePair = new KeyNamePair(role.getAD_Role_ID(), role.getName());
+			KeyNamePair[] orgs = login.getOrgs(rolesKeyNamePair);
+			if (orgs != null) {
+				for (KeyNamePair orgAllowed : orgs) {
+					if (orgId == orgAllowed.getKey()) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+	
+	private boolean isValidWarehouse(int orgId, int warehouseId, Login login) {
+		if (orgId > 0 && warehouseId > 0) {
+			MOrg org = MOrg.get(orgId);
+			KeyNamePair orgKeyNamePair = new KeyNamePair(org.getAD_Org_ID(), org.getName());
+			KeyNamePair[] warehouses = login.getWarehouses(orgKeyNamePair);
+			if (warehouses != null) {
+				for (KeyNamePair allowedWarehouse : warehouses) {
+					if (warehouseId == allowedWarehouse.getKey()) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
