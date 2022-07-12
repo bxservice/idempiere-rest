@@ -372,7 +372,7 @@ public class AuthServiceImpl implements AuthService {
 	}
 	
 	private boolean isValidRole(int roleId, KeyNamePair[] roles) {
-		if (roleId >= 0) {
+		if (roleId >= 0 && roles != null) {
 			for (KeyNamePair roleAllowed : roles) {
 				if (roleId == roleAllowed.getKey()) {
 					return true;
@@ -387,9 +387,11 @@ public class AuthServiceImpl implements AuthService {
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			KeyNamePair rolesKeyNamePair = new KeyNamePair(role.getAD_Role_ID(), role.getName());
 			KeyNamePair[] orgs = login.getOrgs(rolesKeyNamePair);
-			for (KeyNamePair orgAllowed : orgs) {
-				if (orgId == orgAllowed.getKey()) {
-					return true;
+			if (orgs != null) {
+				for (KeyNamePair orgAllowed : orgs) {
+					if (orgId == orgAllowed.getKey()) {
+						return true;
+					}
 				}
 			}
 		}
@@ -401,9 +403,11 @@ public class AuthServiceImpl implements AuthService {
 			MOrg org = MOrg.get(orgId);
 			KeyNamePair orgKeyNamePair = new KeyNamePair(org.getAD_Org_ID(), org.getName());
 			KeyNamePair[] warehouses = login.getWarehouses(orgKeyNamePair);
-			for (KeyNamePair allowedWarehouse : warehouses) {
-				if (warehouseId == allowedWarehouse.getKey()) {
-					return true;
+			if (warehouses != null) {
+				for (KeyNamePair allowedWarehouse : warehouses) {
+					if (warehouseId == allowedWarehouse.getKey()) {
+						return true;
+					}
 				}
 			}
 		}
