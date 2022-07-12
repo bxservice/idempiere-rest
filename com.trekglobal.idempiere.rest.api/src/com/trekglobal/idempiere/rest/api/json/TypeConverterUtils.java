@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.json;
 
 import static org.compiere.util.DisplayType.Account;
 import static org.compiere.util.DisplayType.Binary;
+import static org.compiere.util.DisplayType.Image;
 import static org.compiere.util.DisplayType.Location;
 import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
@@ -191,6 +192,8 @@ public class TypeConverterUtils {
 				return new LookupTypeConverter();
 			} else if (displayType == Binary) {
 				return new BinaryTypeConverter();
+			} else if (displayType == Image) {
+				return new ImageTypeConverter();		
 			}
 		}
 		return typeConverter;
@@ -218,6 +221,9 @@ public class TypeConverterUtils {
 				return new LookupTypeConverter();
 			} else if (displayType == Binary) {
 				return new BinaryTypeConverter();
+			}
+			else if (displayType == Image) {
+				return new ImageTypeConverter();
 			}
 		}
 		return typeConverter;
