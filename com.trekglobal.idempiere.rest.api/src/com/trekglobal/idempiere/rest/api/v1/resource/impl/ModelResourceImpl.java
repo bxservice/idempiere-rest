@@ -80,7 +80,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
-import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
@@ -137,11 +137,11 @@ public class ModelResourceImpl implements ModelResource {
 					.build();
 		
 		try {
-			PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+			PO po = RestUtils.getPO(tableName, id, true, false);
 
 			if (po != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, multiProperty, details);
+				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, multiProperty, details);
 				String[] includes = null;
 				if (!Util.isEmpty(multiProperty, true)) {
 					includes =  includeParser != null && includeParser.get(table.getTableName()) != null ? 
@@ -160,7 +160,7 @@ public class ModelResourceImpl implements ModelResource {
 					loadDetails(po, json, details, includeParser);
 				return Response.ok(json.toString()).build();
 			} else {
-				po = TypeConverterUtils.getPO(tableName, id, false, false);
+				po = RestUtils.getPO(tableName, id, false, false);
 
 				if (po != null) {
 					return Response.status(Status.FORBIDDEN)
@@ -311,7 +311,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 				
-				HashMap<String, ArrayList<String>> includeParser = TypeConverterUtils.getIncludes(tableName, select, details);
+				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, select, details);
 				String[] includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
 						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
 						null;
@@ -358,7 +358,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 	
 	private MValRule getValidationRule(String validationRuleID) {
-		return (MValRule) TypeConverterUtils.getPO(MValRule.Table_Name, validationRuleID, false, false);
+		return (MValRule) RestUtils.getPO(MValRule.Table_Name, validationRuleID, false, false);
 	}
 	
 	private String parseContext(String whereClause, String context) {
@@ -515,9 +515,9 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, true);
+		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po == null) {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -659,7 +659,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, true);
+		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po != null) {
 			try {
 				po.deleteEx(true);
@@ -673,7 +673,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
@@ -701,7 +701,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -717,7 +717,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("attachments", array);
 			return Response.ok(json.toString()).build();
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -743,7 +743,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -755,7 +755,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -800,7 +800,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
@@ -847,7 +847,7 @@ public class ModelResourceImpl implements ModelResource {
 															
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -873,7 +873,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -897,7 +897,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -953,7 +953,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
@@ -989,7 +989,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
@@ -1016,7 +1016,7 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
 					.build();
 		
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -1037,7 +1037,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
@@ -1064,7 +1064,7 @@ public class ModelResourceImpl implements ModelResource {
 					.build();
 		
 
-		PO po = TypeConverterUtils.getPO(tableName, id, true, false);
+		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
@@ -1100,7 +1100,7 @@ public class ModelResourceImpl implements ModelResource {
 						.build();
 			}
 		} else {
-			po = TypeConverterUtils.getPO(tableName, id, false, false);
+			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
