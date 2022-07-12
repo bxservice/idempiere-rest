@@ -48,7 +48,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userName\":\"{{userName}}\",\"password\":\"{{password}}\"}"
+					"raw": "{\n    \"userName\": \"{{userName}}\",\n    \"password\": \"{{password}}\"\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
@@ -65,6 +65,62 @@
 					]
 				},
 				"description": "Create authentication token with user name and password. The return token is use as Authorization request header (Bearer {token}) for subsequent api/v1/auth call"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/tokens one step",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userName\": \"{{userName}}\",\n    \"password\": \"{{password}}\",\n    \"parameters\": {\n        \"clientId\": {{clientId}},\n        \"roleId\": {{roleId}},\n        \"organizationId\": {{organizationId}},\n        \"warehouseId\": {{warehouseId}},\n        \"language\": \"{{language}}\"\n    }\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/tokens",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"tokens"
+					]
+				},
+				"description": "Create authentication token with user name, password, client, role, organization, warehouse and language. The return token is ready for use as Authozation request header (Bearer {token}) for other api call."
 			},
 			"response": []
 		},
@@ -121,7 +177,7 @@
 						"tokens"
 					]
 				},
-				"description": "Update authentication token with client, role, organization and warehouse value. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
+				"description": "Update authentication token with client, role, organization, warehouse and language. A new token is return for use as Authozation request header (Bearer {token}) for other api call."
 			},
 			"response": []
 		},
