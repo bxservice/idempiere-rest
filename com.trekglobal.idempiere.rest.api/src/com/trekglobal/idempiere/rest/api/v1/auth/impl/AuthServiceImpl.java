@@ -95,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
         	String loginErrMsg = login.getLoginErrMsg();
         	return unauthorized(loginErrMsg, credential.getUserName());
 		} else {
-			JsonArray clientNodes = new JsonArray(); 
+			JsonArray clientNodes = new JsonArray();
 			StringBuilder clientsSB = new StringBuilder();
 			for(KeyNamePair client : clients) {
 				JsonObject node = new JsonObject();
@@ -151,7 +151,7 @@ public class AuthServiceImpl implements AuthService {
 	 * @see org.idempiere.rest.api.v1.AuthService#getRoles(int)
 	 */
 	@Override
-	public Response getRoles(int clientId) {		
+	public Response getRoles(int clientId) {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
@@ -241,7 +241,7 @@ public class AuthServiceImpl implements AuthService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.idempiere.rest.api.v1.AuthService#getWarehouses(int, int, int)
 	 */
@@ -280,7 +280,7 @@ public class AuthServiceImpl implements AuthService {
 		String defaultLanguage = Language.getBaseAD_Language();
 		int clientId = parameters.getClientId();
 		boolean isValidClient = isValidClient(clientId, clients);
-		
+
 		if (isValidClient) {
 			builder.withClaim(LoginClaims.AD_Client_ID.name(), clientId);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, clientId);
@@ -293,11 +293,12 @@ public class AuthServiceImpl implements AuthService {
 			int orgId = parameters.getOrganizationId();
 			int warehouseId = parameters.getWarehouseId();
 			String errorMessage = validateLoginParameters(userName, clientId, roleId, orgId, warehouseId);
-			
+
 			if (Util.isEmpty(errorMessage)) {
 				builder.withClaim(LoginClaims.AD_Role_ID.name(), roleId);
 				builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
-				builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
+				if (orgId > 0 && warehouseId > 0)
+					builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
 			} else {
 				return unauthorized(errorMessage, userName);
 			}
@@ -324,7 +325,7 @@ public class AuthServiceImpl implements AuthService {
 			session.saveEx();
 		}
 		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
-		
+
 		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
 		try {
@@ -336,7 +337,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		return Response.ok(responseNode.toString()).build();
 	}
-	
+
 	private boolean isValidClient(int clientID, String clients) {
 		if (clientID >= 0 && !Util.isEmpty(clients)) {
 			for (String allowedClient : clients.split(",")) {
@@ -347,7 +348,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		return false;
 	}
-	
+
 	private String validateLoginParameters(String userName, int clientId, int roleId, int orgId, int warehouseId) {
 		MClient client = MClient.get(Env.getCtx(), clientId);
 		KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
@@ -358,19 +359,21 @@ public class AuthServiceImpl implements AuthService {
 		if (isValidRole) {
 			boolean isValidOrg = isValidOrg(orgId, roleId, login);
 			if (isValidOrg) {
-				boolean warehouseValid = isValidWarehouse(orgId, warehouseId, login);
-					if (!warehouseValid) 
+				if (orgId > 0 && warehouseId > 0) {
+					boolean warehouseValid = isValidWarehouse(orgId, warehouseId, login);
+					if (!warehouseValid)
 						return "Invalid warehouseId";
+				}
 			} else {
 				return "Invalid organizationId";
 			}
 		} else {
 			return "Invalid roleId";
 		}
-		
+
 		return "";
 	}
-	
+
 	private boolean isValidRole(int roleId, KeyNamePair[] roles) {
 		if (roleId >= 0 && roles != null) {
 			for (KeyNamePair roleAllowed : roles) {
@@ -381,7 +384,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		return false;
 	}
-	
+
 	private boolean isValidOrg(int orgId, int roleId, Login login) {
 		if (orgId >= 0) {
 			MRole role = MRole.get(Env.getCtx(), roleId);
@@ -397,17 +400,15 @@ public class AuthServiceImpl implements AuthService {
 		}
 		return false;
 	}
-	
+
 	private boolean isValidWarehouse(int orgId, int warehouseId, Login login) {
-		if (orgId > 0 && warehouseId > 0) {
-			MOrg org = MOrg.get(orgId);
-			KeyNamePair orgKeyNamePair = new KeyNamePair(org.getAD_Org_ID(), org.getName());
-			KeyNamePair[] warehouses = login.getWarehouses(orgKeyNamePair);
-			if (warehouses != null) {
-				for (KeyNamePair allowedWarehouse : warehouses) {
-					if (warehouseId == allowedWarehouse.getKey()) {
-						return true;
-					}
+		MOrg org = MOrg.get(orgId);
+		KeyNamePair orgKeyNamePair = new KeyNamePair(org.getAD_Org_ID(), org.getName());
+		KeyNamePair[] warehouses = login.getWarehouses(orgKeyNamePair);
+		if (warehouses != null) {
+			for (KeyNamePair allowedWarehouse : warehouses) {
+				if (warehouseId == allowedWarehouse.getKey()) {
+					return true;
 				}
 			}
 		}
@@ -419,15 +420,15 @@ public class AuthServiceImpl implements AuthService {
 	 * if non exist - returns the client language
 	 * */
 	private String getPreferenceUserLanguage(int AD_User_ID) {
-		Query query = new Query(Env.getCtx(), 
-    			MTable.get(Env.getCtx(), I_AD_Preference.Table_ID), 
+		Query query = new Query(Env.getCtx(),
+    			MTable.get(Env.getCtx(), I_AD_Preference.Table_ID),
     			" Attribute=? AND AD_User_ID=? AND PreferenceFor = 'W'",
     			null);
 
     	MPreference preference = query.setOnlyActiveRecords(true)
     			.setParameters("Language", AD_User_ID)
     			.first();
-    	
+   
     	return preference != null ? Language.getAD_Language(preference.getValue()) : MClient.get(Env.getCtx()).getAD_Language();
 	}
 
