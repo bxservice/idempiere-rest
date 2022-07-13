@@ -25,6 +25,7 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -32,9 +33,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.MBPartner;
+import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
+import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.compiere.util.Trx;
@@ -47,6 +50,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.DateTypeConverter;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.WorkflowResource;
@@ -121,11 +125,19 @@ public class WorkflowResourceImpl implements WorkflowResource {
 		if (!Util.isEmpty(history, true))
 			json.addProperty("history-records", history);
 		int tableId = activity.getAD_Table_ID();
-		if (tableId > 0)
+		if (tableId > 0) {
+			json.addProperty("table-name", MTable.getTableName(Env.getCtx(), tableId));
 			json.addProperty("ad_table_id", tableId);
+		}
 		int recordId = activity.getRecord_ID();
 		if (recordId > 0)
 			json.addProperty("record_id", recordId);
+		json.addProperty("node-approval", activity.isUserApproval());
+		json.addProperty("node-confirmation", activity.isUserManual());
+		
+		Object created = new DateTypeConverter().toJsonValue(DisplayType.DateTime, new Date(activity.getCreated().getTime()));
+		if (created != null)
+			json.addProperty("created", created.toString());
 
 		return json;
 	}

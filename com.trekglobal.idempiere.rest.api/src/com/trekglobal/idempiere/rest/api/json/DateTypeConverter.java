@@ -53,7 +53,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	public DateTypeConverter() {
 	}
 
-	private Object toJsonValue(int displayType, Date value) {
+	public Object toJsonValue(int displayType, Date value) {
 		String pattern = getPattern(displayType);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
