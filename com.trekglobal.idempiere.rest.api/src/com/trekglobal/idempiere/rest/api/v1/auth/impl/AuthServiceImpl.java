@@ -155,15 +155,21 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
 			KeyNamePair knp = new KeyNamePair(client.getAD_Client_ID(), client.getName());
 			Login login = new Login(Env.getCtx());
 			KeyNamePair[] roles = login.getRoles(userName, knp, ROLE_TYPES_WEBSERVICE);
 			JsonArray array = new JsonArray();
-			for(KeyNamePair role : roles) {
-				JsonObject node = new JsonObject();
-				node.addProperty("id", role.getKey());
-				node.addProperty("name", role.getName());
-				array.add(node);
+			if (roles != null) {
+				for(KeyNamePair role : roles) {
+					JsonObject node = new JsonObject();
+					node.addProperty("id", role.getKey());
+					node.addProperty("name", role.getName());
+					array.add(node);
+				}
 			}
 			JsonObject json = new JsonObject();
 			json.add("roles", array);
@@ -182,12 +188,21 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
+			KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+			Login login = new Login(Env.getCtx());
+			KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+			boolean isValidRole = isValidRole(roleId, roles);
+			if (!isValidRole)
+				return unauthorized("Invalid role", userName);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, client.getAD_Client_ID());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			KeyNamePair knp = new KeyNamePair(role.getAD_Role_ID(), role.getName());
-			Login login = new Login(Env.getCtx());
 			KeyNamePair[] orgs = login.getOrgs(knp);
 			JsonArray array = new JsonArray();
 			if (orgs != null) {
@@ -215,6 +230,19 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
+			KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+			Login login = new Login(Env.getCtx());
+			KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+			boolean isValidRole = isValidRole(roleId, roles);
+			if (!isValidRole)
+				return unauthorized("Invalid role", userName);
+			boolean isValidOrg = isValidOrg(organizationId, roleId, login);
+			if (!isValidOrg)
+				return unauthorized("Invalid organization", userName);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, client.getAD_Client_ID());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
@@ -222,7 +250,6 @@ public class AuthServiceImpl implements AuthService {
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, role.getAD_Role_ID());
 			MOrg org = MOrg.get(organizationId);
 			KeyNamePair knp = new KeyNamePair(org.getAD_Org_ID(), org.getName());
-			Login login = new Login(Env.getCtx());
 			KeyNamePair[] warehouses = login.getWarehouses(knp);
 			JsonArray array = new JsonArray();
 			if (warehouses != null) {

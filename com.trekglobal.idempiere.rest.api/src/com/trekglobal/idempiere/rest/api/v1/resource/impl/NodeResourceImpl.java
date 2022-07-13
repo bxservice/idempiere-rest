@@ -69,6 +69,10 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response getNodes() {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for get nodes request");
+
 		JsonArray nodes = new JsonArray();
 		IClusterService service = ClusterUtil.getClusterService();
 		if (service == null) {
@@ -98,6 +102,10 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response getNodeInfo(String id) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for get node info request");
+
 		SystemInfo info = getSystemInfo(id);
 		
 		if (info == null) {
@@ -156,6 +164,10 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response getNodeLogs(String id) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for get node logs request");
+
 		SystemInfo info = getSystemInfo(id);
 		
 		if (info == null) {
@@ -179,6 +191,9 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response getNodeLogFile(String id, String fileName) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for get node log file request");
 		FileResourceImpl fileResource = new FileResourceImpl();
 		return fileResource.getFile(fileName, id);
 	}
@@ -186,11 +201,8 @@ public class NodeResourceImpl implements NodeResource {
 	@Override
 	public Response deleteNodeLogs(String id) {
 		MUser user = MUser.get(Env.getCtx());
-		if (!user.isAdministrator()) {
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for delete logs request").build().toString())
-					.build();
-		}
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for delete logs request");
 		DeleteLogsCallable callable = new DeleteLogsCallable();
 		Boolean result = null;
 		try {
@@ -235,11 +247,8 @@ public class NodeResourceImpl implements NodeResource {
 	@Override
 	public Response rotateNodeLogs(String id) {
 		MUser user = MUser.get(Env.getCtx());
-		if (!user.isAdministrator()) {
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for rotate log request").build().toString())
-					.build();
-		}
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for rotate log request");
 		RotateLogCallable callable = new RotateLogCallable();
 		Boolean result = null;
 		try {
@@ -282,6 +291,10 @@ public class NodeResourceImpl implements NodeResource {
 
 	@Override
 	public Response updateNodeLogLevel(String id, String logLevel) {
+		MUser user = MUser.get(Env.getCtx());
+		if (!user.isAdministrator())
+			return forbidden("Access denied", "Access denied for set log level request");
+
 		if (Util.isEmpty(logLevel, true)) {
 			return Response.status(Status.BAD_REQUEST)
 					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("No Log Level").append("No log level parameter").build().toString())
@@ -299,13 +312,6 @@ public class NodeResourceImpl implements NodeResource {
 			return Response.status(Status.BAD_REQUEST)
 					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Invalid Log Level").append("Invalid log level parameter: "+logLevel).build().toString())
 					.build(); 
-		}
-		
-		MUser user = MUser.get(Env.getCtx());
-		if (!user.isAdministrator()) {
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for set log level request").build().toString())
-					.build();
 		}
 		
 		SetTraceLevelCallable callable = new SetTraceLevelCallable(levelName);
@@ -333,6 +339,12 @@ public class NodeResourceImpl implements NodeResource {
 		jsonObject.addProperty("logLevel", info.getLogLevel().getName());
 		
 		return Response.ok(jsonObject.toString()).build();
+	}
+
+	private Response forbidden(String title, String detail) {
+		return Response.status(Status.FORBIDDEN)
+				.entity(new ErrorBuilder().status(Status.FORBIDDEN).title(title).append(detail).build().toString())
+				.build();
 	}
 
 }
