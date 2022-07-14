@@ -19,13 +19,16 @@ You can find the documentation on how to use it here: https://wiki.idempiere.org
 ## Rest Resources
 * api/v1/auth - authentication and jwt token
 * api/v1/models - working with PO and attachments
-* api/v1/windows - working with AD_Window and AD_Tab
+* api/v1/windows - working with windows and tabs
+* api/v1/forms - working with forms
 * api/v1/processes - working with process and reports
 * api/v1/files - to access files created by api/v1/processes
+* api/v1/reference - get information about reference and lists
 * api/v1/caches - get caches info, reset cache
-* api/v1/nodes - get nodes info, get log files, reset and rotate logs.
+* api/v1/nodes - get nodes info, get log files, reset and rotate logs
 * api/v1/servers - servers and schedulers resource
 * api/v1/infos - info windows
+* api/v1/workflow - get workflow nodes, approve, reject, forward, acknowledge, setuserchoice
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
