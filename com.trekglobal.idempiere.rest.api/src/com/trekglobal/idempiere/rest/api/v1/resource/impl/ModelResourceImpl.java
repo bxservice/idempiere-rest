@@ -60,6 +60,7 @@ import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
+import org.compiere.model.MWindow;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.process.DocAction;
@@ -81,10 +82,12 @@ import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
+import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
+import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
 
 /**
@@ -1108,6 +1111,77 @@ public class ModelResourceImpl implements ModelResource {
 			} else {
 				return Response.status(Status.NOT_FOUND)
 						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
+						.build();
+			}
+		}
+	}
+	
+	@Override
+	public Response printModelRecord(String tableName, String id, String reportType) {
+		MTable table = MTable.get(Env.getCtx(), tableName);
+		if (table == null || table.getAD_Table_ID()==0)
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder()
+							.status(Status.NOT_FOUND)
+							.title("Invalid table name")
+							.append("No match found for table name: ").append(tableName)
+							.build().toString())
+					.build();
+		
+		if (!hasAccess(table, true)) 
+			return Response.status(Status.FORBIDDEN)
+					.entity(new ErrorBuilder()
+							.status(Status.FORBIDDEN)
+							.title("Access denied")
+							.append("Access denied for table: ").append(tableName)
+							.build().toString())
+					.build();
+		
+		PO po = RestUtils.getPO(tableName, id, true, true);
+		if (po != null) {
+			try {
+				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
+				if (windowId == 0)
+					return Response.status(Status.NOT_FOUND)
+							.entity(new ErrorBuilder()
+									.status(Status.NOT_FOUND)
+									.title("Window not found")
+									.append("No valid window found for table name: ").append(tableName)
+									.build().toString())
+							.build();
+				
+				MWindow window = MWindow.get(Env.getCtx(), windowId);
+				String windowSlug = TypeConverterUtils.slugify(window.getName());
+				WindowResource windowResource = new WindowResourceImpl();
+				return windowResource.printWindowRecord(windowSlug, po.get_ID(), reportType);
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, ex.getMessage(), ex);
+				return Response.status(Status.INTERNAL_SERVER_ERROR)
+						.entity(new ErrorBuilder()
+							.status(Status.INTERNAL_SERVER_ERROR)
+							.title("Print model error")
+							.append("Print model error with exception: ").append(ex.getMessage())
+							.build().toString())
+						.build();
+			}
+		} else {
+			po = RestUtils.getPO(tableName, id, false, false);
+
+			if (po != null) {
+				return Response.status(Status.FORBIDDEN)
+						.entity(new ErrorBuilder()
+								.status(Status.FORBIDDEN)
+								.title("Access denied")
+								.append("Access denied for record with id ").append(id)
+								.build().toString())
+						.build();
+			} else {
+				return Response.status(Status.NOT_FOUND)
+						.entity(new ErrorBuilder()
+								.status(Status.NOT_FOUND)
+								.title("Record not found")
+								.append("No record found matching id ").append(id)
+								.build().toString())
 						.build();
 			}
 		}
