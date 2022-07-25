@@ -93,49 +93,29 @@ public class AuthServiceImpl implements AuthService {
 		KeyNamePair[] clients = login.getClients(credential.getUserName(), credential.getPassword(), ROLE_TYPES_WEBSERVICE);
 		if (clients == null || clients.length == 0) {
         	String loginErrMsg = login.getLoginErrMsg();
-        	if (Util.isEmpty(loginErrMsg))
-        		loginErrMsg = Msg.getMsg(Env.getCtx(),"FailedLogin", true);
-        	String x_Forward_IP = request.getHeader("X-Forwarded-For");
-            if (x_Forward_IP == null) {
-            	 x_Forward_IP = request.getRemoteAddr();
-            }
-        	logAuthFailure.log(x_Forward_IP, "/api", credential.getUserName(), loginErrMsg);
-
-			return Response.status(Status.UNAUTHORIZED)
-					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(loginErrMsg).build().toString())
-					.build();
+        	return unauthorized(loginErrMsg, credential.getUserName());
 		} else {
-			JsonObject responseNode = new JsonObject();
-			JsonArray clientNodes = new JsonArray(); 
-			responseNode.add("clients", clientNodes);
+			JsonArray clientNodes = new JsonArray();
+			StringBuilder clientsSB = new StringBuilder();
 			for(KeyNamePair client : clients) {
 				JsonObject node = new JsonObject();
 				node.addProperty("id", client.getKey());
 				node.addProperty("name", client.getName());
 				clientNodes.add(node);
+				if (clientsSB.length() > 0)
+					clientsSB.append(",");
+				clientsSB.append(client.getKey());
 			}
-			Builder builder = JWT.create().withSubject(credential.getUserName());
 			if (credential.getParameters() != null) {
 				LoginParameters parameters = credential.getParameters();
-				if (parameters.getClientId() >= 0) {
-					builder.withClaim(LoginClaims.AD_Client_ID.name(), parameters.getClientId());
-					if (parameters.getRoleId() > 0) {
-						builder.withClaim(LoginClaims.AD_Role_ID.name(), parameters.getRoleId());
-						if (parameters.getOrganizationId() >= 0) {
-							builder.withClaim(LoginClaims.AD_Org_ID.name(), parameters.getOrganizationId());
-						}
-						if (parameters.getOrganizationId() > 0 && parameters.getWarehouseId() > 0) {
-							builder.withClaim(LoginClaims.M_Warehouse_ID.name(), parameters.getOrganizationId());							
-						}
-					}
-					Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, parameters.getClientId());
-					MUser user = MUser.get(Env.getCtx(), credential.getUserName());
-					builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
-				}
-				if (parameters.getLanguage() != null) {
-					builder.withClaim(LoginClaims.AD_Language.name(), parameters.getLanguage());
-				}
+				String userName = credential.getUserName();
+				return processLoginParameters(parameters, userName, clientsSB.toString());
 			}
+			JsonObject responseNode = new JsonObject();
+			responseNode.add("clients", clientNodes);
+			Builder builder = JWT.create()
+					.withSubject(credential.getUserName())
+					.withClaim(LoginClaims.Clients.name(), clientsSB.toString());
 			Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 			builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
 			try {
@@ -149,23 +129,47 @@ public class AuthServiceImpl implements AuthService {
 		}
 	}
 
+	/**
+	 * @param loginErrMsg
+	 * @return
+	 */
+	private Response unauthorized(String loginErrMsg, String userName) {
+    	if (Util.isEmpty(loginErrMsg))
+    		loginErrMsg = Msg.getMsg(Env.getCtx(),"FailedLogin", true);
+    	String x_Forward_IP = request.getHeader("X-Forwarded-For");
+        if (x_Forward_IP == null) {
+        	 x_Forward_IP = request.getRemoteAddr();
+        }
+    	logAuthFailure.log(x_Forward_IP, "/api", userName, loginErrMsg);
+
+		return Response.status(Status.UNAUTHORIZED)
+				.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(loginErrMsg).build().toString())
+				.build();
+	}
+
 	/* (non-Javadoc)
 	 * @see org.idempiere.rest.api.v1.AuthService#getRoles(int)
 	 */
 	@Override
-	public Response getRoles(int clientId) {		
+	public Response getRoles(int clientId) {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
 			KeyNamePair knp = new KeyNamePair(client.getAD_Client_ID(), client.getName());
 			Login login = new Login(Env.getCtx());
-			KeyNamePair[] roles = login.getRoles(userName, knp);
+			KeyNamePair[] roles = login.getRoles(userName, knp, ROLE_TYPES_WEBSERVICE);
 			JsonArray array = new JsonArray();
-			for(KeyNamePair role : roles) {
-				JsonObject node = new JsonObject();
-				node.addProperty("id", role.getKey());
-				node.addProperty("name", role.getName());
-				array.add(node);
+			if (roles != null) {
+				for(KeyNamePair role : roles) {
+					JsonObject node = new JsonObject();
+					node.addProperty("id", role.getKey());
+					node.addProperty("name", role.getName());
+					array.add(node);
+				}
 			}
 			JsonObject json = new JsonObject();
 			json.add("roles", array);
@@ -184,12 +188,21 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
+			KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+			Login login = new Login(Env.getCtx());
+			KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+			boolean isValidRole = isValidRole(roleId, roles);
+			if (!isValidRole)
+				return unauthorized("Invalid role", userName);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, client.getAD_Client_ID());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			KeyNamePair knp = new KeyNamePair(role.getAD_Role_ID(), role.getName());
-			Login login = new Login(Env.getCtx());
 			KeyNamePair[] orgs = login.getOrgs(knp);
 			JsonArray array = new JsonArray();
 			if (orgs != null) {
@@ -217,14 +230,26 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+			boolean isValidClient = isValidClient(clientId, clients);
+			if (!isValidClient)
+				return unauthorized("Invalid client", userName);
+			KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+			Login login = new Login(Env.getCtx());
+			KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+			boolean isValidRole = isValidRole(roleId, roles);
+			if (!isValidRole)
+				return unauthorized("Invalid role", userName);
+			boolean isValidOrg = isValidOrg(organizationId, roleId, login);
+			if (!isValidOrg)
+				return unauthorized("Invalid organization", userName);
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, client.getAD_Client_ID());
 			MUser user = MUser.get(Env.getCtx(), userName);
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, role.getAD_Role_ID());
-			MOrg org = new MOrg(Env.getCtx(), organizationId, null);
+			MOrg org = MOrg.get(organizationId);
 			KeyNamePair knp = new KeyNamePair(org.getAD_Org_ID(), org.getName());
-			Login login = new Login(Env.getCtx());
 			KeyNamePair[] warehouses = login.getWarehouses(knp);
 			JsonArray array = new JsonArray();
 			if (warehouses != null) {
@@ -243,7 +268,7 @@ public class AuthServiceImpl implements AuthService {
 			return Response.status(Status.BAD_REQUEST).build();
 		}
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see org.idempiere.rest.api.v1.AuthService#getWarehouses(int, int, int)
 	 */
@@ -265,29 +290,55 @@ public class AuthServiceImpl implements AuthService {
 	 */
 	@Override
 	public Response changeLoginParameters(LoginParameters parameters) {
-		JsonObject responseNode = new JsonObject();
 		String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
+		String clients = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS);
+		return processLoginParameters(parameters, userName, clients);
+	}
+
+	/**
+	 * @param parameters
+	 * @param userName
+	 * @param clients
+	 * @return
+	 */
+	private Response processLoginParameters(LoginParameters parameters, String userName, String clients) {
+		JsonObject responseNode = new JsonObject();
 		Builder builder = JWT.create().withSubject(userName);
 		String defaultLanguage = Language.getBaseAD_Language();
-		if (parameters.getClientId() >= 0) {
-			builder.withClaim(LoginClaims.AD_Client_ID.name(), parameters.getClientId());
-			if (parameters.getRoleId() >= 0) {
-				builder.withClaim(LoginClaims.AD_Role_ID.name(), parameters.getRoleId());
-				if (parameters.getOrganizationId() >= 0) {
-					builder.withClaim(LoginClaims.AD_Org_ID.name(), parameters.getOrganizationId());
-				}
-				if (parameters.getOrganizationId() > 0 && parameters.getWarehouseId() > 0) {
-					builder.withClaim(LoginClaims.M_Warehouse_ID.name(), parameters.getWarehouseId());							
-				}
-			}
-			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, parameters.getClientId());
+		int clientId = parameters.getClientId();
+		boolean isValidClient = isValidClient(clientId, clients);
+
+		if (isValidClient) {
+			builder.withClaim(LoginClaims.AD_Client_ID.name(), clientId);
+			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, clientId);
 			MUser user = MUser.get(Env.getCtx(), userName);
 			builder.withClaim(LoginClaims.AD_User_ID.name(), user.getAD_User_ID());
 			responseNode.addProperty("userId", user.getAD_User_ID());
 			defaultLanguage = getPreferenceUserLanguage(user.getAD_User_ID());
+
+			int roleId = parameters.getRoleId();
+			int orgId = parameters.getOrganizationId();
+			int warehouseId = parameters.getWarehouseId();
+			String errorMessage = validateLoginParameters(userName, clientId, roleId, orgId, warehouseId);
+
+			if (Util.isEmpty(errorMessage)) {
+				builder.withClaim(LoginClaims.AD_Role_ID.name(), roleId);
+				builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
+				if (orgId > 0 && warehouseId > 0)
+					builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
+			} else {
+				return unauthorized(errorMessage, userName);
+			}
+		} else {
+			return unauthorized("Invalid clientId", userName);
 		}
 		if (parameters.getLanguage() != null) {
-			defaultLanguage = parameters.getLanguage();
+			for (String langAllowed : Env.getLoginLanguages()) {
+				if (parameters.getLanguage().equals(langAllowed)) {
+					defaultLanguage = parameters.getLanguage();
+					break;
+				}
+			}
 		}
 
 		builder.withClaim(LoginClaims.AD_Language.name(), defaultLanguage);
@@ -297,11 +348,11 @@ public class AuthServiceImpl implements AuthService {
 		MSession session = MSession.get(Env.getCtx(), false);
 		if (session == null) {
 			session = MSession.get(Env.getCtx(), true);
+			session.setWebSession("idempiere-rest");
+			session.saveEx();
 		}
-		session.setWebSession("idempiere-rest");
-		session.saveEx();
 		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
-		
+
 		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
 		try {
@@ -313,21 +364,98 @@ public class AuthServiceImpl implements AuthService {
 		}
 		return Response.ok(responseNode.toString()).build();
 	}
-	
+
+	private boolean isValidClient(int clientID, String clients) {
+		if (clientID >= 0 && !Util.isEmpty(clients)) {
+			for (String allowedClient : clients.split(",")) {
+				if (clientID == Integer.valueOf(allowedClient)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private String validateLoginParameters(String userName, int clientId, int roleId, int orgId, int warehouseId) {
+		MClient client = MClient.get(Env.getCtx(), clientId);
+		KeyNamePair clientKeyNamePair = new KeyNamePair(client.getAD_Client_ID(), client.getName());
+		Login login = new Login(Env.getCtx());
+		KeyNamePair[] roles = login.getRoles(userName, clientKeyNamePair, ROLE_TYPES_WEBSERVICE);
+		boolean isValidRole = isValidRole(roleId, roles);
+
+		if (isValidRole) {
+			boolean isValidOrg = isValidOrg(orgId, roleId, login);
+			if (isValidOrg) {
+				if (orgId > 0 && warehouseId > 0) {
+					boolean warehouseValid = isValidWarehouse(orgId, warehouseId, login);
+					if (!warehouseValid)
+						return "Invalid warehouseId";
+				}
+			} else {
+				return "Invalid organizationId";
+			}
+		} else {
+			return "Invalid roleId";
+		}
+
+		return "";
+	}
+
+	private boolean isValidRole(int roleId, KeyNamePair[] roles) {
+		if (roleId >= 0 && roles != null) {
+			for (KeyNamePair roleAllowed : roles) {
+				if (roleId == roleAllowed.getKey()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean isValidOrg(int orgId, int roleId, Login login) {
+		if (orgId >= 0) {
+			MRole role = MRole.get(Env.getCtx(), roleId);
+			KeyNamePair rolesKeyNamePair = new KeyNamePair(role.getAD_Role_ID(), role.getName());
+			KeyNamePair[] orgs = login.getOrgs(rolesKeyNamePair);
+			if (orgs != null) {
+				for (KeyNamePair orgAllowed : orgs) {
+					if (orgId == orgAllowed.getKey()) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean isValidWarehouse(int orgId, int warehouseId, Login login) {
+		MOrg org = MOrg.get(orgId);
+		KeyNamePair orgKeyNamePair = new KeyNamePair(org.getAD_Org_ID(), org.getName());
+		KeyNamePair[] warehouses = login.getWarehouses(orgKeyNamePair);
+		if (warehouses != null) {
+			for (KeyNamePair allowedWarehouse : warehouses) {
+				if (warehouseId == allowedWarehouse.getKey()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * Returns the user preference language
 	 * if non exist - returns the client language
 	 * */
 	private String getPreferenceUserLanguage(int AD_User_ID) {
-		Query query = new Query(Env.getCtx(), 
-    			MTable.get(Env.getCtx(), I_AD_Preference.Table_ID), 
+		Query query = new Query(Env.getCtx(),
+    			MTable.get(Env.getCtx(), I_AD_Preference.Table_ID),
     			" Attribute=? AND AD_User_ID=? AND PreferenceFor = 'W'",
     			null);
 
     	MPreference preference = query.setOnlyActiveRecords(true)
     			.setParameters("Language", AD_User_ID)
     			.first();
-    	
+   
     	return preference != null ? Language.getAD_Language(preference.getValue()) : MClient.get(Env.getCtx()).getAD_Language();
 	}
 

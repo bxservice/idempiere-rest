@@ -96,6 +96,19 @@ public class ODataUtils {
 	public static String getSecondParameter(String methodName, String expression) {
 		return isMethodWithParameters(methodName) ? expression.substring(expression.indexOf(",")+1, expression.lastIndexOf(")")) : null;
 	}
+
+		
+	public static String getSQLMethodOperator(String methodName, boolean isNot) {
+		String sql = isNot ? " NOT " : "";
+		switch (methodName) {
+		case ODataUtils.CONTAINS:
+		case ODataUtils.STARTSWITH:
+		case ODataUtils.ENDSWITH:
+			return sql + " LIKE ";
+		default:
+			throw new AdempiereException("Method call " + methodName + " not implemented");
+		}
+	}
 	
 	public static String getSQLFunction(String methodName, String columnName, boolean isNot) {
 		String sql = isNot ? " NOT " : "";

@@ -217,4 +217,16 @@ public interface ModelResource {
 	 * @return http response
 	 */
 	public Response deleteAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName);
+	
+	@Path("{tableName}/{id}/print")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Print model record
+	 * @param tableName
+	 * @param id id/uuid
+	 * @param reportType print output type
+	 * @return json representation of record
+	 */
+	public Response printModelRecord(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$report_type") String reportType);
 }
