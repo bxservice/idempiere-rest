@@ -7,6 +7,34 @@
 	},
 	"item": [
 		{
+			"name": "api/v1/health",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/health",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"health"
+					]
+				},
+				"description": "Get health status"
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/auth/tokens",
 			"event": [
 				{
