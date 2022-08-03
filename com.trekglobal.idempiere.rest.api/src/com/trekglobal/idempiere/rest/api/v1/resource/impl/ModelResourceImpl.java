@@ -474,8 +474,9 @@ public class ModelResourceImpl implements ModelResource {
 					}
 				}
 			}
-			
-			String error = runDocAction(po, jsonObject);
+
+			StringBuilder processMsg = new StringBuilder();
+			String error = runDocAction(po, jsonObject, processMsg);
 			if (Util.isEmpty(error, true)) {
 				trx.commit(true);
 			} else {
@@ -487,6 +488,8 @@ public class ModelResourceImpl implements ModelResource {
 
 			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
+			if (processMsg.length() > 0)
+				jsonObject.addProperty("doc-processmsg", processMsg.toString());
 			if (detailMap.size() > 0) {
 				for(String childTableName : detailMap.keySet()) {
 					JsonArray childArray = detailMap.get(childTableName);
@@ -603,8 +606,9 @@ public class ModelResourceImpl implements ModelResource {
 					}
 				}
 			}
-			
-			String error = runDocAction(po, jsonObject);
+
+			StringBuilder processMsg = new StringBuilder();
+			String error = runDocAction(po, jsonObject, processMsg);
 			if (Util.isEmpty(error, true)) {
 				trx.commit(true);
 			} else {
@@ -616,6 +620,8 @@ public class ModelResourceImpl implements ModelResource {
 			
 			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
+			if (processMsg.length() > 0)
+				jsonObject.addProperty("doc-processmsg", processMsg.toString());
 			if (detailMap.size() > 0) {
 				for(String field : detailMap.keySet()) {
 					JsonArray child = detailMap.get(field);
@@ -1270,7 +1276,7 @@ public class ModelResourceImpl implements ModelResource {
 		return po;
 	}
 
-	private String runDocAction(PO po, JsonObject jsonObject) {
+	private String runDocAction(PO po, JsonObject jsonObject, StringBuilder processMsg) {
 		if (po instanceof DocAction) {
 			JsonElement docActionElement = jsonObject.get("doc-action");
 			if (docActionElement != null) {
@@ -1296,6 +1302,8 @@ public class ModelResourceImpl implements ModelResource {
 							return ex.getMessage();
 						}
 					}
+					String pMsg = Msg.parseTranslation(po.getCtx(), ((DocAction)po).getProcessMsg());
+					processMsg.append(pMsg);
 				}
 			}
 		}
