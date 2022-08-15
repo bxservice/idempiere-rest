@@ -414,6 +414,9 @@ public class AuthServiceImpl implements AuthService {
 
 	private boolean isValidOrg(int orgId, int roleId, Login login) {
 		if (orgId >= 0) {
+			String userName = Env.getContext(Env.getCtx(), RequestFilter.LOGIN_NAME);
+			MUser user = MUser.get(Env.getCtx(), userName);
+			Env.setContext(Env.getCtx(), Env.AD_USER_ID, user.getAD_User_ID());
 			MRole role = MRole.get(Env.getCtx(), roleId);
 			KeyNamePair rolesKeyNamePair = new KeyNamePair(role.getAD_Role_ID(), role.getName());
 			KeyNamePair[] orgs = login.getOrgs(rolesKeyNamePair);
