@@ -109,6 +109,7 @@ public class AuthServiceImpl implements AuthService {
 			if (credential.getParameters() != null) {
 				LoginParameters parameters = credential.getParameters();
 				String userName = credential.getUserName();
+				Env.setContext(Env.getCtx(), RequestFilter.LOGIN_NAME, userName);
 				return processLoginParameters(parameters, userName, clientsSB.toString());
 			}
 			JsonObject responseNode = new JsonObject();
