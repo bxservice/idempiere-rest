@@ -289,10 +289,7 @@ public class ModelResourceImpl implements ModelResource {
 				}
 			}
 
-			Query query = new Query(Env.getCtx(), table, convertedWhereClause, null);
-			query.setApplyAccessFilter(true, false)
-			.setOnlyActiveRecords(true)
-			.setParameters(convertedStatement.getParameters());
+			Query query = RestUtils.getQuery(tableName, convertedWhereClause, convertedStatement.getParameters());
 
 			if (isValidOrderBy(table, order)) {
 				query.setOrderBy(order);

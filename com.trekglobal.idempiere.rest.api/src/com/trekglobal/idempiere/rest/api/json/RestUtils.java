@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.json;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -35,6 +36,7 @@ import org.compiere.model.MRole;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -107,5 +109,37 @@ public class RestUtils {
 
 		return tableSelect;
 	}
+	
+	public static Query getQuery(String tableName, String whereClause, List<Object> params) {
+		MTable table = getTable(tableName);
 
+		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_vt")) {
+			if (!Util.isEmpty(whereClause))
+				whereClause = whereClause + " AND ";
+
+			whereClause = whereClause + "AD_Language=?";
+			params.add(Env.getAD_Language(Env.getCtx()));
+		}
+
+		Query query = new Query(Env.getCtx(), table, whereClause, null);
+
+		query.setApplyAccessFilter(true, false)
+			.setOnlyActiveRecords(true)
+			.setParameters(params);
+
+		return query;
+	}
+
+	private static MTable getTable(String tableName) {
+		MTable table = MTable.get(Env.getCtx(), tableName);
+
+		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_v")) {
+			boolean hasVT = DB.isTableOrViewExists(tableName+"t");
+			if (hasVT) {
+				table = MTable.get(Env.getCtx(), tableName+ "t");
+			}
+		} 
+
+		return table;
+	}
 }
