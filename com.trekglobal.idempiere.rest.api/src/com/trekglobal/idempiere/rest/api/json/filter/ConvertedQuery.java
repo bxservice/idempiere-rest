@@ -87,7 +87,7 @@ public class ConvertedQuery {
 					!column.getColumnName().equals("EntityType") && 
 					!column.getColumnName().equals("AD_Language"))
 				addParameter(Integer.valueOf(parameter));
-			else if (displayType == DisplayType.Integer || displayType == DisplayType.Button)   //   Integer
+			else if (displayType == DisplayType.Integer || (displayType == DisplayType.Button && column.getColumnName().endsWith("_ID")))   //   Integer
 				addParameter(Integer.valueOf(parameter));
 			else if (DisplayType.isNumeric(displayType))   //	Number
 				addParameter(new BigDecimal(parameter));
