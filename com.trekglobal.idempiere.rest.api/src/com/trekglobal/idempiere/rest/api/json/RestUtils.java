@@ -113,7 +113,7 @@ public class RestUtils {
 	public static Query getQuery(String tableName, String whereClause, List<Object> params) {
 		MTable table = getTable(tableName);
 
-		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_vt")) {
+		if (table != null && table.isView() && table.getTableName().toLowerCase().endsWith("_vt")) {
 			if (!Util.isEmpty(whereClause))
 				whereClause = whereClause + " AND ";
 
@@ -136,7 +136,8 @@ public class RestUtils {
 		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_v")) {
 			boolean hasVT = DB.isTableOrViewExists(tableName+"t");
 			if (hasVT) {
-				table = MTable.get(Env.getCtx(), tableName+ "t");
+				MTable t_table = MTable.get(Env.getCtx(), tableName+ "t");
+				table = t_table != null ? t_table : table;
 			}
 		} 
 
