@@ -134,12 +134,10 @@ public class RestUtils {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 
 		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_v")) {
-			boolean hasVT = DB.isTableOrViewExists(tableName+"t");
-			if (hasVT) {
-				MTable t_table = MTable.get(Env.getCtx(), tableName+ "t");
-				table = t_table != null ? t_table : table;
-			}
-		} 
+		    MTable trl_view = MTable.get(Env.getCtx(), tableName + "t");
+		    if (trl_view != null)
+		        return trl_view;
+		}
 
 		return table;
 	}
