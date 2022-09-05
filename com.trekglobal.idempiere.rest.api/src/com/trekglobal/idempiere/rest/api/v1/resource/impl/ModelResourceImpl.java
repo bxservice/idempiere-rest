@@ -289,7 +289,7 @@ public class ModelResourceImpl implements ModelResource {
 				}
 			}
 
-			Query query = RestUtils.getQuery(tableName, convertedWhereClause, convertedStatement.getParameters());
+			Query query = RestUtils.getQuery(tableName, convertedWhereClause,  new ArrayList<Object>(convertedStatement.getParameters()));
 
 			if (isValidOrderBy(table, order)) {
 				query.setOrderBy(order);
