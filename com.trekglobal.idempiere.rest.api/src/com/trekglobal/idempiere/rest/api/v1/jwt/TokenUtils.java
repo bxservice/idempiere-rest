@@ -28,6 +28,8 @@ package com.trekglobal.idempiere.rest.api.v1.jwt;
 import java.sql.Timestamp;
 
 import org.adempiere.base.Service;
+import org.compiere.model.MSysConfig;
+import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
 
 /**
@@ -82,7 +84,8 @@ public class TokenUtils {
 	 */
 	public static Timestamp getTokenExpiresAt() {
 		Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
-		expiresAt = TimeUtil.addMinutess(expiresAt, 60);
+		int expMinutes = MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx()));
+		expiresAt = TimeUtil.addMinutess(expiresAt, expMinutes);
 		return expiresAt;
 	}
 }
