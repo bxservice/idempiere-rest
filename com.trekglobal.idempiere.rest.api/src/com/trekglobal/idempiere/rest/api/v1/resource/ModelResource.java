@@ -57,7 +57,7 @@ public interface ModelResource {
 	 * @return json representation of record
 	 */
 	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$expand") String details, 
-			@QueryParam("$select") String select);
+			@QueryParam("$select") String select, @QueryParam("$showsql") String showsql);
 
 	@Path("{tableName}/{id}/{property}")
 	@GET
@@ -69,7 +69,7 @@ public interface ModelResource {
 	 * @param propertyName columnName to be retrieved
 	 * @return json representation of record
 	 */
-	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName);
+	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName, @QueryParam("$showsql") String showsql);
 
 	@Path("{tableName}")
 	@GET
@@ -84,7 +84,7 @@ public interface ModelResource {
 	 */
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$expand") String details, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
 			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip,
-			@QueryParam("$valrule") String validationRuleID, @QueryParam("$context") String context);
+			@QueryParam("$valrule") String validationRuleID, @QueryParam("$context") String context, @QueryParam("$showsql") String showsql);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)

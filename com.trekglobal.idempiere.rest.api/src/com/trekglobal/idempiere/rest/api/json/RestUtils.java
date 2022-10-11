@@ -52,7 +52,7 @@ public class RestUtils {
 		return value == null ? false : value.matches(UUID_REGEX);
 	}
 	
-	public static PO getPO(String tableName, String recordID, boolean fullyQualified, boolean RW) {
+	public static Query getQuery(String tableName, String recordID, boolean fullyQualified, boolean RW) {
 		boolean isUUID = isUUID(recordID);
 		
 		String keyColumn = getKeyColumn(tableName, isUUID);
@@ -66,8 +66,11 @@ public class RestUtils {
 			query.setParameters(recordID);
 		else
 			query.setParameters(Integer.parseInt(recordID));
-		
-		return query.first();
+		return query;
+	}
+
+	public static PO getPO(String tableName, String recordID, boolean fullyQualified, boolean RW) {
+		return getQuery(tableName, recordID, fullyQualified, RW).first();
 	}
 	
 	private static String getKeyColumn(String tableName, boolean isUUID) {
