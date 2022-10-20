@@ -78,7 +78,7 @@ public class YesNoTypeConverter implements ITypeConverter<Object> {
 		if (primitive.isBoolean()) {
 			return primitive.getAsBoolean() ? "Y" : "N";
 		} else {
-			return ("y".equalsIgnoreCase(value.toString()) || "true".equalsIgnoreCase(value.toString())) ? "Y" : "N";
+			return ("y".equalsIgnoreCase(value.getAsString()) || "true".equalsIgnoreCase(value.getAsString())) ? "Y" : "N";
 		}
 	}
 }
