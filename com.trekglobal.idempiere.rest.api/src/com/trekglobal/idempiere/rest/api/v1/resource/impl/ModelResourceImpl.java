@@ -430,59 +430,28 @@ public class ModelResourceImpl implements ModelResource {
 						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
 						.build();
 			}
-			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
 			for(String field : fields) {
-				JsonElement fieldElement = jsonObject.get(field);
-				if (fieldElement != null && fieldElement.isJsonArray()) {
-					MTable childTable = MTable.get(Env.getCtx(), field);
-					if (childTable != null && childTable.getAD_Table_ID() > 0) {
-						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
-						JsonArray fieldArray = fieldElement.getAsJsonArray();
-						JsonArray savedArray = new JsonArray();
-						try {
-							fieldArray.forEach(e -> {
-								if (e.isJsonObject()) {
-									JsonObject childJsonObject = e.getAsJsonObject();
-									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
-									childPO.set_TrxName(trx.getTrxName());
-									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
-								if (! childPO.validForeignKeys()) {
-										String msg = CLogger.retrieveErrorString("Foreign key validation error");
-										throw new AdempiereException(msg);
-									}
-									childPO.saveEx();
-									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
-									childJsonObject = serializer.toJson(childPO);
-									savedArray.add(childJsonObject);
-								}
-							});
-							if (savedArray.size() > 0)
-								detailMap.put(field, savedArray);
-						} catch (Exception ex) {
-							trx.rollback();
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
-						}
-					}
-				}
+				String strError = createChild(field, jsonObject, po, detailMap, trx);
+				if(strError != null)
+					return Response.status(Status.INTERNAL_SERVER_ERROR)
+							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR)
+									.title("Save error")
+									.append("Save error with exception: ")
+									.append(strError).build().toString())
+							.build();
 			}
 
 			StringBuilder processMsg = new StringBuilder();
-			String error = runDocAction(po, jsonObject, processMsg);
-			if (Util.isEmpty(error, true)) {
-				trx.commit(true);
-			} else {
+			String processError = runDocAction(po, jsonObject, processMsg);
+			if (!Util.isEmpty(processError, true)) {
 				trx.rollback();
 				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
+						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(processError).build().toString())
 						.build();
 			}
-
+			trx.commit(true);
 			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
 			if (processMsg.length() > 0)
@@ -503,6 +472,71 @@ public class ModelResourceImpl implements ModelResource {
 		} finally {
 			trx.close();
 		}
+	}
+
+	/**
+	 * Recursive Method to Create Children
+	 * @param field
+	 * @param jsonObject
+	 * @param po
+	 * @param detailMap
+	 * @param trx
+	 * @return
+	 */
+	private String createChild(String field, JsonObject jsonObject, PO po, Map<String, JsonArray> detailMap, Trx trx) {
+		JsonElement fieldElement = jsonObject.get(field);
+		if (fieldElement != null && fieldElement.isJsonArray()) {
+			MTable childTable = MTable.get(Env.getCtx(), field);
+			if (childTable != null && childTable.getAD_Table_ID() > 0) {
+				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
+				JsonArray fieldArray = fieldElement.getAsJsonArray();
+				JsonArray savedArray = new JsonArray();
+				try {
+					fieldArray.forEach(e -> {
+						if (e.isJsonObject()) {
+							JsonObject childJsonObject = e.getAsJsonObject();
+							PO childPO = childSerializer.fromJson(childJsonObject, childTable);
+							childPO.set_TrxName(trx.getTrxName());
+							childPO.set_ValueOfColumn(po.get_TableName() +"_ID", po.get_ID());
+							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
+						if (! childPO.validForeignKeys()) {
+								String msg = CLogger.retrieveErrorString("Foreign key validation error");
+								throw new AdempiereException(msg);
+							}
+							childPO.saveEx();
+							fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
+							childJsonObject = childSerializer.toJson(childPO);
+							JsonObject newChildJsonObject = e.getAsJsonObject();
+							Map<String, JsonArray> childDetailMap = new LinkedHashMap<>();
+							Set<String> fields = newChildJsonObject.keySet();
+							for(String childField : fields) {
+								String strError = createChild(childField, newChildJsonObject, childPO, childDetailMap, trx);
+								if(strError != null)
+									throw new AdempiereException(strError);
+							}
+							if (childDetailMap.size() > 0) {
+								for(String childTableName : childDetailMap.keySet()) {
+									JsonArray childArray = childDetailMap.get(childTableName);
+									childJsonObject.add(childTableName, childArray);
+								}
+							}
+							savedArray.add(childJsonObject);
+							StringBuilder processMsg = new StringBuilder();
+							String processError = runDocAction(childPO, newChildJsonObject, processMsg);
+							if(processError != null)
+								throw new AdempiereException(processError + " - " + processMsg != null ? processMsg.toString() : "");
+						}
+					});
+					if (savedArray.size() > 0)
+						detailMap.put(field, savedArray);
+				} catch (Exception ex) {
+					trx.rollback();
+					log.log(Level.SEVERE, ex.getMessage(), ex);
+					return ex.getMessage();
+				}
+			}
+		}
+		return null;
 	}
 
 	@Override
