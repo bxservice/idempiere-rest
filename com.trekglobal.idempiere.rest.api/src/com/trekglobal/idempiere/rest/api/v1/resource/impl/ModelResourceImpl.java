@@ -436,7 +436,10 @@ public class ModelResourceImpl implements ModelResource {
 				String strError = createChild(field, jsonObject, po, detailMap, trx);
 				if(strError != null)
 					return Response.status(Status.INTERNAL_SERVER_ERROR)
-							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(strError).build().toString())
+							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR)
+									.title("Save error")
+									.append("Save error with exception: ")
+									.append(strError).build().toString())
 							.build();
 			}
 
