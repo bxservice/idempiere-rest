@@ -166,7 +166,7 @@ public class ModelResourceImpl implements ModelResource {
 				else
 					json = new JsonObject();
 				if (showsql != null) {
-					json.addProperty("sql-command", query.getSQL());
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
 					showSqlDetails(tableName, json, details);
 				}
 				if (!Util.isEmpty(details, true) && showData)
@@ -342,7 +342,7 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("row-count", rowCount);
 				json.addProperty("array-count", array.size());
 				if (showsql != null) {
-					json.addProperty("sql-command", query.getSQL());
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
 					showSqlDetails(tableName, json, details);
 				}
 				json.add("records", array);
@@ -1259,7 +1259,7 @@ public class ModelResourceImpl implements ModelResource {
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 			query.setApplyAccessFilter(true, false)
 				 .setOnlyActiveRecords(true);
-			json.addProperty("sql-command-" + tableName, query.getSQL());
+			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(query.getSQL()));
 		}
 	}
 
