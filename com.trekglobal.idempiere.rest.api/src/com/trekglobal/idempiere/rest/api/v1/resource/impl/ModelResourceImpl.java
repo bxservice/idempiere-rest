@@ -114,8 +114,8 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPO(String tableName, String id, String details, String select) {
-		return getPO(tableName, id, details, select, null);
+	public Response getPO(String tableName, String id, String details, String select, String showsql) {
+		return getPO(tableName, id, details, select, null, showsql);
 	}
 	
 	/**
@@ -127,7 +127,7 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param singleProperty single column
 	 * @return
 	 */
-	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty) {
+	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -140,7 +140,8 @@ public class ModelResourceImpl implements ModelResource {
 					.build();
 		
 		try {
-			PO po = RestUtils.getPO(tableName, id, true, false);
+			Query query = RestUtils.getQuery(tableName, id, true, false);
+			PO po = query.first();
 
 			if (po != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
@@ -158,8 +159,17 @@ public class ModelResourceImpl implements ModelResource {
 					}
 					includes = new String[] {singleProperty};
 				}
-				JsonObject json = serializer.toJson(po, includes, null);
-				if (!Util.isEmpty(details, true))
+				JsonObject json;
+				boolean showData = (showsql == null || !"nodata".equals(showsql));
+				if (showData)
+					json = serializer.toJson(po, includes, null);
+				else
+					json = new JsonObject();
+				if (showsql != null) {
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
+					showSqlDetails(tableName, json, details);
+				}
+				if (!Util.isEmpty(details, true) && showData)
 					loadDetails(po, json, details, includeParser);
 				return Response.ok(json.toString()).build();
 			} else {
@@ -192,8 +202,8 @@ public class ModelResourceImpl implements ModelResource {
 	}
 	
 	@Override
-	public Response getPOProperty(String tableName, String id, String propertyName) {
-		return getPO(tableName, id, null, null, propertyName);
+	public Response getPOProperty(String tableName, String id, String propertyName, String showsql) {
+		return getPO(tableName, id, null, null, propertyName, showsql);
 	}
 
 	@Override
@@ -247,7 +257,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
-			String validationRuleID, String context) {
+			String validationRuleID, String context, String showsql) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0)
 			return Response.status(Status.NOT_FOUND)
@@ -316,11 +326,14 @@ public class ModelResourceImpl implements ModelResource {
 						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
 						null;
 
-				for(PO po : list) {
-					JsonObject json = serializer.toJson(po, includes, null);
-					if (!Util.isEmpty(details, true))
-						loadDetails(po, json, details, includeParser);
-					array.add(json);
+				boolean showData = (showsql == null || !"nodata".equals(showsql));
+				if (showData) {
+					for(PO po : list) {
+						JsonObject json = serializer.toJson(po, includes, null);
+						if (!Util.isEmpty(details, true))
+							loadDetails(po, json, details, includeParser);
+						array.add(json);
+					}
 				}
 				JsonObject json = new JsonObject();
 				json.addProperty("page-count", pageCount);
@@ -328,6 +341,10 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("skip-records", skip);
 				json.addProperty("row-count", rowCount);
 				json.addProperty("array-count", array.size());
+				if (showsql != null) {
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
+					showSqlDetails(tableName, json, details);
+				}
 				json.add("records", array);
 				return Response.ok(json.toString())
 						.header("X-Page-Count", pageCount)
@@ -1259,6 +1276,27 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
+	private void showSqlDetails(String parentTableName, JsonObject json, String details) {
+		if (Util.isEmpty(details, true))
+			return;
+
+		String[] tableNames = details.split("[,]");
+		String keyColumn = parentTableName + "_ID";
+		for(String tableName : tableNames) {
+			MTable table = MTable.get(Env.getCtx(), tableName);
+			if (table == null)
+				continue;
+
+			if (!hasAccess(table, false))
+				continue;
+
+			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
+			query.setApplyAccessFilter(true, false)
+				 .setOnlyActiveRecords(true);
+			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(query.getSQL()));
+		}
+	}
+
 	private boolean hasAccess(MTable table, boolean rw) {
 		MRole role = MRole.getDefault();
 		if (role == null)
@@ -1367,4 +1405,5 @@ public class ModelResourceImpl implements ModelResource {
 
 		return false;
 	}
+
 }
