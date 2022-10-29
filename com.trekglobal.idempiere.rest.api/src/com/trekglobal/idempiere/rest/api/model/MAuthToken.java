@@ -7,6 +7,7 @@ import java.util.Properties;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MSession;
+import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.Query;
 import org.compiere.util.CCache;
@@ -102,7 +103,10 @@ public class MAuthToken extends X_REST_AuthToken {
 	}
 	
 	public static synchronized void loadBlockedTokens() {
-		List<MAuthToken> blockedTokens = new Query(Env.getCtx(), MAuthToken.Table_Name, "IsExpired = 'N' AND IsActive = 'N'", null).list();
-		blockedTokens.forEach(x -> MAuthToken.manageBlockedList(x.getToken(), true));
+		if (MTable.get(Env.getCtx(), MAuthToken.Table_Name) != null)
+		{
+			List<MAuthToken> blockedTokens = new Query(Env.getCtx(), MAuthToken.Table_Name, "IsExpired = 'N' AND IsActive = 'N'", null).list();
+			blockedTokens.forEach(x -> MAuthToken.manageBlockedList(x.getToken(), true));
+		}
 	}
 }
