@@ -2,16 +2,17 @@ package com.trekglobal.idempiere.rest.api.model;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.Properties;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MSession;
 import org.compiere.model.MUser;
+import org.compiere.model.PO;
 import org.compiere.model.Query;
-import org.compiere.util.CCache;
 import org.compiere.util.Env;
 import org.compiere.util.TimeUtil;
+import org.idempiere.cache.ImmutablePOCache;
+import org.idempiere.cache.ImmutablePOSupport;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator.Builder;
@@ -24,13 +25,12 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  * @author matheus.marcelino
  *
  */
-public class MAuthToken extends X_REST_AuthToken {
+public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
 
-	private static final long serialVersionUID = -894000837154529326L;
-	
-	/** Blocked Auth Token Cache */
-	private static CCache<String,String>  s_blocked_authtoken_cache = new CCache<String, String>(null, 
-			"REST_Blocked_Tokens_List", 40, 0, true);
+	private static final long serialVersionUID = 5401044865717234931L;
+
+	/** Context Help Message Cache				*/
+	private static ImmutablePOCache<String, MAuthToken> s_authtoken_cache = new ImmutablePOCache<String, MAuthToken>(Table_Name, 40);
 	
 	public MAuthToken(Properties ctx, int REST_AuthToken_ID, String trxName) {
 		super(ctx, REST_AuthToken_ID, trxName);
@@ -38,6 +38,34 @@ public class MAuthToken extends X_REST_AuthToken {
 
 	public MAuthToken(Properties ctx, ResultSet rs, String trxName) {
 		super(ctx, rs, trxName);
+	}
+
+	/**
+	 * 
+	 * @param copy
+	 */
+	public MAuthToken(MAuthToken copy) {
+		this(Env.getCtx(), copy);
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param copy
+	 */
+	public MAuthToken(Properties ctx, MAuthToken copy) {
+		this(ctx, copy, (String) null);
+	}
+
+	/**
+	 * 
+	 * @param ctx
+	 * @param copy
+	 * @param trxName
+	 */
+	public MAuthToken(Properties ctx, MAuthToken copy, String trxName) {
+		this(ctx, 0, trxName);
+		copyPO(copy);
 	}
 
 	@Override
@@ -82,27 +110,42 @@ public class MAuthToken extends X_REST_AuthToken {
 			} catch (Exception e) {
 				throw new AdempiereException(e.getMessage());
 			}
-		} else if (is_ValueChanged(COLUMNNAME_IsActive)) {
-			manageBlockedList(getToken(), !isActive());
 		}
 
 		return super.beforeSave(newRecord);
 	}
 	
-	private static synchronized void manageBlockedList(String token, boolean block) {
-		if(block) {
-			s_blocked_authtoken_cache.put(token, token);
-		} else {
-			s_blocked_authtoken_cache.remove(token);
+	/**
+	 * Get the auth for the token (immutable)
+	 * @param ctx
+	 * @param token
+	 * @return an immutable instance of auth token record (if any)
+	 */
+	public static MAuthToken get(Properties ctx, String token) {
+		MAuthToken retValue = null;
+		if (s_authtoken_cache.containsKey(token)) {
+			retValue = s_authtoken_cache.get(ctx, token.toString(), e -> new MAuthToken(ctx, e));
+			return retValue;
 		}
+		retValue = new Query(ctx, MAuthToken.Table_Name, "Token=?", null)
+				.setParameters(token)
+				.first();
+		s_authtoken_cache.put(token, retValue, e -> new MAuthToken(ctx, e));
+		return retValue;
 	}
-	
+
 	public static boolean isBlocked(String token) {
-		return s_blocked_authtoken_cache.containsKey(token);
+		MAuthToken auth = get(Env.getCtx(), token);
+		return (auth != null && (auth.isExpired() || !auth.isActive()));
 	}
 	
-	public static synchronized void loadBlockedTokens() {
-		List<MAuthToken> blockedTokens = new Query(Env.getCtx(), MAuthToken.Table_Name, "IsExpired = 'N' AND IsActive = 'N'", null).list();
-		blockedTokens.forEach(x -> MAuthToken.manageBlockedList(x.getToken(), true));
+	@Override
+	public PO markImmutable() {
+		if (is_Immutable())
+			return this;
+
+		super.makeImmutable();
+		return this;
 	}
+
 }

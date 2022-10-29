@@ -7,6 +7,7 @@ import org.compiere.process.SvrProcess;
 import org.compiere.util.CacheMgt;
 import org.compiere.util.DB;
 
+import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.v1.jwt.SysConfigTokenSecretProvider;
 
 /**
@@ -27,12 +28,12 @@ public class ExpireServerSecret extends SvrProcess {
 		DB.executeUpdateEx("UPDATE AD_SysConfig SET Value = ? WHERE AD_Client_ID = ? AND AD_Org_ID = ? AND Name = ?",
 				new Object[] { UUID.randomUUID().toString(), 0, 0, SysConfigTokenSecretProvider.REST_TOKEN_SECRET },
 				get_TrxName());
-		
 		CacheMgt.get().reset(MSysConfig.Table_Name);
 		
 		DB.executeUpdateEx("UPDATE REST_AuthToken SET IsActive = 'N', IsExpired = 'Y'", get_TrxName());
+		CacheMgt.get().reset(MAuthToken.Table_Name);
 
-		return null;
+		return "The server secret has expired, tokens generated before the execution of this process are expired too";
 	}
 
 }

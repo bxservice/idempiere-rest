@@ -32,7 +32,7 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20220910L;
+	private static final long serialVersionUID = 20221029L;
 
     /** Standard Constructor */
     public X_REST_AuthToken (Properties ctx, int REST_AuthToken_ID, String trxName)
@@ -44,9 +44,6 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 			setAD_Role_ID (0);
 			setAD_User_ID (0);
 			setExpireInMinutes (0);
-			setIsExpired (false);
-// N
-			setM_Warehouse_ID (0);
 			setName (null);
 			setProcessed (false);
 // N
@@ -64,9 +61,6 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 			setAD_Role_ID (0);
 			setAD_User_ID (0);
 			setExpireInMinutes (0);
-			setIsExpired (false);
-// N
-			setM_Warehouse_ID (0);
 			setName (null);
 			setProcessed (false);
 // N
@@ -81,7 +75,7 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
     }
 
     /** AccessLevel
-      * @return 3 - Client - Org 
+      * @return 6 - System - Client 
       */
     protected int get_AccessLevel()
     {
@@ -334,6 +328,28 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 	public boolean isProcessed()
 	{
 		Object oo = get_Value(COLUMNNAME_Processed);
+		if (oo != null) 
+		{
+			 if (oo instanceof Boolean) 
+				 return ((Boolean)oo).booleanValue(); 
+			return "Y".equals(oo);
+		}
+		return false;
+	}
+
+	/** Set Process Now.
+		@param Processing Process Now
+	*/
+	public void setProcessing (boolean Processing)
+	{
+		set_Value (COLUMNNAME_Processing, Boolean.valueOf(Processing));
+	}
+
+	/** Get Process Now.
+		@return Process Now	  */
+	public boolean isProcessing()
+	{
+		Object oo = get_Value(COLUMNNAME_Processing);
 		if (oo != null) 
 		{
 			 if (oo instanceof Boolean) 
