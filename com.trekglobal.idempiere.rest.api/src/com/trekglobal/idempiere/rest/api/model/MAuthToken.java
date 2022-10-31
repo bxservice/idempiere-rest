@@ -1,7 +1,30 @@
+/***********************************************************************
+ * This file is part of iDempiere ERP Open Source                      *
+ * http://www.idempiere.org                                            *
+ *                                                                     *
+ * Copyright (C) Contributors                                          *
+ *                                                                     *
+ * This program is free software; you can redistribute it and/or       *
+ * modify it under the terms of the GNU General Public License         *
+ * as published by the Free Software Foundation; either version 2      *
+ * of the License, or (at your option) any later version.              *
+ *                                                                     *
+ * This program is distributed in the hope that it will be useful,     *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of      *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the        *
+ * GNU General Public License for more details.                        *
+ *                                                                     *
+ * You should have received a copy of the GNU General Public License   *
+ * along with this program; if not, write to the Free Software         *
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,          *
+ * MA 02110-1301, USA.                                                 *
+ **********************************************************************/
+
 package com.trekglobal.idempiere.rest.api.model;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 
 import org.adempiere.exceptions.AdempiereException;
@@ -10,6 +33,9 @@ import org.compiere.model.MUser;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
+import org.compiere.util.KeyNamePair;
+import org.compiere.util.Login;
+import org.compiere.util.Msg;
 import org.compiere.util.TimeUtil;
 import org.idempiere.cache.ImmutablePOCache;
 import org.idempiere.cache.ImmutablePOSupport;
@@ -27,7 +53,8 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  */
 public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
 
-	private static final long serialVersionUID = 5401044865717234931L;
+
+	private static final long serialVersionUID = 8603366924280993536L;
 
 	/** Context Help Message Cache				*/
 	private static ImmutablePOCache<String, MAuthToken> s_authtoken_cache = new ImmutablePOCache<String, MAuthToken>(Table_Name, 40);
@@ -70,9 +97,42 @@ public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
 
 	@Override
 	protected boolean beforeSave(boolean newRecord) {
+		Properties tempCtx = new Properties();
+		Env.setContext(tempCtx, Env.AD_CLIENT_ID, getAD_Client_ID());
+
+		Login login = new Login(tempCtx);
+		KeyNamePair knpr = new KeyNamePair(getAD_Role_ID(), "dummy");
+		KeyNamePair[] orgs = login.getOrgs(knpr);
+		boolean validOrg = false;
+		for (KeyNamePair org : orgs) {
+			if (getAD_Org_ID() == org.getKey()) {
+				validOrg = true;
+				break;
+			}
+		}
+		if (! validOrg) {
+			log.saveError("Error", Msg.getMsg(getCtx(), "RoleInconsistent"));
+			return false;
+		}
+
+		if (getM_Warehouse_ID() > 0) {
+			KeyNamePair knpo = new KeyNamePair(getAD_Org_ID(), "dummy");
+			KeyNamePair[] whs = login.getWarehouses(knpo);
+			boolean validWh = false;
+			for (KeyNamePair wh : whs) {
+				if (getM_Warehouse_ID() == wh.getKey()) {
+					validWh = true;
+					break;
+				}
+			}
+			if (! validWh) {
+				log.saveError("Error", Msg.getMsg(getCtx(), "WarehouseOrgConflict"));
+				return false;
+			}
+		}
 
 		if (newRecord) {
-			MUser u = (MUser) getAD_User();
+			MUser u = MUser.get(getAD_User_ID());
 			Builder builder = JWT.create().withSubject(u.getName());
 			int clientId = getAD_Client_ID();
 
@@ -86,12 +146,26 @@ public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
 			builder.withClaim(LoginClaims.AD_Language.name(), getAD_Language());
 
 			// Create AD_Session here and set the session in the token as another parameter
-			MSession session = MSession.get(Env.getCtx());
-			if (session == null) {
-				session = MSession.create(Env.getCtx());
-				session.setWebSession("idempiere-rest");
-				session.saveEx();
+			Env.setContext(tempCtx, Env.AD_CLIENT_ID, getAD_Client_ID());
+			Env.setContext(tempCtx, Env.LANGUAGE, getAD_Language());
+			Env.setContext(tempCtx, Env.AD_ORG_ID, getAD_Org_ID());
+			Env.setContext(tempCtx, Env.M_WAREHOUSE_ID, getM_Warehouse_ID());
+			Env.setContext(tempCtx, Env.AD_USER_ID, getAD_User_ID());
+			Env.setContext(tempCtx, "#SalesRep_ID", getAD_User_ID());
+			Env.setContext(tempCtx, Env.AD_ROLE_ID, getAD_Role_ID());
+			Timestamp ts = new Timestamp(System.currentTimeMillis());
+			SimpleDateFormat dateFormat4Timestamp = new SimpleDateFormat("yyyy-MM-dd");
+			Env.setContext(tempCtx, "#Date", dateFormat4Timestamp.format(ts)+" 00:00:00" );    //  JDBC format
+
+			MSession session = MSession.get (tempCtx);
+			if (session == null){
+				log.fine("No Session found");
+				session = MSession.create(tempCtx);
 			}
+			setAD_Session_ID(session.getAD_Session_ID());
+			session.setWebSession("idempiere-rest");
+			session.saveEx();
+
 			builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
 
 			builder = builder.withIssuer(TokenUtils.getTokenIssuer());
