@@ -176,22 +176,25 @@ public class ModelResourceImpl implements ModelResource {
 				}
 			}
 		} catch(Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "GET Error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Get POs with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "GET Error", "Get PO with exception: ");
 		}
+	}
+	
+	private Response getResponseError(Exception ex, String title, String detailText) {
+		Status status = Status.INTERNAL_SERVER_ERROR;
+		if (ex instanceof IDempiereRestException) {
+			status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			title = ((IDempiereRestException) ex).getTitle();
+		}
+
+		log.log(Level.SEVERE, ex.getMessage(), ex);
+		return Response.status(status)
+				.entity(new ErrorBuilder().status(status)
+						.title(title)
+						.append(detailText)
+						.append(ex.getMessage())
+						.build().toString())
+				.build();
 	}
 	
 	@Override
@@ -232,18 +235,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("models", array);
 			return Response.ok(json.toString()).build();			
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-			
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
-							.append("Get models with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "GET Error", "Get models with exception: ");
 		}
 
 	}
@@ -343,21 +335,7 @@ public class ModelResourceImpl implements ModelResource {
 				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "GET Error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Get POs with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "GET Error", "Get POs with exception: ");
 		}
 	}
 	
@@ -460,21 +438,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Server error", "Server error with exception: ");
 		} finally {
 			trx.close();
 		}
@@ -552,21 +516,7 @@ public class ModelResourceImpl implements ModelResource {
 			//Call to check if user has access to the table 
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Update error", "Update error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
@@ -680,23 +630,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
-
+			return getResponseError(ex, "Update error", "Update error with exception: ");
 		} finally {
 			trx.close();
 		}
@@ -723,21 +657,8 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
+			return getResponseError(ex, "Delete error", "Delete error with exception: ");
 
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
@@ -748,10 +669,7 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return getResponseError(ex, "Delete error", "Delete error with exception: ");
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
@@ -774,21 +692,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Attachment error", "Attachment error with exception: ");
 		}
 
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -825,21 +729,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Attachment error", "Attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -891,21 +781,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Create attachment error", "Create attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -947,10 +823,7 @@ public class ModelResourceImpl implements ModelResource {
 	            }
 	            attachment.saveEx();
 	        } catch (Exception ex) {
-	        	log.log(Level.SEVERE, ex.getMessage(), ex);
-	        	return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return getResponseError(ex, "Create attachment error", "Create attachment error with exception: ");
 			}
 															
 			return Response.status(Status.CREATED).build();
@@ -973,21 +846,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Get attachment error", "Get attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -1004,10 +863,7 @@ public class ModelResourceImpl implements ModelResource {
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
 							return Response.ok(fso).build();
 						} catch (IOException ex) {
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("IO error").append("IO error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
+							return getResponseError(ex, "IO error", "IO error with exception: ");
 						}
 					}
 				}
@@ -1062,21 +918,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Add attachment error", "Add attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -1108,10 +950,7 @@ public class ModelResourceImpl implements ModelResource {
 				attachment.addEntry(fileName, data);
 				attachment.saveEx();
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return getResponseError(ex, "Save error", "Save error with exception: ");
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
@@ -1134,21 +973,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Delete error", "Delete error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -1190,21 +1015,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Delete error", "Delete error with exception: ");
 		}
 		
 
@@ -1219,10 +1030,7 @@ public class ModelResourceImpl implements ModelResource {
 							try {
 								attachment.saveEx();
 							} catch (Exception ex) {
-								log.log(Level.SEVERE, ex.getMessage(), ex);
-								return Response.status(Status.INTERNAL_SERVER_ERROR)
-										.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-										.build();
+								return getResponseError(ex, "Delete error", "Delete error with exception: ");
 							}
 							JsonObject json = new JsonObject();
 							json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
@@ -1262,21 +1070,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			String title = "Server error";
-			if (ex instanceof IDempiereRestException) {
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-				title = ((IDempiereRestException) ex).getTitle();
-			}
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title(title)
-							.append("Server error with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return getResponseError(ex, "Print model error", "Print model error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
@@ -1298,14 +1092,7 @@ public class ModelResourceImpl implements ModelResource {
 				WindowResource windowResource = new WindowResourceImpl();
 				return windowResource.printWindowRecord(windowSlug, po.get_ID(), reportType);
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder()
-							.status(Status.INTERNAL_SERVER_ERROR)
-							.title("Print model error")
-							.append("Print model error with exception: ").append(ex.getMessage())
-							.build().toString())
-						.build();
+				return getResponseError(ex, "Print model error", "Print model error with exception: ");
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
