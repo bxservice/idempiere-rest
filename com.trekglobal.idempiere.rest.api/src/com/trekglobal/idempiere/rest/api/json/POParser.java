@@ -10,17 +10,30 @@ public class POParser {
 	//TODO: Replace with Msg calls to make it translatable
 	private static final String ACCESS_DENIED_TITLE = "Access denied";
 	private static final String ACCESS_DENIED_MESSAGE = "Access denied for record with id: ";
-	private static final String NOT_FOUND_TITLE = "Record not foun";
+	private static final String NOT_FOUND_TITLE = "Record not found";
     private static final String NOT_FOUND_MESSAGE = "No record found matching id: ";
 
 	private PO po;
 	private String tableName;
 	private String recordID;
+	private Response responseError;
 	
 	public POParser(String tableName, String recordID, boolean fullyQualifiedWhere, boolean isReadWrite) {
 		this.tableName = tableName;
 		this.recordID = recordID;
-		po = RestUtils.getPO(tableName, recordID, fullyQualifiedWhere, isReadWrite);
+		if (isValidTable(isReadWrite))
+			po = RestUtils.getPO(tableName, recordID, fullyQualifiedWhere, isReadWrite);
+	}
+	
+	private boolean isValidTable(boolean isReadWrite) {
+		try {
+			//Call to check if user has access to the table
+			RestUtils.getTable(tableName, isReadWrite);
+		} catch (Exception ex) {
+			responseError = ResponseUtils.getResponseErrorFromException(ex, "", "");
+			return false;
+		}
+		return true;
 	}
 	
 	public POParser(String tableName, String recordID, PO po) {
@@ -38,6 +51,9 @@ public class POParser {
 	}
 	
 	public Response getResponseError() {
+		if (responseError != null)
+			return responseError;
+
 		po = RestUtils.getPO(tableName, recordID, false, false);
 
 		if (po != null) {

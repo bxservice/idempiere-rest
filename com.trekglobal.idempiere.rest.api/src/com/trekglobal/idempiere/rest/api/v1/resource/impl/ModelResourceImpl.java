@@ -467,13 +467,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response update(String tableName, String id, String jsonText) {
-		
-		try {
-			//Call to check if user has access to the table 
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
-		}
+
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (!poParser.isValidPO()) {
 			return poParser.getResponseError();
@@ -593,11 +587,6 @@ public class ModelResourceImpl implements ModelResource {
 	@Override
 	public Response delete(String tableName, String id) {
 		
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
-		}
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -617,12 +606,6 @@ public class ModelResourceImpl implements ModelResource {
 	@Override
 	public Response getAttachments(String tableName, String id) {
 		JsonArray array = new JsonArray();
-		try {
-			RestUtils.getTable(tableName, false);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
-		}
-
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -646,11 +629,6 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentsAsZip(String tableName, String id) {
-		try {
-			RestUtils.getTable(tableName, false);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
-		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -686,12 +664,6 @@ public class ModelResourceImpl implements ModelResource {
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
 			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
-		
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
-		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -741,12 +713,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentEntry(String tableName, String id, String fileName) {
-		try {
-			RestUtils.getTable(tableName, false);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Get attachment error", "Get attachment error with exception: ");
-		}
-		
+	
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -799,12 +766,6 @@ public class ModelResourceImpl implements ModelResource {
 		if (jsonElement != null && jsonElement.isJsonPrimitive())
 			overwrite = jsonElement.getAsBoolean();
 		
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Add attachment error", "Add attachment error with exception: ");
-		}
-		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -842,11 +803,6 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachments(String tableName, String id) {
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
-		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -871,11 +827,6 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
-		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -911,11 +862,6 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response printModelRecord(String tableName, String id, String reportType) {
-		try {
-			RestUtils.getTable(tableName, true);
-		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
-		}
 		
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (poParser.isValidPO()) {
