@@ -143,9 +143,7 @@ public class ModelResourceImpl implements ModelResource {
 								null;;
 				} else if (!Util.isEmpty(singleProperty, true)) {
 					if (po.get_Value(singleProperty) == null) {
-						return Response.status(Status.NOT_FOUND)
-								.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(singleProperty).build().toString())
-								.build();
+						return getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
 					}
 					includes = new String[] {singleProperty};
 				}
@@ -166,21 +164,17 @@ public class ModelResourceImpl implements ModelResource {
 				po = RestUtils.getPO(tableName, id, false, false);
 
 				if (po != null) {
-					return Response.status(Status.FORBIDDEN)
-							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-							.build();
+					return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id: ", id);
 				} else {
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-							.build();
+					return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id: ", id);
 				}
 			}
 		} catch(Exception ex) {
-			return getResponseError(ex, "GET Error", "Get PO with exception: ");
+			return getResponseErrorFromException(ex, "GET Error", "Get PO with exception: ");
 		}
 	}
 	
-	private Response getResponseError(Exception ex, String title, String detailText) {
+	private Response getResponseErrorFromException(Exception ex, String title, String detailText) {
 		Status status = Status.INTERNAL_SERVER_ERROR;
 		if (ex instanceof IDempiereRestException) {
 			status = ((IDempiereRestException) ex).getErrorResponseStatus();
@@ -188,12 +182,18 @@ public class ModelResourceImpl implements ModelResource {
 		}
 
 		log.log(Level.SEVERE, ex.getMessage(), ex);
+		return getResponseError(status, title, detailText, ex.getMessage());
+	}
+	
+	private Response getResponseError(Status status, String title, String text1, String text2) {
 		return Response.status(status)
-				.entity(new ErrorBuilder().status(status)
+				.entity(new ErrorBuilder()
+						.status(status)
 						.title(title)
-						.append(detailText)
-						.append(ex.getMessage())
-						.build().toString())
+						.append(text1)
+						.append(text2)
+						.build()
+						.toString())
 				.build();
 	}
 	
@@ -235,7 +235,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("models", array);
 			return Response.ok(json.toString()).build();			
 		} catch (Exception ex) {
-			return getResponseError(ex, "GET Error", "Get models with exception: ");
+			return getResponseErrorFromException(ex, "GET Error", "Get models with exception: ");
 		}
 
 	}
@@ -259,9 +259,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (validationRuleID != null) {
 				MValRule validationRule = getValidationRule(validationRuleID);
 				if (validationRule == null ||validationRule.getAD_Val_Rule_ID() == 0) {
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid validation rule").append("No match found for validation with ID: ").append(validationRuleID).build().toString())
-							.build();
+					return getResponseError(Status.NOT_FOUND, "Invalid validation rule", "ANo match found for validation with ID: ", validationRuleID);
 				}
 
 				if (validationRule.getCode() != null) {
@@ -335,7 +333,7 @@ public class ModelResourceImpl implements ModelResource {
 				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
-			return getResponseError(ex, "GET Error", "Get POs with exception: ");
+			return getResponseErrorFromException(ex, "GET Error", "Get POs with exception: ");
 		}
 	}
 	
@@ -398,31 +396,21 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (Exception ex) {
 				trx.rollback();
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
 			for(String field : fields) {
 				String strError = createChild(field, jsonObject, po, detailMap, trx);
 				if(strError != null)
-					return Response.status(Status.INTERNAL_SERVER_ERROR)
-							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR)
-									.title("Save error")
-									.append("Save error with exception: ")
-									.append(strError).build().toString())
-							.build();
+					return getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", "Save error with exception: ", strError);
 			}
 
 			StringBuilder processMsg = new StringBuilder();
 			String processError = runDocAction(po, jsonObject, processMsg);
 			if (!Util.isEmpty(processError, true)) {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(processError).build().toString())
-						.build();
+				return getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", processError);
 			}
 			trx.commit(true);
 			po.load(trx.getTrxName());
@@ -438,7 +426,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return getResponseError(ex, "Server error", "Server error with exception: ");
+			return getResponseErrorFromException(ex, "Server error", "Server error with exception: ");
 		} finally {
 			trx.close();
 		}
@@ -516,20 +504,16 @@ public class ModelResourceImpl implements ModelResource {
 			//Call to check if user has access to the table 
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Update error", "Update error with exception: ");
+			return getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po == null) {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 		
@@ -552,10 +536,7 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (Exception ex) {
 				trx.rollback();
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
 			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
@@ -597,10 +578,7 @@ public class ModelResourceImpl implements ModelResource {
 								detailMap.put(field, savedArray);
 						} catch (Exception ex) {
 							trx.rollback();
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
+							return getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 						}
 					}
 				}
@@ -612,9 +590,7 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
-						.build();
+				return getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", error);
 			}
 			
 			po.load(trx.getTrxName());
@@ -630,7 +606,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return getResponseError(ex, "Update error", "Update error with exception: ");
+			return getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
 		} finally {
 			trx.close();
 		}
@@ -657,7 +633,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Delete error", "Delete error with exception: ");
+			return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 
 		}
 		
@@ -669,19 +645,15 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
-				return getResponseError(ex, "Delete error", "Delete error with exception: ");
+				return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -692,7 +664,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Attachment error", "Attachment error with exception: ");
+			return getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
 		}
 
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -713,13 +685,9 @@ public class ModelResourceImpl implements ModelResource {
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -729,7 +697,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Attachment error", "Attachment error with exception: ");
+			return getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -746,13 +714,9 @@ public class ModelResourceImpl implements ModelResource {
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -769,28 +733,24 @@ public class ModelResourceImpl implements ModelResource {
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
+
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
 		
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Create attachment error", "Create attachment error with exception: ");
+			return getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST)
-						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
-						.build();
+				return getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
+
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -806,9 +766,7 @@ public class ModelResourceImpl implements ModelResource {
 	    						attachment.deleteEntry(i);
 	    						break;
 	    					} else {
-	    						return Response.status(Status.CONFLICT)
-	    								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(name).build().toString())
-	    								.build();
+	    						return getResponseError(Status.CONFLICT, "Duplicate file name", "Duplicate file name: ", name);
 	    					}
 	    				}
 	    			}
@@ -823,20 +781,16 @@ public class ModelResourceImpl implements ModelResource {
 	            }
 	            attachment.saveEx();
 	        } catch (Exception ex) {
-				return getResponseError(ex, "Create attachment error", "Create attachment error with exception: ");
+				return getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
 			}
 															
 			return Response.status(Status.CREATED).build();
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -846,7 +800,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, false);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Get attachment error", "Get attachment error with exception: ");
+			return getResponseErrorFromException(ex, "Get attachment error", "Get attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -863,7 +817,7 @@ public class ModelResourceImpl implements ModelResource {
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
 							return Response.ok(fso).build();
 						} catch (IOException ex) {
-							return getResponseError(ex, "IO error", "IO error with exception: ");
+							return getResponseErrorFromException(ex, "IO error", "IO error with exception: ");
 						}
 					}
 				}
@@ -872,13 +826,9 @@ public class ModelResourceImpl implements ModelResource {
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -890,25 +840,19 @@ public class ModelResourceImpl implements ModelResource {
 		
 		JsonElement jsonElement = jsonObject.get("name");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "name property is mandatory", "", "");
+
 		String fileName = jsonElement.getAsString();
 		if (Util.isEmpty(fileName, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "name property is mandatory", "", "");
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
+
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
 		
 		boolean overwrite = false;
 		jsonElement = jsonObject.get("overwrite");
@@ -918,16 +862,15 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Add attachment error", "Add attachment error with exception: ");
+			return getResponseErrorFromException(ex, "Add attachment error", "Add attachment error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST)
-						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
-						.build();
+				return getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
+
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -939,9 +882,7 @@ public class ModelResourceImpl implements ModelResource {
 						attachment.deleteEntry(i);
 						break;
 					} else {
-						return Response.status(Status.CONFLICT)
-								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(fileName).build().toString())
-								.build();
+						return getResponseError(Status.CONFLICT, "Duplicate file name", "Duplicate file name: ", fileName);
 					}
 				}
 			}		
@@ -950,20 +891,16 @@ public class ModelResourceImpl implements ModelResource {
 				attachment.addEntry(fileName, data);
 				attachment.saveEx();
 			} catch (Exception ex) {
-				return getResponseError(ex, "Save error", "Save error with exception: ");
+				return getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -973,7 +910,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Delete error", "Delete error with exception: ");
+			return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -983,29 +920,20 @@ public class ModelResourceImpl implements ModelResource {
 				try {
 					attachment.deleteEx(true);
 				} catch (Exception ex) {
-					log.log(Level.SEVERE, ex.getMessage(), ex);
-					return Response.status(Status.INTERNAL_SERVER_ERROR)
-							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
-							.build();
+					return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 				}
 				JsonObject json = new JsonObject();
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -1015,7 +943,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Delete error", "Delete error with exception: ");
+			return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 		}
 		
 
@@ -1030,37 +958,27 @@ public class ModelResourceImpl implements ModelResource {
 							try {
 								attachment.saveEx();
 							} catch (Exception ex) {
-								return getResponseError(ex, "Delete error", "Delete error with exception: ");
+								return getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 							}
 							JsonObject json = new JsonObject();
 							json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 							return Response.ok(json.toString()).build();
 						} else {
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Fail to remove attachment entry").build().toString())
-									.build();
+							return getResponseError(Status.INTERNAL_SERVER_ERROR, "Fail to remove attachment entry", "", "");
 						}
 					}
 					i++;
 				}
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No matching attachment entry").append("No attachment entry is found for name: ").append(fileName).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "No matching attachment entry", "No attachment entry is found for name ", fileName);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
@@ -1070,7 +988,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			RestUtils.getTable(tableName, true);
 		} catch (Exception ex) {
-			return getResponseError(ex, "Print model error", "Print model error with exception: ");
+			return getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
 		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
@@ -1079,40 +997,22 @@ public class ModelResourceImpl implements ModelResource {
 				MTable table = RestUtils.getTable(tableName, true);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
 				if (windowId == 0)
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder()
-									.status(Status.NOT_FOUND)
-									.title("Window not found")
-									.append("No valid window found for table name: ").append(tableName)
-									.build().toString())
-							.build();
+					return getResponseError(Status.NOT_FOUND, "Window not found", "No valid window found for table name: ", tableName);
 				
 				MWindow window = MWindow.get(Env.getCtx(), windowId);
 				String windowSlug = TypeConverterUtils.slugify(window.getName());
 				WindowResource windowResource = new WindowResourceImpl();
 				return windowResource.printWindowRecord(windowSlug, po.get_ID(), reportType);
 			} catch (Exception ex) {
-				return getResponseError(ex, "Print model error", "Print model error with exception: ");
+				return getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
 			}
 		} else {
 			po = RestUtils.getPO(tableName, id, false, false);
 
 			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder()
-								.status(Status.FORBIDDEN)
-								.title("Access denied")
-								.append("Access denied for record with id ").append(id)
-								.build().toString())
-						.build();
+				return getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder()
-								.status(Status.NOT_FOUND)
-								.title("Record not found")
-								.append("No record found matching id ").append(id)
-								.build().toString())
-						.build();
+				return getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
 			}
 		}
 	}
