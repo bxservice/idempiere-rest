@@ -31,9 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -56,7 +53,6 @@ import org.adempiere.base.event.IEventManager;
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
-import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
@@ -80,6 +76,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.POParser;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
@@ -132,7 +129,8 @@ public class ModelResourceImpl implements ModelResource {
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			PO po = query.first();
 
-			if (po != null) {
+			POParser poParser = new POParser(tableName, id, po);
+			if (poParser.isValidPO()) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
 				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, multiProperty, details);
 				String[] includes = null;
@@ -160,13 +158,7 @@ public class ModelResourceImpl implements ModelResource {
 					loadDetails(po, json, details, includeParser);
 				return Response.ok(json.toString()).build();
 			} else {
-				po = RestUtils.getPO(tableName, id, false, false);
-
-				if (po != null) {
-					return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id: ", id);
-				} else {
-					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id: ", id);
-				}
+				return poParser.getResponseError();
 			}
 		} catch(Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get PO with exception: ");
@@ -482,17 +474,12 @@ public class ModelResourceImpl implements ModelResource {
 		} catch (Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
 		}
-		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po == null) {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (!poParser.isValidPO()) {
+			return poParser.getResponseError();
 		}
 		
+		PO po = poParser.getPO();
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
 
@@ -611,9 +598,9 @@ public class ModelResourceImpl implements ModelResource {
 		} catch (Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 		}
-		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			try {
 				po.deleteEx(true);
 				JsonObject json = new JsonObject();
@@ -623,13 +610,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -642,8 +623,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
 		}
 
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
@@ -658,12 +640,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("attachments", array);
 			return Response.ok(json.toString()).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -675,8 +652,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Attachment error", "Attachment error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				File zipFile = attachment.saveAsZip();
@@ -687,12 +665,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -720,8 +693,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
 				return ResponseUtils.getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
@@ -761,12 +735,7 @@ public class ModelResourceImpl implements ModelResource {
 															
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -778,8 +747,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Get attachment error", "Get attachment error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
@@ -799,12 +769,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -840,8 +805,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Add attachment error", "Add attachment error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
 				return ResponseUtils.getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
@@ -870,13 +836,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -888,8 +848,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				try {
@@ -904,12 +865,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -921,9 +877,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 		}
 		
-
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				int i = 0;
@@ -949,12 +905,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 	
@@ -966,8 +917,9 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
 		}
 		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			try {
 				MTable table = RestUtils.getTable(tableName, true);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
@@ -982,13 +934,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Access denied", "Access denied for record with id ", id);
-			} else {
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Record not found", "No record found matching id ", id);
-			}
+			return poParser.getResponseError();
 		}
 	}
 
