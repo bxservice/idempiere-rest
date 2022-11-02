@@ -25,9 +25,13 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Level;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -36,12 +40,14 @@ import org.compiere.model.MRole;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
 public class RestUtils {
 
+	private final static CLogger log = CLogger.getCLogger(RestUtils.class);
 	private final static String UUID_REGEX="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
 
 	/**
@@ -114,7 +120,7 @@ public class RestUtils {
 	}
 	
 	public static Query getQuery(String tableName, String whereClause, List<Object> params) {
-		MTable table = getTable(tableName);
+		MTable table = getQueryTable(tableName);
 
 		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_vt")) {
 			if (!Util.isEmpty(whereClause))
@@ -133,7 +139,7 @@ public class RestUtils {
 		return query;
 	}
 
-	private static MTable getTable(String tableName) {
+	private static MTable getQueryTable(String tableName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 
 		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_v")) {
@@ -144,5 +150,50 @@ public class RestUtils {
 		} 
 
 		return table;
+	}
+	
+	public static MTable getTable(String tableName) {
+		return getTable(tableName, false);
+	}
+	
+	public static MTable getTable(String tableName, boolean isReadWrite) {
+		MTable table = MTable.get(Env.getCtx(), tableName);
+		if (table == null || table.getAD_Table_ID()==0) {
+			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + tableName, Status.NOT_FOUND);
+		}
+		
+		if (!hasAccess(table, isReadWrite)) {
+			throw new IDempiereRestException("Access denied", "Access denied for table: " + tableName, Status.FORBIDDEN);
+		}
+		
+		return table;
+
+	}
+	
+	private static boolean hasAccess(MTable table, boolean isReadWrite) {
+		MRole role = MRole.getDefault();
+		if (role == null)
+			return false;
+		
+		StringBuilder builder = new StringBuilder("SELECT DISTINCT a.AD_Window_ID FROM AD_Window a JOIN AD_Tab b ON a.AD_Window_ID=b.AD_Window_ID ");
+		builder.append("WHERE a.IsActive='Y' AND b.IsActive='Y' AND b.AD_Table_ID=?");
+		try (PreparedStatement stmt = DB.prepareStatement(builder.toString(), null)) {
+			stmt.setInt(1, table.getAD_Table_ID());			
+			ResultSet rs = stmt.executeQuery();
+			while (rs.next()) {
+				int windowId = rs.getInt(1);
+				Boolean hasReadWriteAccess = role.getWindowAccess(windowId);
+				if (hasReadWriteAccess != null) {
+					if (!isReadWrite || hasReadWriteAccess.booleanValue())
+						return true;
+				}
+			}
+		} catch (SQLException ex) {
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			throw new RuntimeException(ex.getMessage());
+		}
+		
+		//If no window or no access to the window - check if the role has read/write access to the table
+		return role.isTableAccess(table.getAD_Table_ID(), false);
 	}
 }

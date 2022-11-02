@@ -128,18 +128,8 @@ public class ModelResourceImpl implements ModelResource {
 	 * @return
 	 */
 	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
 		try {
+			MTable table = RestUtils.getTable(tableName);
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			PO po = query.first();
 
@@ -187,13 +177,16 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		} catch(Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
+			String title = "GET Error";
+			if (ex instanceof IDempiereRestException) {
 				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
 
 			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(status)
 					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
+							.title(title)
 							.append("Get POs with exception: ")
 							.append(ex.getMessage())
 							.build().toString())
@@ -258,17 +251,6 @@ public class ModelResourceImpl implements ModelResource {
 	@Override
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
 			String validationRuleID, String context, String showsql) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
 		String whereClause = "";
 		if (!Util.isEmpty(filter, true) ) {
 			whereClause = filter;
@@ -276,6 +258,8 @@ public class ModelResourceImpl implements ModelResource {
 		
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
+			MTable table = RestUtils.getTable(tableName);
+
 			ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
 			String convertedWhereClause = convertedStatement.getWhereClause();
 			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedWhereClause);
@@ -360,13 +344,16 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
+			String title = "GET Error";
+			if (ex instanceof IDempiereRestException) {
 				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
 
 			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(status)
 					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
+							.title(title)
 							.append("Get POs with exception: ")
 							.append(ex.getMessage())
 							.build().toString())
@@ -413,19 +400,10 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response create(String tableName, String jsonText) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
+			MTable table = RestUtils.getTable(tableName, true);
+
 			trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
@@ -482,9 +460,20 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
 		} finally {
 			trx.close();
@@ -558,16 +547,27 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response update(String tableName, String id, String jsonText) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+		try {
+			//Call to check if user has access to the table 
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po == null) {
@@ -585,6 +585,7 @@ public class ModelResourceImpl implements ModelResource {
 		
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
+
 			trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
@@ -679,10 +680,23 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
+			
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
 			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
+
 		} finally {
 			trx.close();
 		}
@@ -705,16 +719,26 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response delete(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po != null) {
@@ -747,17 +771,26 @@ public class ModelResourceImpl implements ModelResource {
 	@Override
 	public Response getAttachments(String tableName, String id) {
 		JsonArray array = new JsonArray();
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, false);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
+		}
+
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
 			MAttachment attachment = po.getAttachment();
@@ -789,16 +822,25 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentsAsZip(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, false);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
@@ -846,16 +888,25 @@ public class ModelResourceImpl implements ModelResource {
 					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
 					.build();
 		
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
@@ -919,16 +970,25 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentEntry(String tableName, String id, String fileName) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, false);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
@@ -999,16 +1059,25 @@ public class ModelResourceImpl implements ModelResource {
 		if (jsonElement != null && jsonElement.isJsonPrimitive())
 			overwrite = jsonElement.getAsBoolean();
 		
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
@@ -1062,16 +1131,25 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachments(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, false);
 		if (po != null) {
@@ -1109,16 +1187,25 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
+		}
 		
 
 		PO po = RestUtils.getPO(tableName, id, true, false);
@@ -1172,28 +1259,30 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response printModelRecord(String tableName, String id, String reportType) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder()
-							.status(Status.NOT_FOUND)
-							.title("Invalid table name")
-							.append("No match found for table name: ").append(tableName)
+		try {
+			RestUtils.getTable(tableName, true);
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			String title = "Server error";
+			if (ex instanceof IDempiereRestException) {
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
+				title = ((IDempiereRestException) ex).getTitle();
+			}
+
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title(title)
+							.append("Server error with exception: ")
+							.append(ex.getMessage())
 							.build().toString())
 					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder()
-							.status(Status.FORBIDDEN)
-							.title("Access denied")
-							.append("Access denied for table: ").append(tableName)
-							.build().toString())
-					.build();
+		}
 		
 		PO po = RestUtils.getPO(tableName, id, true, true);
 		if (po != null) {
 			try {
+				MTable table = RestUtils.getTable(tableName, true);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
 				if (windowId == 0)
 					return Response.status(Status.NOT_FOUND)
@@ -1249,7 +1338,7 @@ public class ModelResourceImpl implements ModelResource {
 		String keyColumn = po.get_TableName() + "_ID";
 		String[] includes;
 		for(String tableName : tableNames) {
-			MTable table = MTable.get(Env.getCtx(), tableName);
+			MTable table = MTable.get(Env.getCtx(), tableName);//Replace for try catch continue
 			if (table == null)
 				continue;
 			
