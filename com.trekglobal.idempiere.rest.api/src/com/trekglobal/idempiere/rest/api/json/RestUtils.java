@@ -170,7 +170,7 @@ public class RestUtils {
 
 	}
 	
-	private static boolean hasAccess(MTable table, boolean isReadWrite) {
+	public static boolean hasAccess(MTable table, boolean isReadWrite) {
 		MRole role = MRole.getDefault();
 		if (role == null)
 			return false;

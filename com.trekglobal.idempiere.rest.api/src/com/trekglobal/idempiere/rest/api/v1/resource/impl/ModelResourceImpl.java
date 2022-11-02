@@ -193,7 +193,7 @@ public class ModelResourceImpl implements ModelResource {
 			List<MTable> tables = query.setOrderBy("AD_Table.TableName").list();
 			JsonArray array = new JsonArray();
 			for(MTable table : tables) {
-				if (hasAccess(table, false)) {
+				if (RestUtils.hasAccess(table, false)) {
 					JsonObject json = new JsonObject();
 					json.addProperty("id", table.getAD_Table_ID());
 					if (!Util.isEmpty(table.getAD_Table_UU())) {
@@ -1004,7 +1004,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (table == null)
 				continue;
 			
-			if (!hasAccess(table, false))
+			if (!RestUtils.hasAccess(table, false))
 				continue;
 			
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
@@ -1038,7 +1038,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (table == null)
 				continue;
 
-			if (!hasAccess(table, false))
+			if (!RestUtils.hasAccess(table, false))
 				continue;
 
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
@@ -1048,33 +1048,6 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 
-	private boolean hasAccess(MTable table, boolean rw) {
-		MRole role = MRole.getDefault();
-		if (role == null)
-			return false;
-		
-		StringBuilder builder = new StringBuilder("SELECT DISTINCT a.AD_Window_ID FROM AD_Window a JOIN AD_Tab b ON a.AD_Window_ID=b.AD_Window_ID ");
-		builder.append("WHERE a.IsActive='Y' AND b.IsActive='Y' AND b.AD_Table_ID=?");
-		try (PreparedStatement stmt = DB.prepareStatement(builder.toString(), null)) {
-			stmt.setInt(1, table.getAD_Table_ID());			
-			ResultSet rs = stmt.executeQuery();
-			while (rs.next()) {
-				int windowId = rs.getInt(1);
-				Boolean b = role.getWindowAccess(windowId);
-				if (b != null) {
-					if (!rw || b.booleanValue())
-						return true;
-				}
-			}
-		} catch (SQLException ex) {
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			throw new RuntimeException(ex.getMessage());
-		}
-		
-		//If no window or no access to the window - check if the role has read/write access to the table
-		return role.isTableAccess(table.getAD_Table_ID(), false);
-	}
-	
 	private PO loadPO(String tableName, JsonObject jsonObject) {
 		PO po = null;
 		String idColumn = tableName + "_ID";
