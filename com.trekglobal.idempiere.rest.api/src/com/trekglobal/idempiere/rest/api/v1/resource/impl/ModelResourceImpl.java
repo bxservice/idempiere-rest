@@ -892,13 +892,8 @@ public class ModelResourceImpl implements ModelResource {
 		String keyColumn = po.get_TableName() + "_ID";
 		String[] includes;
 		for(String tableName : tableNames) {
-			MTable table = MTable.get(Env.getCtx(), tableName);//Replace for try catch continue
-			if (table == null)
-				continue;
-			
-			if (!RestUtils.hasAccess(table, false))
-				continue;
-			
+			MTable table = RestUtils.getTable(tableName);
+		
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 			query.setApplyAccessFilter(true, false)
 				 .setOnlyActiveRecords(true);
@@ -926,13 +921,7 @@ public class ModelResourceImpl implements ModelResource {
 		String[] tableNames = details.split("[,]");
 		String keyColumn = parentTableName + "_ID";
 		for(String tableName : tableNames) {
-			MTable table = MTable.get(Env.getCtx(), tableName);
-			if (table == null)
-				continue;
-
-			if (!RestUtils.hasAccess(table, false))
-				continue;
-
+			MTable table = RestUtils.getTable(tableName);
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 			query.setApplyAccessFilter(true, false)
 				 .setOnlyActiveRecords(true);
