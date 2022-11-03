@@ -43,6 +43,7 @@ import org.compiere.model.Query;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Language;
 import org.compiere.util.Util;
 
 public class RestUtils {
@@ -119,10 +120,20 @@ public class RestUtils {
 		return tableSelect;
 	}
 	
+	/**
+	 * Get the query (translating table _v to _vt when conditions are met)
+	 * @param tableName
+	 * @param whereClause
+	 * @param params
+	 * @return Query
+	 */
 	public static Query getQuery(String tableName, String whereClause, List<Object> params) {
 		MTable table = getQueryTable(tableName);
 
-		if (table != null && table.isView() && table.getTableName().toLowerCase().endsWith("_vt")) {
+		if (   table != null
+			&& table.isView()
+			&& tableName.toLowerCase().endsWith("_v")
+			&& table.getTableName().toLowerCase().endsWith("_vt")) {
 			if (!Util.isEmpty(whereClause))
 				whereClause = whereClause + " AND ";
 
@@ -139,12 +150,22 @@ public class RestUtils {
 		return query;
 	}
 
+	/**
+	 * Get the table associated with the query
+	 * if it is a view ending with _v and exists a _vt with columns, then return the _vt table instead
+	 * @param tableName
+	 * @return MTable
+	 */
 	private static MTable getQueryTable(String tableName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 
-		if (table != null && table.isView() && tableName.toLowerCase().endsWith("_v")) {
+		boolean isBaseLanguage = Language.isBaseLanguage(Env.getAD_Language(Env.getCtx()));
+		if (   !isBaseLanguage
+			&& table != null
+			&& table.isView()
+			&& tableName.toLowerCase().endsWith("_v")) {
 		    MTable trl_view = MTable.get(Env.getCtx(), tableName + "t");
-		    if (trl_view != null)
+		    if (trl_view != null && trl_view.get_ColumnCount() > 0)
 		        return trl_view;
 		}
 
