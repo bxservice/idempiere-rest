@@ -50,6 +50,13 @@ public class POParser {
 			po = RestUtils.getPO(tableName, recordID, fullyQualifiedWhere, isReadWrite);
 	}
 	
+	public POParser(String tableName, String recordID, PO po) {
+		this.tableName = tableName;
+		this.recordID = recordID;
+		if (isValidTable(false))
+			this.po = po;
+	}
+	
 	private boolean isValidTable(boolean isReadWrite) {
 		try {
 			//Call to check if user has access to the table
@@ -59,12 +66,6 @@ public class POParser {
 			return false;
 		}
 		return true;
-	}
-	
-	public POParser(String tableName, String recordID, PO po) {
-		this.tableName = tableName;
-		this.recordID = recordID;
-		this.po = po;
 	}
 	
 	public boolean isValidPO() {

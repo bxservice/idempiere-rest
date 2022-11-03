@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +74,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.ExpandParser;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.POParser;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
@@ -125,19 +125,15 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		try {
-			MTable table = RestUtils.getTable(tableName);
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			PO po = query.first();
 
 			POParser poParser = new POParser(tableName, id, po);
 			if (poParser.isValidPO()) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, multiProperty, details);
 				String[] includes = null;
 				if (!Util.isEmpty(multiProperty, true)) {
-					includes =  includeParser != null && includeParser.get(table.getTableName()) != null ? 
-							includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-								null;;
+					includes = RestUtils.getSelectedColumns(tableName, multiProperty);
 				} else if (!Util.isEmpty(singleProperty, true)) {
 					if (po.get_Value(singleProperty) == null) {
 						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
@@ -155,7 +151,7 @@ public class ModelResourceImpl implements ModelResource {
 					showSqlDetails(tableName, json, details);
 				}
 				if (!Util.isEmpty(details, true) && showData)
-					loadDetails(po, json, details, includeParser);
+					expandDetailsInJsonObject(po, json, details);
 				return Response.ok(json.toString()).build();
 			} else {
 				return poParser.getResponseError();
@@ -163,6 +159,11 @@ public class ModelResourceImpl implements ModelResource {
 		} catch(Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get PO with exception: ");
 		}
+	}
+	
+	private void expandDetailsInJsonObject(PO po, JsonObject jsonObject, String expandParameter) {
+		ExpandParser expandParser = new ExpandParser(po, jsonObject, expandParameter);
+		expandParser.expandDetailsIntoJsonObject();
 	}
 	
 	@Override
@@ -262,18 +263,14 @@ public class ModelResourceImpl implements ModelResource {
 			JsonArray array = new JsonArray();
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				
-				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, select, details);
-				String[] includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
-						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-						null;
+				String[] includes = RestUtils.getSelectedColumns(tableName, select);
 
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				if (showData) {
 					for(PO po : list) {
 						JsonObject json = serializer.toJson(po, includes, null);
 						if (!Util.isEmpty(details, true))
-							loadDetails(po, json, details, includeParser);
+							expandDetailsInJsonObject(po, json, details);
 						array.add(json);
 					}
 				}
@@ -881,36 +878,6 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		} else {
 			return poParser.getResponseError();
-		}
-	}
-
-	private void loadDetails(PO po, JsonObject jsonObject, String details, HashMap<String, ArrayList<String>> includeParser) {
-		if (Util.isEmpty(details, true))
-			return;
-		
-		String[] tableNames = details.split("[,]");
-		String keyColumn = po.get_TableName() + "_ID";
-		String[] includes;
-		for(String tableName : tableNames) {
-			MTable table = RestUtils.getTable(tableName);
-		
-			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-			query.setApplyAccessFilter(true, false)
-				 .setOnlyActiveRecords(true);
-			List<PO> childPOs = query.setParameters(po.get_ID()).list();
-			if (childPOs != null && childPOs.size() > 0) {
-				JsonArray childArray = new JsonArray();
-				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
-						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-						null;
-				
-				for(PO child : childPOs) {							
-					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-					childArray.add(childJsonObject);
-				}
-				jsonObject.add(tableName, childArray);
-			}
 		}
 	}
 	

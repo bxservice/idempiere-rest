@@ -120,6 +120,27 @@ public class RestUtils {
 		return tableSelect;
 	}
 	
+	public static String[] getSelectedColumns(String tableName, String selectClause) {
+		List<String> selectedColumns = new ArrayList<String>();
+		if (Util.isEmpty(selectClause, true) || Util.isEmpty(tableName, true))
+			return new String[0];
+		
+		MTable mTable = MTable.get(Env.getCtx(), tableName);
+		String[] columnNames = selectClause.split("[,]");
+		for(String columnName : columnNames) {
+			MTable table = mTable;
+			if (table.getColumnIndex(columnName.trim()) < 0)
+				throw new IDempiereRestException(columnName + " is not a valid column of table " + table.getTableName(), Status.BAD_REQUEST);
+
+			MColumn mColumn = table.getColumn(columnName.trim());
+			if (MRole.getDefault().isColumnAccess(table.getAD_Table_ID(), mColumn.getAD_Column_ID(), true)) {
+				selectedColumns.add(columnName.trim());
+			}
+		}
+
+		return selectedColumns.toArray(new String[selectedColumns.size()]);
+	}
+	
 	/**
 	 * Get the query (translating table _v to _vt when conditions are met)
 	 * @param tableName
