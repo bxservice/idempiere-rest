@@ -38,6 +38,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+
 /**
  * @author hengsin
  *
@@ -56,8 +58,8 @@ public interface ModelResource {
 	 * @param select optional comma separated list of columns to retrieve
 	 * @return json representation of record
 	 */
-	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$expand") String details, 
-			@QueryParam("$select") String select, @QueryParam("showsql") String showsql);
+	public Response getPO(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam(QueryOperators.EXPAND) String details, 
+			@QueryParam(QueryOperators.SELECT) String select, @QueryParam(QueryOperators.SHOW_SQL) String showsql);
 
 	@Path("{tableName}/{id}/{property}")
 	@GET
@@ -69,7 +71,7 @@ public interface ModelResource {
 	 * @param propertyName columnName to be retrieved
 	 * @return json representation of record
 	 */
-	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName, @QueryParam("showsql") String showsql);
+	public Response getPOProperty(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("property") String propertyName, @QueryParam(QueryOperators.SHOW_SQL) String showsql);
 
 	@Path("{tableName}")
 	@GET
@@ -82,9 +84,9 @@ public interface ModelResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam("$expand") String details, @QueryParam("$filter") String filter, @QueryParam("$orderby") String order, 
-			@QueryParam("$select") String select, @QueryParam("$top") int top, @DefaultValue("0") @QueryParam("$skip") int skip,
-			@QueryParam("$valrule") String validationRuleID, @QueryParam("$context") String context, @QueryParam("showsql") String showsql);
+	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam(QueryOperators.EXPAND) String details, @QueryParam(QueryOperators.FILTER) String filter, @QueryParam(QueryOperators.ORDERBY) String order, 
+			@QueryParam(QueryOperators.SELECT) String select, @QueryParam(QueryOperators.TOP) int top, @DefaultValue("0") @QueryParam(QueryOperators.SKIP) int skip,
+			@QueryParam(QueryOperators.VALRULE) String validationRuleID, @QueryParam(QueryOperators.CONTEXT) String context, @QueryParam(QueryOperators.SHOW_SQL) String showsql);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
@@ -93,7 +95,7 @@ public interface ModelResource {
 	 * @param filter optional where clause
 	 * @return json array of model
 	 */
-	public Response getModels(@QueryParam("$filter") String filter);
+	public Response getModels(@QueryParam(QueryOperators.FILTER) String filter);
 	
 	@Path("{tableName}")
 	@POST
@@ -228,5 +230,5 @@ public interface ModelResource {
 	 * @param reportType print output type
 	 * @return json representation of record
 	 */
-	public Response printModelRecord(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam("$report_type") String reportType);
+	public Response printModelRecord(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam(QueryOperators.REPORTTYPE) String reportType);
 }

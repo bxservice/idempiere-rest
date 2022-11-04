@@ -23,33 +23,22 @@
 * - BX Service GmbH                                                   *
 * - Diego Ruiz                                                        *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource;
+package com.trekglobal.idempiere.rest.api.json;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+public interface QueryOperators {
 
-import com.trekglobal.idempiere.rest.api.json.QueryOperators;
-
-/**
- * 
- * @author druiz
- *
- */
-@Path("v1/forms")
-public interface FormResource {
-
-	@GET
-	@Produces(MediaType.APPLICATION_JSON)
-	/**
-	 * Get Forms available
-	 * @param filter optional where clause
-	 * @return Json array of forms
-	 */
-	public Response getForms(@QueryParam(QueryOperators.FILTER) String filter);
+	//Supported OData query operators
+	public static final String SELECT  = "$select";
+	public static final String EXPAND  = "$expand";
+	public static final String FILTER  = "$filter";
+	public static final String ORDERBY = "$orderby";
+	public static final String TOP     = "$top";
+	public static final String SKIP    = "$skip";
+	
+	//Custom iDempeire query operators
+	public static final String SHOW_SQL   = "showsql";
+	public static final String VALRULE    = "$valrule";
+	public static final String CONTEXT    = "$context";
+	public static final String REPORTTYPE = "$report_type";
 
 }
-

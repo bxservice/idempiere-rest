@@ -64,9 +64,9 @@ public class ExpandParser {
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
 			String tableName = entry.getKey();
 			List<String> operators = entry.getValue();
-			
+
 			MTable table = RestUtils.getTable(tableName);
-		
+
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
 			query.setApplyAccessFilter(true, false)
 				 .setOnlyActiveRecords(true);
@@ -143,7 +143,7 @@ public class ExpandParser {
 	
 	private String getSelectClause(List<String> operators) {
 		for (String operator : operators) {
-			if (operator.startsWith("$select=")) {
+			if (operator.startsWith(QueryOperators.SELECT)) {
 				return operator.substring(operator.indexOf("=") +1);
 			}
 		}
