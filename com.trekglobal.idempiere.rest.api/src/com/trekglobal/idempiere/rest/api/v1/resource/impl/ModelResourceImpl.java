@@ -420,7 +420,7 @@ public class ModelResourceImpl implements ModelResource {
 							JsonObject childJsonObject = e.getAsJsonObject();
 							PO childPO = childSerializer.fromJson(childJsonObject, childTable);
 							childPO.set_TrxName(trx.getTrxName());
-							childPO.set_ValueOfColumn(po.get_TableName() +"_ID", po.get_ID());
+							childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
 							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
 						if (! childPO.validForeignKeys()) {
 								String msg = CLogger.retrieveErrorString("Foreign key validation error");
@@ -512,7 +512,7 @@ public class ModelResourceImpl implements ModelResource {
 									
 									if (childPO == null) {
 										childPO = childSerializer.fromJson(childJsonObject, childTable);
-										childPO.set_ValueOfColumn(tableName+"_ID", parentId);
+										childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(tableName), parentId);
 									} else {
 										childPO = childSerializer.fromJson(childJsonObject, childPO);
 									}
@@ -886,7 +886,7 @@ public class ModelResourceImpl implements ModelResource {
 			return;
 
 		String[] tableNames = details.split("[,]");
-		String keyColumn = parentTableName + "_ID";
+		String keyColumn = RestUtils.getKeyColumnName(parentTableName);
 		for(String tableName : tableNames) {
 			MTable table = RestUtils.getTable(tableName);
 			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
@@ -898,7 +898,7 @@ public class ModelResourceImpl implements ModelResource {
 
 	private PO loadPO(String tableName, JsonObject jsonObject) {
 		PO po = null;
-		String idColumn = tableName + "_ID";
+		String idColumn = RestUtils.getKeyColumnName(tableName);
 		String uidColumn = PO.getUUIDColumnName(tableName);
 		JsonElement idElement = jsonObject.get("id");											
 		if (idElement != null && idElement.isJsonPrimitive()) {

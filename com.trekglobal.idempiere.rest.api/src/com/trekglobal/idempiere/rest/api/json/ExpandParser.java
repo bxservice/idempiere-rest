@@ -58,11 +58,9 @@ public class ExpandParser {
 			return;
 		
 		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
-		
-		//TODO: validate PK properly - MTable.get(0).getKeyColumns()  
-		String keyColumn = po.get_TableName() + "_ID";
-		
+		String keyColumn = RestUtils.getKeyColumnName(po.get_TableName());
 		String[] includes;
+
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
 			String tableName = entry.getKey();
 			List<String> operators = entry.getValue();

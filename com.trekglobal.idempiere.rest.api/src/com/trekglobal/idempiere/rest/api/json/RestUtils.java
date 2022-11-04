@@ -81,7 +81,7 @@ public class RestUtils {
 	}
 	
 	private static String getKeyColumn(String tableName, boolean isUUID) {
-		return isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
+		return isUUID ? PO.getUUIDColumnName(tableName) : getKeyColumnName(tableName);
 	}
 	
 	public static HashMap<String, ArrayList<String>> getIncludes(String tableName, String select, String details) {
@@ -236,5 +236,15 @@ public class RestUtils {
 		
 		//If no window or no access to the window - check if the role has read/write access to the table
 		return role.isTableAccess(table.getAD_Table_ID(), false);
+	}
+	
+	public static String getKeyColumnName(String tableName) {
+		MTable table = getTable(tableName);
+		String[] keyColumns = table.getKeyColumns();
+		
+		if (keyColumns.length <= 0 || keyColumns.length > 1)
+			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has none or more than one primary key: " + tableName, Status.INTERNAL_SERVER_ERROR);
+
+		return keyColumns[0];
 	}
 }
