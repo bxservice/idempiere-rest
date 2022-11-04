@@ -57,10 +57,13 @@ public class ExpandParser {
 		if (Util.isEmpty(expandParameter, true))
 			return;
 		
-		HashMap<String, List<String>>  tableNames = getTableNamesOperatorsMap(expandParameter);
+		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
+		
+		//TODO: validate PK properly - MTable.get(0).getKeyColumns()  
 		String keyColumn = po.get_TableName() + "_ID";
+		
 		String[] includes;
-		for (Map.Entry<String,List<String>> entry : tableNames.entrySet()) {
+		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
 			String tableName = entry.getKey();
 			List<String> operators = entry.getValue();
 			
@@ -87,44 +90,57 @@ public class ExpandParser {
 		}
 	}
 	
-	private HashMap<String, List<String>> getTableNamesOperatorsMap(String expandParameter) {
+	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
 		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
-		List<String> detailTables = new ArrayList<String>();
-		if (!expandParameter.contains("(")) {
-			detailTables = Arrays.asList(expandParameter.split("[,]"));
-			for (String tableName : detailTables) 
-				tableNamesOperatorsMap.put(tableName, Collections.emptyList());
-		} else {
-			detailTables = Arrays.asList(expandParameter.split(",(?![^()]*\\))")); //Split commas outside of ( )
-			for (String detailTable : detailTables)  {
-				String tableName =  getTableName(detailTable);
-				String queryOperators =  getExpandOperators(detailTable);
-
-				//Separate operators by ;
-				List<String> operators = new ArrayList<String>();
-				operators.add(queryOperators);//More operators
-				tableNamesOperatorsMap.put(tableName, operators);
-			}
-
-		}
 		
+		if (!hasQueryOperators())
+			fillMapWithNoOperators(tableNamesOperatorsMap);
+		else
+			fillMapWithQueryOperators(tableNamesOperatorsMap);
+
 		return tableNamesOperatorsMap;
+	}
+	
+	private boolean hasQueryOperators() {
+		return expandParameter.contains("(");
+	}
+	
+	private void fillMapWithNoOperators(HashMap<String, List<String>> tableNamesOperatorsMap) {
+		List<String> detailTables = Arrays.asList(expandParameter.split("[,]"));
+		for (String tableName : detailTables) 
+			tableNamesOperatorsMap.put(tableName, Collections.emptyList());
+	}
+	
+	private void fillMapWithQueryOperators(HashMap<String, List<String>> tableNamesOperatorsMap) {
+		String commasOutsideParenthesisRegexp = ",(?![^()]*\\))";
+		List<String> detailTables = Arrays.asList(expandParameter.split(commasOutsideParenthesisRegexp));
+		
+		for (String detailTable : detailTables)  {
+			String tableName =  getTableName(detailTable);
+			List<String> operators = getExpandOperators(detailTable);
+			tableNamesOperatorsMap.put(tableName, operators);
+		}
 	}
 	
 	private String getTableName(String parameter) {
 		String tableName = parameter;
 		if (parameter.contains("("))
 			tableName = parameter.substring(0, parameter.indexOf("("));
-			
+
 		return tableName;
 	}
 	
-	private String getExpandOperators(String parameter) {
-		String queryOperators = "";
-		if (parameter.contains("("))
-			queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.indexOf(")"));
-			
-		return queryOperators;
+	private List<String> getExpandOperators(String parameter) {
+		List<String> operators = new ArrayList<String>();
+
+		if (parameter.contains("(")) {
+			String queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.indexOf(")"));
+			for (String operator : queryOperators.split("[;]")) {
+				operators.add(operator.trim());
+			}
+		}
+
+		return operators;
 	}
 	
 	private String getSelectClause(List<String> operators) {
