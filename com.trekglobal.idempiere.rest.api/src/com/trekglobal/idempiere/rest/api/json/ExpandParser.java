@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.core.Response.Status;
+
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.util.Util;
@@ -63,10 +65,7 @@ public class ExpandParser {
 			String tableName = entry.getKey();
 			List<String> operators = entry.getValue();
 
-			String filter = getFilterClause(operators, keyColumn, po.get_ID());
-			ModelHelper modelHelper = new ModelHelper(tableName, filter, null, 0, 0);
-
-			List<PO> childPOs = modelHelper.getPOsFromRequest();
+			List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
 			if (childPOs != null && childPOs.size() > 0) {
 				JsonArray childArray = new JsonArray();
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
@@ -139,11 +138,22 @@ public class ExpandParser {
 	private String getSelectClause(List<String> operators) {
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.SELECT)) {
-				return operator.substring(operator.indexOf("=") +1);
+				return getStringOperatorValue(operator);
 			}
 		}
 		
 		return "";
+	}
+	
+	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName) {
+		
+		String filter = getFilterClause(operators, keyColumnName, po.get_ID());
+		String orderBy = getOrderByClause(operators);
+		int top = getTopClause(operators);
+		int skip = getSkipClause(operators);
+
+		ModelHelper modelHelper = new ModelHelper(tableName, filter, orderBy, top, skip);
+		return modelHelper.getPOsFromRequest();
 	}
 	
 	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
@@ -151,10 +161,53 @@ public class ExpandParser {
 		
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause = filterClause + " AND " + operator.substring(operator.indexOf("=") +1);
+				filterClause = filterClause + " AND " + getStringOperatorValue(operator);
 			}
 		}
 		
 		return filterClause;
+	}
+	
+	private String getOrderByClause(List<String> operators) {
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.ORDERBY)) {
+				return getStringOperatorValue(operator);
+			}
+		}
+		
+		return "";
+	}
+	
+	private int getTopClause(List<String> operators) {
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.TOP)) {
+				return getIntegerOperatorValue(operator);
+			}
+		}
+		
+		return 0;
+	}
+	
+	private int getSkipClause(List<String> operators) {
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.SKIP)) {
+				return getIntegerOperatorValue(operator);
+			}
+		}
+		
+		return 0;
+	}
+	
+	private String getStringOperatorValue(String operator) {
+		return operator.substring(operator.indexOf("=") +1);		
+	}
+	
+	private int getIntegerOperatorValue(String operator) {
+		String operatorValue = getStringOperatorValue(operator);
+		try {
+			return Integer.parseInt(operatorValue);
+		} catch(NumberFormatException ex) {
+			throw new IDempiereRestException("Expand error", "failed to parse Skip or Top operator. Only integers allowed", Status.BAD_REQUEST);
+		}
 	}
 }
