@@ -34,8 +34,6 @@ import java.util.Map;
 
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
-import org.compiere.model.Query;
-import org.compiere.util.Env;
 import org.compiere.util.Util;
 
 import com.google.gson.JsonArray;
@@ -65,13 +63,10 @@ public class ExpandParser {
 			String tableName = entry.getKey();
 			List<String> operators = entry.getValue();
 
-			MTable table = RestUtils.getTable(tableName);
+			String filter = getFilterClause(operators, keyColumn, po.get_ID());
+			ModelHelper modelHelper = new ModelHelper(tableName, filter, null, 0, 0);
 
-			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-			query.setApplyAccessFilter(true, false)
-				 .setOnlyActiveRecords(true);
-
-			List<PO> childPOs = query.setParameters(po.get_ID()).list();
+			List<PO> childPOs = modelHelper.getPOsFromRequest();
 			if (childPOs != null && childPOs.size() > 0) {
 				JsonArray childArray = new JsonArray();
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
@@ -149,5 +144,17 @@ public class ExpandParser {
 		}
 		
 		return "";
+	}
+	
+	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
+		String filterClause = keyColumnName + " eq " + keyColumnValue; 
+		
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.FILTER)) {
+				filterClause = filterClause + " AND " + operator.substring(operator.indexOf("=") +1);
+			}
+		}
+		
+		return filterClause;
 	}
 }
