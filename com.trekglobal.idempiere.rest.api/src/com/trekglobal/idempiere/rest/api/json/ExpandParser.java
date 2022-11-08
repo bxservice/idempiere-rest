@@ -44,16 +44,17 @@ import com.google.gson.JsonObject;
 public class ExpandParser {
 	
 	private PO po;
-	private JsonObject jsonObject;
 	private String expandParameter = null;
+	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
+	private Map<String, JsonArray> tableNameChildArrayMap = new HashMap<>();
 	
-	public ExpandParser(PO po, JsonObject jsonObject, String expandParameter) {
+	public ExpandParser(PO po, String expandParameter) {
 		this.po = po;
-		this.jsonObject = jsonObject;
 		this.expandParameter = expandParameter;
+		expandDetails();
 	}
 
-	public void expandDetailsIntoJsonObject() {
+	private void expandDetails() {
 		if (Util.isEmpty(expandParameter, true))
 			return;
 		
@@ -73,11 +74,11 @@ public class ExpandParser {
 				String select = getSelectClause(operators);
 				includes = RestUtils.getSelectedColumns(tableName, select); 
 
-				for(PO child : childPOs) {
+				for (PO child : childPOs) {
 					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
 					childArray.add(childJsonObject);
 				}
-				jsonObject.add(tableName, childArray);
+				tableNameChildArrayMap.put(tableName, childArray);
 			}
 		}
 	}
@@ -146,14 +147,21 @@ public class ExpandParser {
 	}
 	
 	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName) {
-		
+		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
+		List<PO> poList = modelHelper.getPOsFromRequest(); 
+		if (tableNameSQLStatementMap.get(tableName) == null)
+			tableNameSQLStatementMap.put(tableName, modelHelper.getSQLStatement());
+
+		return poList;
+	}
+	
+	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
 		String filter = getFilterClause(operators, keyColumnName, po.get_ID());
 		String orderBy = getOrderByClause(operators);
 		int top = getTopClause(operators);
 		int skip = getSkipClause(operators);
 
-		ModelHelper modelHelper = new ModelHelper(tableName, filter, orderBy, top, skip);
-		return modelHelper.getPOsFromRequest();
+		return new ModelHelper(tableName, filter, orderBy, top, skip);
 	}
 	
 	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
@@ -209,5 +217,13 @@ public class ExpandParser {
 		} catch(NumberFormatException ex) {
 			throw new IDempiereRestException("Expand error", "failed to parse Skip or Top operator. Only integers allowed", Status.BAD_REQUEST);
 		}
+	}
+
+	public Map<String, String> getTableNameSQLStatementMap() {
+		return tableNameSQLStatementMap;
+	}
+	
+	public Map<String, JsonArray> getTableNameChildArrayMap() {
+		return tableNameChildArrayMap;
 	}
 }

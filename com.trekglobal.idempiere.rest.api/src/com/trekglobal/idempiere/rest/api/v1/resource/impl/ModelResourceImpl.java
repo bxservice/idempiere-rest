@@ -136,12 +136,13 @@ public class ModelResourceImpl implements ModelResource {
 					json = serializer.toJson(po, includes, null);
 				else
 					json = new JsonObject();
+
 				if (showsql != null) {
 					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
-					showSqlDetails(tableName, json, details);
 				}
-				if (!Util.isEmpty(details, true) && showData)
-					expandDetailsInJsonObject(po, json, details);
+				if (!Util.isEmpty(details, true))
+					expandDetailsInJsonObject(po, json, json, details, showsql != null, showData);
+
 				return Response.ok(json.toString()).build();
 			} else {
 				return poParser.getResponseError();
@@ -151,9 +152,29 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
-	private void expandDetailsInJsonObject(PO po, JsonObject jsonObject, String expandParameter) {
-		ExpandParser expandParser = new ExpandParser(po, jsonObject, expandParameter);
-		expandParser.expandDetailsIntoJsonObject();
+	private void expandDetailsInJsonObject(PO po, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
+		ExpandParser expandParser = new ExpandParser(po, expandParameter);
+		if (showSql)
+			addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
+		
+		if (showData)
+			addDetailDataToJson(expandParser.getTableNameChildArrayMap(), detailJsonObject);			
+	}
+	
+	private void addDetailSQLCommandToJson(Map<String, String> tableSQLMap, JsonObject json) {
+		for (Map.Entry<String,String> entry : tableSQLMap.entrySet()) {
+			String tableName = entry.getKey();
+			String sqlStatement = entry.getValue();
+			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(sqlStatement));
+		}
+	}
+	
+	private void addDetailDataToJson(Map<String, JsonArray> tableNameDataMap, JsonObject json) {
+		for (Map.Entry<String,JsonArray> entry : tableNameDataMap.entrySet()) {
+			String tableName = entry.getKey();
+			JsonArray childArray = entry.getValue();
+			json.add(tableName, childArray);
+		}
 	}
 	
 	@Override
@@ -212,14 +233,6 @@ public class ModelResourceImpl implements ModelResource {
 				String[] includes = RestUtils.getSelectedColumns(tableName, select);
 
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
-				if (showData) {
-					for(PO po : list) {
-						JsonObject json = serializer.toJson(po, includes, null);
-						if (!Util.isEmpty(details, true))
-							expandDetailsInJsonObject(po, json, details);
-						array.add(json);
-					}
-				}
 				JsonObject json = new JsonObject();
 				json.addProperty("page-count", modelHelper.getPageCount());
 				json.addProperty("records-size", top);
@@ -228,9 +241,18 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("array-count", array.size());
 				if (showsql != null) {
 					json.addProperty("sql-command", DB.getDatabase().convertStatement(modelHelper.getSQLStatement()));
-					showSqlDetails(tableName, json, details);
 				}
-				json.add("records", array);
+				
+				for (PO po : list) {
+					JsonObject detailJson = serializer.toJson(po, includes, null);
+					if (!Util.isEmpty(details, true))
+						expandDetailsInJsonObject(po, json, detailJson, details, showsql != null, showData);
+					array.add(detailJson);
+				}
+				
+				if (showData)
+					json.add("records", array);
+				
 				return Response.ok(json.toString())
 						.header("X-Page-Count", modelHelper.getPageCount())
 						.header("X-Records-Size", top)
@@ -790,21 +812,6 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
-	private void showSqlDetails(String parentTableName, JsonObject json, String details) {
-		if (Util.isEmpty(details, true))
-			return;
-
-		String[] tableNames = details.split("[,]");
-		String keyColumn = RestUtils.getKeyColumnName(parentTableName);
-		for(String tableName : tableNames) {
-			MTable table = RestUtils.getTable(tableName);
-			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-			query.setApplyAccessFilter(true, false)
-				 .setOnlyActiveRecords(true);
-			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(query.getSQL()));
-		}
-	}
-
 	private PO loadPO(String tableName, JsonObject jsonObject) {
 		PO po = null;
 		String idColumn = RestUtils.getKeyColumnName(tableName);
