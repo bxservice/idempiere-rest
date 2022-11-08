@@ -34,6 +34,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+
 /**
  * 
  * @author hengsin
@@ -49,7 +51,7 @@ public interface InfoResource {
 	 * @param filter optional where clause
 	 * @return json array of infowindows
 	 */
-	public Response getInfoWindows(@QueryParam("$filter") String filter);
+	public Response getInfoWindows(@QueryParam(QueryOperators.FILTER) String filter);
 	
 	@Path("{slug}")
 	@GET

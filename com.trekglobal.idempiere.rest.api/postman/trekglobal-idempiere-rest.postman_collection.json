@@ -533,6 +533,54 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?$expand={childTables($filter={subfilter})}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order?$select=DocumentNo,Description&$expand=C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order"
+					],
+					"query": [
+						{
+							"key": "$select",
+							"value": "DocumentNo,Description"
+						},
+						{
+							"key": "$expand",
+							"value": "C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}?$filter={where clause}",
 			"request": {
 				"method": "GET",

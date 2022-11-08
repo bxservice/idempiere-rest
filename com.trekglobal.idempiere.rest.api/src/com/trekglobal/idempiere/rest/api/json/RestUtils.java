@@ -81,7 +81,7 @@ public class RestUtils {
 	}
 	
 	private static String getKeyColumn(String tableName, boolean isUUID) {
-		return isUUID ? PO.getUUIDColumnName(tableName) : tableName + "_ID";
+		return isUUID ? PO.getUUIDColumnName(tableName) : getKeyColumnName(tableName);
 	}
 	
 	public static HashMap<String, ArrayList<String>> getIncludes(String tableName, String select, String details) {
@@ -118,6 +118,27 @@ public class RestUtils {
 		}
 
 		return tableSelect;
+	}
+	
+	public static String[] getSelectedColumns(String tableName, String selectClause) {
+		List<String> selectedColumns = new ArrayList<String>();
+		if (Util.isEmpty(selectClause, true) || Util.isEmpty(tableName, true))
+			return new String[0];
+		
+		MTable mTable = MTable.get(Env.getCtx(), tableName);
+		String[] columnNames = selectClause.split("[,]");
+		for(String columnName : columnNames) {
+			MTable table = mTable;
+			if (table.getColumnIndex(columnName.trim()) < 0)
+				throw new IDempiereRestException(columnName + " is not a valid column of table " + table.getTableName(), Status.BAD_REQUEST);
+
+			MColumn mColumn = table.getColumn(columnName.trim());
+			if (MRole.getDefault().isColumnAccess(table.getAD_Table_ID(), mColumn.getAD_Column_ID(), true)) {
+				selectedColumns.add(columnName.trim());
+			}
+		}
+
+		return selectedColumns.toArray(new String[selectedColumns.size()]);
 	}
 	
 	/**
@@ -215,5 +236,15 @@ public class RestUtils {
 		
 		//If no window or no access to the window - check if the role has read/write access to the table
 		return role.isTableAccess(table.getAD_Table_ID(), false);
+	}
+	
+	public static String getKeyColumnName(String tableName) {
+		MTable table = getTable(tableName);
+		String[] keyColumns = table.getKeyColumns();
+		
+		if (keyColumns.length <= 0 || keyColumns.length > 1)
+			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has none or more than one primary key: " + tableName, Status.INTERNAL_SERVER_ERROR);
+
+		return keyColumns[0];
 	}
 }
