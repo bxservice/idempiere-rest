@@ -581,6 +581,100 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}/{id}?$expand={tablename}.{columnname}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/ad_user/100?$expand=C_order.salesrep_id($select=documentno)&$select=Name",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"ad_user",
+						"100"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "C_order.salesrep_id($select=documentno)"
+						},
+						{
+							"key": "$select",
+							"value": "Name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}?$expand=fact_acct.recordid",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_invoice/104?$expand=fact_acct.record_id($select=fact_acct_id),c_invoiceline",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_invoice",
+						"104"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "fact_acct.record_id($select=fact_acct_id),c_invoiceline"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}?$filter={where clause}",
 			"request": {
 				"method": "GET",
