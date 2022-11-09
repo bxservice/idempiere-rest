@@ -44,6 +44,9 @@ import com.google.gson.JsonObject;
 
 public class ExpandParser {
 	
+	private static final String RECORD_ID_COLUMN = "Record_ID";
+	private static final String TABLE_ID_COLUMN  = "AD_Table_ID";
+	
 	private PO po;
 	private String expandParameter = null;
 	private String masterTableName = null;
@@ -99,8 +102,8 @@ public class ExpandParser {
 				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
 			throw new IDempiereRestException("Expand error", 
 					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + tableNameKeyColumnName[0]
-					, Status.BAD_REQUEST);		
-		
+					, Status.BAD_REQUEST);
+
 		return tableNameKeyColumnName;
 	}
 	
@@ -121,7 +124,12 @@ public class ExpandParser {
 		MTable table = RestUtils.getTable(tableName);
 		MColumn column = table.getColumn(keyColumnName);
 
-		return column != null && masterTableName.equalsIgnoreCase(column.getReferenceTableName());
+		return column != null && 
+				(isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
+	}
+	
+	private boolean isRecordIDTableIDFK(String keyColumnName) {
+		return RECORD_ID_COLUMN.equalsIgnoreCase(keyColumnName);
 	}
 
 	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
@@ -206,15 +214,18 @@ public class ExpandParser {
 	}
 	
 	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
-		String filterClause = keyColumnName + " eq " + keyColumnValue; 
+		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq " + keyColumnValue);
+		
+		if (isRecordIDTableIDFK(keyColumnName))
+			filterClause.append(" AND " + TABLE_ID_COLUMN + " eq " + po.get_Table_ID());
 		
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause = filterClause + " AND " + getStringOperatorValue(operator);
+				filterClause.append(filterClause + " AND " + getStringOperatorValue(operator));
 			}
 		}
 		
-		return filterClause;
+		return filterClause.toString();
 	}
 	
 	private String getOrderByClause(List<String> operators) {
