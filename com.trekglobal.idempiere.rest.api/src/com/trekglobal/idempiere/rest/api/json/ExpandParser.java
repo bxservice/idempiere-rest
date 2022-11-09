@@ -34,6 +34,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.util.Util;
@@ -45,12 +46,14 @@ public class ExpandParser {
 	
 	private PO po;
 	private String expandParameter = null;
+	private String masterTableName = null;
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonArray> tableNameChildArrayMap = new HashMap<>();
 	
 	public ExpandParser(PO po, String expandParameter) {
 		this.po = po;
 		this.expandParameter = expandParameter;
+		masterTableName = po.get_TableName();
 		expandDetails();
 	}
 
@@ -64,16 +67,12 @@ public class ExpandParser {
 		}
 	}
 	
-	private void expandDetail(String tableName, List<String> operators) {
+	private void expandDetail(String detailEntity, List<String> operators) {
 		String[] includes;
-		String keyColumn;
 
-		if (usesDifferentFK(tableName)) {
-			keyColumn = tableName.substring(tableName.indexOf(".") + 1);
-			tableName = tableName.substring(0, tableName.indexOf("."));
-		} else {
-			keyColumn = RestUtils.getKeyColumnName(po.get_TableName());
-		}
+		String[] tableNameKeyColumnName = getTableNameAndKeyColumnName(detailEntity);
+		String tableName = tableNameKeyColumnName[0];
+		String keyColumn = tableNameKeyColumnName[1];		
 
 		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
 		if (childPOs != null && childPOs.size() > 0) {
@@ -91,10 +90,40 @@ public class ExpandParser {
 		}
 	}
 	
-	private boolean usesDifferentFK(String tableName) {
-		return tableName.contains(".");
+	private String[] getTableNameAndKeyColumnName(String detailEntity) {
+		String[] tableNameKeyColumnName = new String[2];
+		tableNameKeyColumnName[0] = getTableName(detailEntity);
+		tableNameKeyColumnName[1] = getKeyColumnName(detailEntity);
+		
+		if (usesDifferentFK(detailEntity) && 
+				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
+			throw new IDempiereRestException("Expand error", 
+					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + tableNameKeyColumnName[0]
+					, Status.BAD_REQUEST);		
+		
+		return tableNameKeyColumnName;
 	}
 	
+	private String getKeyColumnName(String detailEntity) {
+		return usesDifferentFK(detailEntity) ? detailEntity.substring(detailEntity.indexOf(".") + 1)
+				: RestUtils.getKeyColumnName(masterTableName);
+	}
+	
+	private String getTableName(String detailEntity) {
+		return usesDifferentFK(detailEntity) ? detailEntity.substring(0, detailEntity.indexOf(".")) : detailEntity;
+	}
+	
+	private boolean usesDifferentFK(String detailEntity) {
+		return detailEntity.contains(".");
+	}
+	
+	private boolean isValidTableAndKeyColumn(String tableName, String keyColumnName) {
+		MTable table = RestUtils.getTable(tableName);
+		MColumn column = table.getColumn(keyColumnName);
+
+		return column != null && masterTableName.equalsIgnoreCase(column.getReferenceTableName());
+	}
+
 	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
 		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
 		
@@ -121,18 +150,18 @@ public class ExpandParser {
 		List<String> detailTables = Arrays.asList(expandParameter.split(commasOutsideParenthesisRegexp));
 		
 		for (String detailTable : detailTables)  {
-			String tableName =  getTableName(detailTable);
+			String tableName =  getDetailEntity(detailTable);
 			List<String> operators = getExpandOperators(detailTable);
 			tableNamesOperatorsMap.put(tableName, operators);
 		}
 	}
 	
-	private String getTableName(String parameter) {
-		String tableName = parameter;
+	private String getDetailEntity(String parameter) {
+		String detailEntity = parameter;
 		if (parameter.contains("("))
-			tableName = parameter.substring(0, parameter.indexOf("("));
+			detailEntity = parameter.substring(0, parameter.indexOf("("));
 
-		return tableName;
+		return detailEntity;
 	}
 	
 	private List<String> getExpandOperators(String parameter) {
