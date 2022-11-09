@@ -101,7 +101,7 @@ public class ExpandParser {
 		if (usesDifferentFK(detailEntity) && 
 				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
 			throw new IDempiereRestException("Expand error", 
-					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + tableNameKeyColumnName[0]
+					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + masterTableName
 					, Status.BAD_REQUEST);
 
 		return tableNameKeyColumnName;
@@ -217,11 +217,11 @@ public class ExpandParser {
 		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq " + keyColumnValue);
 		
 		if (isRecordIDTableIDFK(keyColumnName))
-			filterClause.append(" AND " + TABLE_ID_COLUMN + " eq " + po.get_Table_ID());
+			filterClause.append(" AND ").append(TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
 		
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause.append(" AND " + getStringOperatorValue(operator));
+				filterClause.append(" AND ").append(getStringOperatorValue(operator));
 			}
 		}
 		
