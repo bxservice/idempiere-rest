@@ -89,7 +89,7 @@ public class ExpandParser {
 				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
 				childArray.add(childJsonObject);
 			}
-			tableNameChildArrayMap.put(tableName, childArray);
+			tableNameChildArrayMap.put(detailEntity, childArray);
 		}
 	}
 	
@@ -199,7 +199,7 @@ public class ExpandParser {
 		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
 		List<PO> poList = modelHelper.getPOsFromRequest(); 
 		if (tableNameSQLStatementMap.get(tableName) == null)
-			tableNameSQLStatementMap.put(tableName, modelHelper.getSQLStatement());
+			tableNameSQLStatementMap.put(tableName + "[" + keyColumnName + "]", modelHelper.getSQLStatement());
 
 		return poList;
 	}
