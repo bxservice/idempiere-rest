@@ -34,6 +34,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.util.Util;
@@ -43,14 +44,19 @@ import com.google.gson.JsonObject;
 
 public class ExpandParser {
 	
+	private static final String RECORD_ID_COLUMN = "Record_ID";
+	private static final String TABLE_ID_COLUMN  = "AD_Table_ID";
+	
 	private PO po;
 	private String expandParameter = null;
+	private String masterTableName = null;
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonArray> tableNameChildArrayMap = new HashMap<>();
 	
 	public ExpandParser(PO po, String expandParameter) {
 		this.po = po;
 		this.expandParameter = expandParameter;
+		masterTableName = po.get_TableName();
 		expandDetails();
 	}
 
@@ -59,30 +65,73 @@ public class ExpandParser {
 			return;
 		
 		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
-		String keyColumn = RestUtils.getKeyColumnName(po.get_TableName());
-		String[] includes;
-
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
-			String tableName = entry.getKey();
-			List<String> operators = entry.getValue();
-
-			List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
-			if (childPOs != null && childPOs.size() > 0) {
-				JsonArray childArray = new JsonArray();
-				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-
-				String select = getSelectClause(operators);
-				includes = RestUtils.getSelectedColumns(tableName, select); 
-
-				for (PO child : childPOs) {
-					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-					childArray.add(childJsonObject);
-				}
-				tableNameChildArrayMap.put(tableName, childArray);
-			}
+			expandDetail(entry.getKey(), entry.getValue());
 		}
 	}
 	
+	private void expandDetail(String detailEntity, List<String> operators) {
+		String[] includes;
+
+		String[] tableNameKeyColumnName = getTableNameAndKeyColumnName(detailEntity);
+		String tableName = tableNameKeyColumnName[0];
+		String keyColumn = tableNameKeyColumnName[1];		
+
+		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
+		if (childPOs != null && childPOs.size() > 0) {
+			JsonArray childArray = new JsonArray();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+
+			String select = getSelectClause(operators);
+			includes = RestUtils.getSelectedColumns(tableName, select); 
+
+			for (PO child : childPOs) {
+				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
+				childArray.add(childJsonObject);
+			}
+			tableNameChildArrayMap.put(tableName, childArray);
+		}
+	}
+	
+	private String[] getTableNameAndKeyColumnName(String detailEntity) {
+		String[] tableNameKeyColumnName = new String[2];
+		tableNameKeyColumnName[0] = getTableName(detailEntity);
+		tableNameKeyColumnName[1] = getKeyColumnName(detailEntity);
+		
+		if (usesDifferentFK(detailEntity) && 
+				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
+			throw new IDempiereRestException("Expand error", 
+					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + masterTableName
+					, Status.BAD_REQUEST);
+
+		return tableNameKeyColumnName;
+	}
+	
+	private String getKeyColumnName(String detailEntity) {
+		return usesDifferentFK(detailEntity) ? detailEntity.substring(detailEntity.indexOf(".") + 1)
+				: RestUtils.getKeyColumnName(masterTableName);
+	}
+	
+	private String getTableName(String detailEntity) {
+		return usesDifferentFK(detailEntity) ? detailEntity.substring(0, detailEntity.indexOf(".")) : detailEntity;
+	}
+	
+	private boolean usesDifferentFK(String detailEntity) {
+		return detailEntity.contains(".");
+	}
+	
+	private boolean isValidTableAndKeyColumn(String tableName, String keyColumnName) {
+		MTable table = RestUtils.getTable(tableName);
+		MColumn column = table.getColumn(keyColumnName);
+
+		return column != null && 
+				(isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
+	}
+	
+	private boolean isRecordIDTableIDFK(String keyColumnName) {
+		return RECORD_ID_COLUMN.equalsIgnoreCase(keyColumnName);
+	}
+
 	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
 		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
 		
@@ -109,18 +158,18 @@ public class ExpandParser {
 		List<String> detailTables = Arrays.asList(expandParameter.split(commasOutsideParenthesisRegexp));
 		
 		for (String detailTable : detailTables)  {
-			String tableName =  getTableName(detailTable);
+			String tableName =  getDetailEntity(detailTable);
 			List<String> operators = getExpandOperators(detailTable);
 			tableNamesOperatorsMap.put(tableName, operators);
 		}
 	}
 	
-	private String getTableName(String parameter) {
-		String tableName = parameter;
+	private String getDetailEntity(String parameter) {
+		String detailEntity = parameter;
 		if (parameter.contains("("))
-			tableName = parameter.substring(0, parameter.indexOf("("));
+			detailEntity = parameter.substring(0, parameter.indexOf("("));
 
-		return tableName;
+		return detailEntity;
 	}
 	
 	private List<String> getExpandOperators(String parameter) {
@@ -165,15 +214,18 @@ public class ExpandParser {
 	}
 	
 	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
-		String filterClause = keyColumnName + " eq " + keyColumnValue; 
+		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq " + keyColumnValue);
+		
+		if (isRecordIDTableIDFK(keyColumnName))
+			filterClause.append(" AND ").append(TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
 		
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause = filterClause + " AND " + getStringOperatorValue(operator);
+				filterClause.append(" AND ").append(getStringOperatorValue(operator));
 			}
 		}
 		
-		return filterClause;
+		return filterClause.toString();
 	}
 	
 	private String getOrderByClause(List<String> operators) {
