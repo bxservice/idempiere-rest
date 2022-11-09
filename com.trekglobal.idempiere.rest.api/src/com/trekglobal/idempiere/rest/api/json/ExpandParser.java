@@ -59,28 +59,40 @@ public class ExpandParser {
 			return;
 		
 		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
-		String keyColumn = RestUtils.getKeyColumnName(po.get_TableName());
-		String[] includes;
-
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
-			String tableName = entry.getKey();
-			List<String> operators = entry.getValue();
-
-			List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
-			if (childPOs != null && childPOs.size() > 0) {
-				JsonArray childArray = new JsonArray();
-				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-
-				String select = getSelectClause(operators);
-				includes = RestUtils.getSelectedColumns(tableName, select); 
-
-				for (PO child : childPOs) {
-					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-					childArray.add(childJsonObject);
-				}
-				tableNameChildArrayMap.put(tableName, childArray);
-			}
+			expandDetail(entry.getKey(), entry.getValue());
 		}
+	}
+	
+	private void expandDetail(String tableName, List<String> operators) {
+		String[] includes;
+		String keyColumn;
+
+		if (usesDifferentFK(tableName)) {
+			keyColumn = tableName.substring(tableName.indexOf(".") + 1);
+			tableName = tableName.substring(0, tableName.indexOf("."));
+		} else {
+			keyColumn = RestUtils.getKeyColumnName(po.get_TableName());
+		}
+
+		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
+		if (childPOs != null && childPOs.size() > 0) {
+			JsonArray childArray = new JsonArray();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+
+			String select = getSelectClause(operators);
+			includes = RestUtils.getSelectedColumns(tableName, select); 
+
+			for (PO child : childPOs) {
+				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
+				childArray.add(childJsonObject);
+			}
+			tableNameChildArrayMap.put(tableName, childArray);
+		}
+	}
+	
+	private boolean usesDifferentFK(String tableName) {
+		return tableName.contains(".");
 	}
 	
 	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
