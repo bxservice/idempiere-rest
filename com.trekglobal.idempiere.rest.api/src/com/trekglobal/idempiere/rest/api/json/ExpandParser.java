@@ -221,7 +221,7 @@ public class ExpandParser {
 		
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause.append(filterClause + " AND " + getStringOperatorValue(operator));
+				filterClause.append(" AND " + getStringOperatorValue(operator));
 			}
 		}
 		
