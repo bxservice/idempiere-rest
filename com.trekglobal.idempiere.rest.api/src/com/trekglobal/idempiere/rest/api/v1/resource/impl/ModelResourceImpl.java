@@ -235,8 +235,8 @@ public class ModelResourceImpl implements ModelResource {
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				JsonObject json = new JsonObject();
 				json.addProperty("page-count", modelHelper.getPageCount());
-				json.addProperty("records-size", top);
-				json.addProperty("skip-records", skip);
+				json.addProperty("records-size", modelHelper.getTop());
+				json.addProperty("skip-records", modelHelper.getSkip());
 				json.addProperty("row-count", modelHelper.getRowCount());
 				json.addProperty("array-count", array.size());
 				if (showsql != null) {
@@ -255,8 +255,8 @@ public class ModelResourceImpl implements ModelResource {
 				
 				return Response.ok(json.toString())
 						.header("X-Page-Count", modelHelper.getPageCount())
-						.header("X-Records-Size", top)
-						.header("X-Skip-Records", skip)
+						.header("X-Records-Size", modelHelper.getTop())
+						.header("X-Skip-Records", modelHelper.getSkip())
 						.header("X-Row-Count", modelHelper.getRowCount())
 						.header("X-Array-Count", array.size())
 						.build();
