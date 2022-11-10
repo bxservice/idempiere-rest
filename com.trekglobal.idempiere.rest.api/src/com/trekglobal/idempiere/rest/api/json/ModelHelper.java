@@ -216,4 +216,12 @@ public class ModelHelper {
 	public String getSQLStatement() {
 		return sqlStatement;
 	}
+	
+	public int getTop() {
+		return top;
+	}
+	
+	public int getSkip() {
+		return skip;
+	}
 }
