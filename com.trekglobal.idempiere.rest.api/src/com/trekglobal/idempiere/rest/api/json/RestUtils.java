@@ -239,7 +239,7 @@ public class RestUtils {
 	}
 	
 	public static String getKeyColumnName(String tableName) {
-		MTable table = getTable(tableName);
+		MTable table = MTable.get(Env.getCtx(), tableName);
 		String[] keyColumns = table.getKeyColumns();
 		
 		if (keyColumns.length <= 0 || keyColumns.length > 1)
