@@ -38,12 +38,15 @@ import org.compiere.model.MReference;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.ValueNamePair;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ReferenceResource;
@@ -61,7 +64,12 @@ public class ReferenceResourceImpl implements ReferenceResource {
 	@Override
 	public Response getList(String refID) {
 
-		MReference ref = (MReference) RestUtils.getPO(MReference.Table_Name, refID, false, false);
+		MReference ref;
+		try {
+			ref = MReference.get(getMReferenceID(refID));
+		} catch (IDempiereRestException ex) {
+			return ResponseUtils.getResponseErrorFromException(ex, "Get List error", "Get reference list error with exception: ");
+		}
 
 		if (ref == null) {
 			return Response.status(Status.NOT_FOUND)
@@ -121,6 +129,21 @@ public class ReferenceResourceImpl implements ReferenceResource {
     				.entity(new ErrorBuilder().status(Status.NOT_IMPLEMENTED).title("References with data validation are not implemented.").append("Not implemented AD_Reference_ID: ").append(refID).build().toString())
     				.build();
     	}
+	}
+	
+	private int getMReferenceID(String refID) {
+		if (RestUtils.isUUID(refID)) {
+			String sql = "SELECT " + MReference.COLUMNNAME_AD_Reference_ID 
+					+ " FROM " + MReference.Table_Name 
+					+ " WHERE " + PO.getUUIDColumnName(MReference.Table_Name) + "=?";
+			return DB.getSQLValue(null, sql, refID);
+		} else {
+			try {
+				return Integer.valueOf(refID);				
+			} catch (NumberFormatException e) {
+				throw new IDempiereRestException("Reference error: ", refID + " is not a valid ID for Reference.", Status.BAD_REQUEST);
+			}
+		}
 	}
 
 }

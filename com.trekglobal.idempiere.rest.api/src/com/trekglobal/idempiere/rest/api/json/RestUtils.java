@@ -55,7 +55,7 @@ public class RestUtils {
 	 * @param value
 	 * @return true if value is a UUID identifier
 	 */
-	private static boolean isUUID(String value) {
+	public static boolean isUUID(String value) {
 		return value == null ? false : value.matches(UUID_REGEX);
 	}
 	
