@@ -69,13 +69,13 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.trekglobal.idempiere.rest.api.json.ExpandParser;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.ModelHelper;
 import com.trekglobal.idempiere.rest.api.json.POParser;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.expand.ExpandParser;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
@@ -169,10 +169,10 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
-	private void addDetailDataToJson(Map<String, JsonArray> tableNameDataMap, JsonObject json) {
-		for (Map.Entry<String,JsonArray> entry : tableNameDataMap.entrySet()) {
+	private void addDetailDataToJson(Map<String, JsonElement> tableNameDataMap, JsonObject json) {
+		for (Map.Entry<String,JsonElement> entry : tableNameDataMap.entrySet()) {
 			String tableName = entry.getKey();
-			JsonArray childArray = entry.getValue();
+			JsonElement childArray = entry.getValue();
 			json.add(tableName, childArray);
 		}
 	}
