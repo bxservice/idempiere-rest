@@ -23,7 +23,7 @@
 * - BX Service GmbH                                                   *
 * - Diego Ruiz                                                        *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.json;
+package com.trekglobal.idempiere.rest.api.json.expand;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,10 +37,19 @@ import javax.ws.rs.core.Response.Status;
 import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
+import org.compiere.model.Query;
+import org.compiere.util.Env;
 import org.compiere.util.Util;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
+import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.ModelHelper;
+import com.trekglobal.idempiere.rest.api.json.POParser;
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 
 public class ExpandParser {
 	
@@ -51,22 +60,65 @@ public class ExpandParser {
 	private String expandParameter = null;
 	private String masterTableName = null;
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
-	private Map<String, JsonArray> tableNameChildArrayMap = new HashMap<>();
+	private Map<String, JsonElement> tableNameChildArrayMap = new HashMap<>();
 	
 	public ExpandParser(PO po, String expandParameter) {
 		this.po = po;
 		this.expandParameter = expandParameter;
 		masterTableName = po.get_TableName();
-		expandDetails();
+		expandRelatedResources();
 	}
 
-	private void expandDetails() {
+	private void expandRelatedResources() {
 		if (Util.isEmpty(expandParameter, true))
 			return;
 		
 		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
-			expandDetail(entry.getKey(), entry.getValue());
+			expandRelatedResource(entry.getKey(), entry.getValue());
+		}
+	}
+	
+	private void expandRelatedResource(String relatedResource, List<String> operators) {
+		if (isExpandMaster(relatedResource))
+			expandMaster(relatedResource, operators);
+		else
+			expandDetail(relatedResource, operators);
+	}
+	
+	private boolean isExpandMaster(String relatedResource) {
+		int columnIndex = po.get_ColumnIndex(relatedResource);
+		if (columnIndex < 0)
+			return false;
+		
+		MColumn column = MColumn.get(Env.getCtx(), masterTableName, relatedResource);
+		if (column == null || Util.isEmpty(column.getReferenceTableName())) {
+			throw new IDempiereRestException("Expand error", "Column " + relatedResource + " cannot be expanded", Status.BAD_REQUEST);
+		}
+		
+		return true;
+	}
+	
+	private void expandMaster(String columnName, List<String> operators) {
+		checkOperators(operators);
+		
+		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
+		String tableName = column.getReferenceTableName();
+		String foreignTableID = po.get_ValueAsString(columnName);
+		
+		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
+
+		PO po = query.first();
+		if (tableNameSQLStatementMap.get(tableName) == null)
+			tableNameSQLStatementMap.put(tableName + "[" + columnName + "]", query.getSQL());
+
+		POParser poParser = new POParser(tableName, foreignTableID, po);
+		if (poParser.isValidPO()) {
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
+			String select = getSelectClause(operators);
+			String[] includes = RestUtils.getSelectedColumns(tableName, select); 
+			JsonObject json = serializer.toJson(po, includes, null);
+			tableNameChildArrayMap.put(column.getColumnName(), json);
 		}
 	}
 	
@@ -91,6 +143,16 @@ public class ExpandParser {
 			}
 			tableNameChildArrayMap.put(detailEntity, childArray);
 		}
+	}
+	
+	private void checkOperators(List<String> operators) {
+		
+		if (!Util.isEmpty(getFilterClause(operators)) ||
+				!Util.isEmpty(getOrderByClause(operators)) || 
+				getTopClause(operators) > 0 ||
+				getSkipClause(operators) > 0)
+			throw new IDempiereRestException("Expand error", "Expanding a master only support the $select query operator", Status.BAD_REQUEST);
+
 	}
 	
 	private String[] getTableNameAndKeyColumnName(String detailEntity) {
@@ -219,13 +281,21 @@ public class ExpandParser {
 		if (isRecordIDTableIDFK(keyColumnName))
 			filterClause.append(" AND ").append(TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
 		
+		String requestFilterClause =  getFilterClause(operators);
+		if (!Util.isEmpty(requestFilterClause)) 
+			filterClause.append(" AND ").append(requestFilterClause);
+		
+		return filterClause.toString();
+	}
+	
+	private String getFilterClause(List<String> operators) {
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
-				filterClause.append(" AND ").append(getStringOperatorValue(operator));
+				return getStringOperatorValue(operator);
 			}
 		}
 		
-		return filterClause.toString();
+		return "";
 	}
 	
 	private String getOrderByClause(List<String> operators) {
@@ -275,7 +345,7 @@ public class ExpandParser {
 		return tableNameSQLStatementMap;
 	}
 	
-	public Map<String, JsonArray> getTableNameChildArrayMap() {
+	public Map<String, JsonElement> getTableNameChildArrayMap() {
 		return tableNameChildArrayMap;
 	}
 }
