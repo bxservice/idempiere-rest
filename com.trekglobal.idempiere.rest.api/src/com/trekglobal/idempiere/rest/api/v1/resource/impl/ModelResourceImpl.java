@@ -274,7 +274,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response create(String tableName, String jsonText) {
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
-			MTable table = RestUtils.getTable(tableName, true);
+			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 
 			trx.start();
 			Gson gson = new GsonBuilder().create();
@@ -795,7 +795,7 @@ public class ModelResourceImpl implements ModelResource {
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			try {
-				MTable table = RestUtils.getTable(tableName, true);
+				MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
 				if (windowId == 0)
 					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Window not found", "No valid window found for table name: ", tableName);

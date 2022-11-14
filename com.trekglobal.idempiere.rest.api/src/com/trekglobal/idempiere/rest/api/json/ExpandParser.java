@@ -121,7 +121,7 @@ public class ExpandParser {
 	}
 	
 	private boolean isValidTableAndKeyColumn(String tableName, String keyColumnName) {
-		MTable table = RestUtils.getTable(tableName);
+		MTable table = RestUtils.getTableAndCheckAccess(tableName);
 		MColumn column = table.getColumn(keyColumnName);
 
 		return column != null && 

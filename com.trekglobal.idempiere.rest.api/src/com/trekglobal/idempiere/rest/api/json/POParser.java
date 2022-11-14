@@ -60,7 +60,7 @@ public class POParser {
 	private boolean isValidTable(boolean isReadWrite) {
 		try {
 			//Call to check if user has access to the table
-			RestUtils.getTable(tableName, isReadWrite);
+			RestUtils.getTableAndCheckAccess(tableName, isReadWrite);
 		} catch (Exception ex) {
 			responseError = ResponseUtils.getResponseErrorFromException(ex, "", "");
 			return false;
