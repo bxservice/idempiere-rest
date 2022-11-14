@@ -86,7 +86,7 @@ public class ModelHelper {
 
 		String whereClause = getRequestWhereClause();
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
-		MTable table = RestUtils.getTable(tableName);
+		MTable table = RestUtils.getTableAndCheckAccess(tableName);
 
 		ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
 		String convertedWhereClause = getFullWhereClause(convertedStatement);

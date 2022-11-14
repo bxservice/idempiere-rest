@@ -193,11 +193,11 @@ public class RestUtils {
 		return table;
 	}
 	
-	public static MTable getTable(String tableName) {
-		return getTable(tableName, false);
+	public static MTable getTableAndCheckAccess(String tableName) {
+		return getTableAndCheckAccess(tableName, false);
 	}
 	
-	public static MTable getTable(String tableName, boolean isReadWrite) {
+	public static MTable getTableAndCheckAccess(String tableName, boolean isReadWrite) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0) {
 			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + tableName, Status.NOT_FOUND);
