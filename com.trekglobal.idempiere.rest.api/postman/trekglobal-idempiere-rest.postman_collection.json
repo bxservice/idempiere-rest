@@ -852,6 +852,51 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?$expand={masterFK}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product/122?$expand=m_product_category_id($select=Name,IsDefault),M_ProductPrice",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"m_product",
+						"122"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "m_product_category_id($select=Name,IsDefault),M_ProductPrice"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}/{uuid}",
 			"request": {
 				"method": "GET",
@@ -1311,51 +1356,6 @@
 					]
 				},
 				"description": "Get record by id. Optional details parameter to include retrieval of child tabs"
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/models/{table name}?$expand={masterFK}",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{authToken}}",
-						"type": "text"
-					}
-				],
-				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product/122?$expand=m_product_category_id($select=Name,IsDefault),M_ProductPrice",
-					"protocol": "{{protocol}}",
-					"host": [
-						"{{host}}"
-					],
-					"port": "{{port}}",
-					"path": [
-						"api",
-						"v1",
-						"models",
-						"m_product",
-						"122"
-					],
-					"query": [
-						{
-							"key": "$expand",
-							"value": "m_product_category_id($select=Name,IsDefault),M_ProductPrice"
-						}
-					]
-				}
 			},
 			"response": []
 		},
