@@ -5,9 +5,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.util.DB;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.QueryOperators;
 
@@ -147,5 +152,21 @@ public class ExpandUtils {
 		}
 
 		return operators;
+	}
+	
+	public static void addDetailSQLCommandToJson(Map<String, String> tableSQLMap, JsonObject json) {
+		for (Map.Entry<String,String> entry : tableSQLMap.entrySet()) {
+			String tableName = entry.getKey();
+			String sqlStatement = entry.getValue();
+			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(sqlStatement));
+		}
+	}
+	
+	public static void addDetailDataToJson(Map<String, JsonElement> tableNameDataMap, JsonObject json) {
+		for (Map.Entry<String,JsonElement> entry : tableNameDataMap.entrySet()) {
+			String tableName = entry.getKey();
+			JsonElement childArray = entry.getValue();
+			json.add(tableName, childArray);
+		}
 	}
 }

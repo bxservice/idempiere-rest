@@ -219,13 +219,12 @@ public class ExpandParser {
 			return;
 
 		ExpandParser expandParser = new ExpandParser(childPO, expandClause);
-		for (Map.Entry<String,JsonElement> entry : expandParser.getTableNameChildArrayMap().entrySet()) {
-			String tableName = entry.getKey();
-			JsonElement childArray = entry.getValue();
-			childJson.add(tableName, childArray);
-		}
-		
-		for (Map.Entry<String,String> entry : expandParser.getTableNameSQLStatementMap().entrySet()) {
+		ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), childJson);
+		addChildDetailSQLToMap(expandParser.getTableNameSQLStatementMap());
+	}
+	
+	private void addChildDetailSQLToMap(Map<String, String> sqlStatementMap) {
+		for (Map.Entry<String,String> entry : sqlStatementMap.entrySet()) {
 			String tableName = entry.getKey();
 			String sqlStatement = entry.getValue();
 			addSQLStatementToMap(tableName, null, sqlStatement);
