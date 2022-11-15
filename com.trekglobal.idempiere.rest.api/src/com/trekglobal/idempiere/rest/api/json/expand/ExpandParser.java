@@ -25,9 +25,6 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json.expand;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,13 +45,9 @@ import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.ModelHelper;
 import com.trekglobal.idempiere.rest.api.json.POParser;
-import com.trekglobal.idempiere.rest.api.json.QueryOperators;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 
 public class ExpandParser {
-	
-	private static final String RECORD_ID_COLUMN = "Record_ID";
-	private static final String TABLE_ID_COLUMN  = "AD_Table_ID";
 	
 	private PO po;
 	private String expandParameter = null;
@@ -73,7 +66,7 @@ public class ExpandParser {
 		if (Util.isEmpty(expandParameter, true))
 			return;
 		
-		HashMap<String, List<String>>  detailTablesWithOperators = getTableNamesOperatorsMap();
+		HashMap<String, List<String>>  detailTablesWithOperators = ExpandUtils.getTableNamesOperatorsMap(expandParameter);
 		for (Map.Entry<String,List<String>> entry : detailTablesWithOperators.entrySet()) {
 			expandRelatedResource(entry.getKey(), entry.getValue());
 		}
@@ -100,7 +93,7 @@ public class ExpandParser {
 	}
 	
 	private void expandMaster(String columnName, List<String> operators) {
-		checkOperators(operators);
+		checkMasterExpandOperators(operators);
 		
 		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
 		String tableName = column.getReferenceTableName();
@@ -109,13 +102,12 @@ public class ExpandParser {
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
 
 		PO po = query.first();
-		if (tableNameSQLStatementMap.get(tableName) == null)
-			tableNameSQLStatementMap.put(tableName + "[" + columnName + "]", query.getSQL());
+		addSQLStatementToMap(tableName, columnName, query.getSQL());
 
 		POParser poParser = new POParser(tableName, foreignTableID, po);
 		if (poParser.isValidPO()) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			String select = getSelectClause(operators);
+			String select = ExpandUtils.getSelectClause(operators);
 			String[] includes = RestUtils.getSelectedColumns(tableName, select); 
 			JsonObject json = serializer.toJson(po, includes, null);
 			tableNameChildArrayMap.put(column.getColumnName(), json);
@@ -134,24 +126,25 @@ public class ExpandParser {
 			JsonArray childArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 
-			String select = getSelectClause(operators);
+			String select = ExpandUtils.getSelectClause(operators);
 			includes = RestUtils.getSelectedColumns(tableName, select); 
 
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-				expandChildDetails(child, getExpandClause(operators), childJsonObject);
+				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject);
 				childArray.add(childJsonObject);
 			}
 			tableNameChildArrayMap.put(detailEntity, childArray);
 		}
 	}
 	
-	private void checkOperators(List<String> operators) {
+	private void checkMasterExpandOperators(List<String> operators) {
 		
-		if (!Util.isEmpty(getFilterClause(operators)) ||
-				!Util.isEmpty(getOrderByClause(operators)) || 
-				getTopClause(operators) > 0 ||
-				getSkipClause(operators) > 0)
+		if (!Util.isEmpty(ExpandUtils.getFilterClause(operators)) ||
+				!Util.isEmpty(ExpandUtils.getOrderByClause(operators)) || 
+				!Util.isEmpty(ExpandUtils.getExpandClause(operators)) ||
+				ExpandUtils.getTopClause(operators) > 0 ||
+				ExpandUtils.getSkipClause(operators) > 0)
 			throw new IDempiereRestException("Expand error", "Expanding a master only support the $select query operator", Status.BAD_REQUEST);
 
 	}
@@ -188,168 +181,37 @@ public class ExpandParser {
 		MColumn column = table.getColumn(keyColumnName);
 
 		return column != null && 
-				(isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
-	}
-	
-	private boolean isRecordIDTableIDFK(String keyColumnName) {
-		return RECORD_ID_COLUMN.equalsIgnoreCase(keyColumnName);
-	}
+				(ExpandUtils.isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
+	}	
 
-	private HashMap<String, List<String>> getTableNamesOperatorsMap() {
-		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
-		
-		if (!hasQueryOperators())
-			fillMapWithNoOperators(tableNamesOperatorsMap);
-		else
-			fillMapWithQueryOperators(tableNamesOperatorsMap);
-
-		return tableNamesOperatorsMap;
-	}
-	
-	private boolean hasQueryOperators() {
-		return expandParameter.contains("(");
-	}
-	
-	private void fillMapWithNoOperators(HashMap<String, List<String>> tableNamesOperatorsMap) {
-		List<String> detailTables = Arrays.asList(expandParameter.split("[,]"));
-		for (String tableName : detailTables) 
-			tableNamesOperatorsMap.put(tableName, Collections.emptyList());
-	}
-	
-	private void fillMapWithQueryOperators(HashMap<String, List<String>> tableNamesOperatorsMap) {
-		String commasOutsideParenthesisRegexp = ",(?![^()]*\\))";
-		List<String> detailTables = Arrays.asList(expandParameter.split(commasOutsideParenthesisRegexp));
-		
-		for (String detailTable : detailTables)  {
-			String tableName =  getDetailEntity(detailTable);
-			List<String> operators = getExpandOperators(detailTable);
-			tableNamesOperatorsMap.put(tableName, operators);
-		}
-	}
-	
-	private String getDetailEntity(String parameter) {
-		String detailEntity = parameter;
-		if (parameter.contains("("))
-			detailEntity = parameter.substring(0, parameter.indexOf("("));
-
-		return detailEntity;
-	}
-	
-	private List<String> getExpandOperators(String parameter) {
-		List<String> operators = new ArrayList<String>();
-
-		if (parameter.contains("(")) {
-			String queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.indexOf(")"));
-			for (String operator : queryOperators.split("[;]")) {
-				operators.add(operator.trim());
-			}
-		}
-
-		return operators;
-	}
-	
-	private String getSelectClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.SELECT)) {
-				return getStringOperatorValue(operator);
-			}
-		}
-		
-		return "";
-	}
-	
 	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName) {
 		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
-		List<PO> poList = modelHelper.getPOsFromRequest(); 
-		if (tableNameSQLStatementMap.get(tableName) == null)
-			tableNameSQLStatementMap.put(tableName + "[" + keyColumnName + "]", modelHelper.getSQLStatement());
+		List<PO> poList = modelHelper.getPOsFromRequest();
+		addSQLStatementToMap(tableName, keyColumnName, modelHelper.getSQLStatement());
 
 		return poList;
 	}
 	
 	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
 		String filter = getFilterClause(operators, keyColumnName, po.get_ID());
-		String orderBy = getOrderByClause(operators);
-		int top = getTopClause(operators);
-		int skip = getSkipClause(operators);
+		String orderBy = ExpandUtils.getOrderByClause(operators);
+		int top = ExpandUtils.getTopClause(operators);
+		int skip = ExpandUtils.getSkipClause(operators);
 
 		return new ModelHelper(tableName, filter, orderBy, top, skip);
 	}
 	
-	private String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
+	public String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
 		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq " + keyColumnValue);
 		
-		if (isRecordIDTableIDFK(keyColumnName))
-			filterClause.append(" AND ").append(TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
+		if (ExpandUtils.isRecordIDTableIDFK(keyColumnName))
+			filterClause.append(" AND ").append(ExpandUtils.TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
 		
-		String requestFilterClause =  getFilterClause(operators);
+		String requestFilterClause = ExpandUtils.getFilterClause(operators);
 		if (!Util.isEmpty(requestFilterClause)) 
 			filterClause.append(" AND ").append(requestFilterClause);
 		
 		return filterClause.toString();
-	}
-	
-	private String getFilterClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.FILTER)) {
-				return getStringOperatorValue(operator);
-			}
-		}
-		
-		return "";
-	}
-	
-	private String getOrderByClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.ORDERBY)) {
-				return getStringOperatorValue(operator);
-			}
-		}
-		
-		return "";
-	}
-	
-	private int getTopClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.TOP)) {
-				return getIntegerOperatorValue(operator);
-			}
-		}
-		
-		return 0;
-	}
-	
-	private int getSkipClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.SKIP)) {
-				return getIntegerOperatorValue(operator);
-			}
-		}
-		
-		return 0;
-	}
-	
-	private String getExpandClause(List<String> operators) {
-		for (String operator : operators) {
-			if (operator.startsWith(QueryOperators.EXPAND)) {
-				return getStringOperatorValue(operator);
-			}
-		}
-		
-		return "";
-	}
-	
-	private String getStringOperatorValue(String operator) {
-		return operator.substring(operator.indexOf("=") +1);		
-	}
-	
-	private int getIntegerOperatorValue(String operator) {
-		String operatorValue = getStringOperatorValue(operator);
-		try {
-			return Integer.parseInt(operatorValue);
-		} catch(NumberFormatException ex) {
-			throw new IDempiereRestException("Expand error", "failed to parse Skip or Top operator. Only integers allowed", Status.BAD_REQUEST);
-		}
 	}
 	
 	private void expandChildDetails(PO childPO, String expandClause, JsonObject childJson) {
@@ -366,9 +228,14 @@ public class ExpandParser {
 		for (Map.Entry<String,String> entry : expandParser.getTableNameSQLStatementMap().entrySet()) {
 			String tableName = entry.getKey();
 			String sqlStatement = entry.getValue();
-			if (tableNameSQLStatementMap.get(tableName) == null)
-				tableNameSQLStatementMap.put(tableName, sqlStatement);
+			addSQLStatementToMap(tableName, null, sqlStatement);
 		}
+	}
+	
+	private void addSQLStatementToMap(String tableName, String columnName, String sqlStatement) {
+		String key = columnName != null ? tableName + "[" + columnName + "]" : tableName;
+		if (tableNameSQLStatementMap.get(key) == null)
+			tableNameSQLStatementMap.put(key, sqlStatement);
 	}
 
 	public Map<String, String> getTableNameSQLStatementMap() {
