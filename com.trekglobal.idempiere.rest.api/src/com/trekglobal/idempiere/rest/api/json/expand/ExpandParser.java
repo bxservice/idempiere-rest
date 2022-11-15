@@ -139,6 +139,7 @@ public class ExpandParser {
 
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
+				expandChildDetails(child, getExpandClause(operators), childJsonObject);
 				childArray.add(childJsonObject);
 			}
 			tableNameChildArrayMap.put(detailEntity, childArray);
@@ -328,6 +329,16 @@ public class ExpandParser {
 		return 0;
 	}
 	
+	private String getExpandClause(List<String> operators) {
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.EXPAND)) {
+				return getStringOperatorValue(operator);
+			}
+		}
+		
+		return "";
+	}
+	
 	private String getStringOperatorValue(String operator) {
 		return operator.substring(operator.indexOf("=") +1);		
 	}
@@ -338,6 +349,25 @@ public class ExpandParser {
 			return Integer.parseInt(operatorValue);
 		} catch(NumberFormatException ex) {
 			throw new IDempiereRestException("Expand error", "failed to parse Skip or Top operator. Only integers allowed", Status.BAD_REQUEST);
+		}
+	}
+	
+	private void expandChildDetails(PO childPO, String expandClause, JsonObject childJson) {
+		if (Util.isEmpty(expandClause))
+			return;
+
+		ExpandParser expandParser = new ExpandParser(childPO, expandClause);
+		for (Map.Entry<String,JsonElement> entry : expandParser.getTableNameChildArrayMap().entrySet()) {
+			String tableName = entry.getKey();
+			JsonElement childArray = entry.getValue();
+			childJson.add(tableName, childArray);
+		}
+		
+		for (Map.Entry<String,String> entry : expandParser.getTableNameSQLStatementMap().entrySet()) {
+			String tableName = entry.getKey();
+			String sqlStatement = entry.getValue();
+			if (tableNameSQLStatementMap.get(tableName) == null)
+				tableNameSQLStatementMap.put(tableName, sqlStatement);
 		}
 	}
 
