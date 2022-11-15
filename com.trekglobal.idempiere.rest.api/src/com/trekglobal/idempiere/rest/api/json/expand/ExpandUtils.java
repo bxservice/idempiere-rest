@@ -121,9 +121,8 @@ public class ExpandUtils {
 	private static HashMap<String, List<String>> fillMapWithQueryOperators(String expandParameter) {
 		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
 
-		String commasOutsideParenthesisRegexp = ",(?![^()]*\\))";
-		List<String> detailTables = Arrays.asList(expandParameter.split(commasOutsideParenthesisRegexp));
-		
+		List<String> detailTables = splitStringByChar(expandParameter, ',');
+
 		for (String detailTable : detailTables)  {
 			String tableName = getDetailEntity(detailTable);
 			List<String> operators = getExpandOperators(detailTable);
@@ -132,6 +131,28 @@ public class ExpandUtils {
 		
 		return tableNamesOperatorsMap;
 	}
+	
+	private static List<String> splitStringByChar(String expandParameter, char splittingChar) {
+	    List<String> splitted = new ArrayList<String>();
+	    int nextingLevel = 0;
+	    StringBuilder result = new StringBuilder();
+	    for (char c : expandParameter.toCharArray()) {
+	        if (c == splittingChar && nextingLevel == 0) {
+	            splitted.add(result.toString());
+	            result.setLength(0);// clean buffer
+	        } else {
+	            if (c == '(')
+	                nextingLevel++;
+	            if (c == ')')
+	                nextingLevel--;
+	            result.append(c);
+	        }
+	    }
+
+	    splitted.add(result.toString());
+	    return splitted;
+	}
+	   
 	
 	private static String getDetailEntity(String parameter) {
 		String detailEntity = parameter;
@@ -145,8 +166,8 @@ public class ExpandUtils {
 		List<String> operators = new ArrayList<String>();
 
 		if (parameter.contains("(")) {
-			String queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.indexOf(")"));
-			for (String operator : queryOperators.split("[;]")) {
+			String queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.lastIndexOf(")"));
+			for (String operator : splitStringByChar(queryOperators, ';')) {
 				operators.add(operator.trim());
 			}
 		}
