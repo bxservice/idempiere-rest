@@ -72,7 +72,8 @@ public class RestUtils {
 		if (isUUID)
 			query.setParameters(recordID);
 		else
-			query.setParameters(Integer.parseInt(recordID));
+			query.setParameters(Util.isEmpty(recordID) ? null : getIntegerValue(recordID));
+		
 		return query;
 	}
 
@@ -83,6 +84,14 @@ public class RestUtils {
 	private static String getKeyColumn(String tableName, boolean isUUID) {
 		return isUUID ? PO.getUUIDColumnName(tableName) : getKeyColumnName(tableName);
 	}
+	
+	private static int getIntegerValue(String id) {
+		try {
+			return Integer.parseInt(id);
+		} catch(NumberFormatException ex) {
+			throw new IDempiereRestException("Request Error", "Wrong ID "+ id + " is not an UU value nor a valid integer ID", Status.BAD_REQUEST);
+		}
+	} 
 	
 	public static HashMap<String, ArrayList<String>> getIncludes(String tableName, String select, String details) {
 		

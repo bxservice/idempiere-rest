@@ -76,6 +76,7 @@ import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.expand.ExpandParser;
+import com.trekglobal.idempiere.rest.api.json.expand.ExpandUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
@@ -155,26 +156,10 @@ public class ModelResourceImpl implements ModelResource {
 	private void expandDetailsInJsonObject(PO po, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
 		ExpandParser expandParser = new ExpandParser(po, expandParameter);
 		if (showSql)
-			addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
+			ExpandUtils.addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
 		
 		if (showData)
-			addDetailDataToJson(expandParser.getTableNameChildArrayMap(), detailJsonObject);			
-	}
-	
-	private void addDetailSQLCommandToJson(Map<String, String> tableSQLMap, JsonObject json) {
-		for (Map.Entry<String,String> entry : tableSQLMap.entrySet()) {
-			String tableName = entry.getKey();
-			String sqlStatement = entry.getValue();
-			json.addProperty("sql-command-" + tableName, DB.getDatabase().convertStatement(sqlStatement));
-		}
-	}
-	
-	private void addDetailDataToJson(Map<String, JsonElement> tableNameDataMap, JsonObject json) {
-		for (Map.Entry<String,JsonElement> entry : tableNameDataMap.entrySet()) {
-			String tableName = entry.getKey();
-			JsonElement childArray = entry.getValue();
-			json.add(tableName, childArray);
-		}
+			ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), detailJsonObject);			
 	}
 	
 	@Override
