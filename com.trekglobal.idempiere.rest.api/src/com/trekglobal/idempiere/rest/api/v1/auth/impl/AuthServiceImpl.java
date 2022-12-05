@@ -346,9 +346,9 @@ public class AuthServiceImpl implements AuthService {
 		responseNode.addProperty("language", defaultLanguage);
 
 		// Create AD_Session here and set the session in the token as another parameter
-		MSession session = MSession.get(Env.getCtx(), false);
-		if (session == null) {
-			session = MSession.get(Env.getCtx(), true);
+		MSession session = MSession.get(Env.getCtx());
+		if (session == null){
+			session = MSession.create(Env.getCtx());
 			session.setWebSession("idempiere-rest");
 			session.saveEx();
 		}

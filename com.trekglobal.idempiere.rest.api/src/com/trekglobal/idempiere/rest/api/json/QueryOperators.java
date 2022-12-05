@@ -25,53 +25,20 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
-import javax.ws.rs.core.Response.Status;
+public interface QueryOperators {
 
-import org.adempiere.exceptions.AdempiereException;
+	//Supported OData query operators
+	public static final String SELECT  = "$select";
+	public static final String EXPAND  = "$expand";
+	public static final String FILTER  = "$filter";
+	public static final String ORDERBY = "$orderby";
+	public static final String TOP     = "$top";
+	public static final String SKIP    = "$skip";
+	
+	//Custom iDempeire query operators
+	public static final String SHOW_SQL   = "showsql";
+	public static final String VALRULE    = "$valrule";
+	public static final String CONTEXT    = "$context";
+	public static final String REPORTTYPE = "$report_type";
 
-public class IDempiereRestException extends AdempiereException {
-
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3555412217944639699L;
-	
-	private Status status;
-	private String title;
-	
-	/**
-	 * @param message
-	 * @param error -> Response status error
-	 */
-	public IDempiereRestException(String message, Status error) {
-		super(message);
-		setErrorResponseStatus(error);
-	}
-	
-	/**
-	 * @param title
-	 * @param message
-	 * @param error -> Response status error
-	 */
-	public IDempiereRestException(String title, String message, Status error) {
-		super(message);
-		setErrorResponseStatus(error);
-		setTitle(title);
-	}
-	
-	public void setErrorResponseStatus(Status status) {
-		this.status = status;
-	}
-	
-	public Status getErrorResponseStatus() {
-		return status;
-	}
-	
-	public void setTitle(String title) {
-		this.title= title;
-	}
-	
-	public String getTitle() {
-		return title;
-	}
 }

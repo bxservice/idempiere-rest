@@ -186,16 +186,16 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 					return primitive.getAsString();
 			}
 			JsonElement identifier = ref.get("identifier");
-			if (identifier != null && !Util.isEmpty(refTableName)) {
+			if (identifier != null && !Util.isEmpty(refTableName) && !identifier.isJsonNull()) {
 				int id = findId(refTableName, identifier);
 				if (id >= 0)
 					return id;
 			}
 			
 			JsonElement uidField = ref.get("uid");
-			if (uidField != null && !Util.isEmpty(refTableName)) {
+			if (uidField != null && !Util.isEmpty(refTableName) && !uidField.isJsonNull()) {
 				String uidColumn = PO.getUUIDColumnName(refTableName);
-				String keyColumn = refTableName + "_ID";
+				String keyColumn = RestUtils.getKeyColumnName(refTableName);
 				int id = DB.getSQLValue(null, "SELECT " + keyColumn + " FROM " + refTableName + " WHERE " + uidColumn + "=?", uidField.getAsString());
 				if (id > 0)
 					return id;

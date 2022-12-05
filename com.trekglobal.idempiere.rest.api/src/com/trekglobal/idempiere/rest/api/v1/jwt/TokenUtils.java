@@ -52,7 +52,7 @@ public class TokenUtils {
 			return provider.getSecret();
 		}
 		
-		if(MSysConfig.getBooleanValue("REST_USE_SYSCONFIG_SECRET", false))
+		if(MSysConfig.getBooleanValue("REST_USE_SYSCONFIG_SECRET", true))
 			return SysConfigTokenSecretProvider.instance.getSecret();
 		
 		return DefaultTokenSecretProvider.instance.getSecret();

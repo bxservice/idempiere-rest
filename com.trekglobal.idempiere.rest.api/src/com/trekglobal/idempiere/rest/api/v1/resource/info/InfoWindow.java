@@ -61,6 +61,7 @@ import org.compiere.util.ValueNamePair;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 
 /**
@@ -109,7 +110,7 @@ public class InfoWindow {
 
 	private void loadInfoDefinition() {
 		tableName = MTable.getTableName(Env.getCtx(), infoWindowModel.getAD_Table_ID());
-		p_keyColumn = tableName + "_ID";
+		p_keyColumn = RestUtils.getKeyColumnName(tableName);
 		
 		AccessSqlParser sqlParser = new AccessSqlParser("SELECT * FROM " + infoWindowModel.getFromClause());
 		tableInfos = sqlParser.getTableInfo(0);

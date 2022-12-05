@@ -25,53 +25,40 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.util.logging.Level;
+
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.adempiere.exceptions.AdempiereException;
+import org.compiere.util.CLogger;
 
-public class IDempiereRestException extends AdempiereException {
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -3555412217944639699L;
-	
-	private Status status;
-	private String title;
-	
-	/**
-	 * @param message
-	 * @param error -> Response status error
-	 */
-	public IDempiereRestException(String message, Status error) {
-		super(message);
-		setErrorResponseStatus(error);
+public class ResponseUtils {
+
+	private final static CLogger log = CLogger.getCLogger(ResponseUtils.class);
+
+	public static Response getResponseErrorFromException(Exception ex, String title, String detailText) {
+		Status status = Status.INTERNAL_SERVER_ERROR;
+		if (ex instanceof IDempiereRestException) {
+			status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			title = ((IDempiereRestException) ex).getTitle();
+		}
+
+		log.log(Level.SEVERE, ex.getMessage(), ex);
+		return getResponseError(status, title, detailText, ex.getMessage());
 	}
 	
-	/**
-	 * @param title
-	 * @param message
-	 * @param error -> Response status error
-	 */
-	public IDempiereRestException(String title, String message, Status error) {
-		super(message);
-		setErrorResponseStatus(error);
-		setTitle(title);
+	public static Response getResponseError(Status status, String title, String text1, String text2) {
+		return Response.status(status)
+				.entity(new ErrorBuilder()
+						.status(status)
+						.title(title)
+						.append(text1)
+						.append(text2)
+						.build()
+						.toString())
+				.build();
 	}
 	
-	public void setErrorResponseStatus(Status status) {
-		this.status = status;
-	}
-	
-	public Status getErrorResponseStatus() {
-		return status;
-	}
-	
-	public void setTitle(String title) {
-		this.title= title;
-	}
-	
-	public String getTitle() {
-		return title;
-	}
 }

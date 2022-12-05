@@ -27,12 +27,7 @@ package com.trekglobal.idempiere.rest.api;
 
 import org.adempiere.base.Core;
 import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.compiere.Adempiere;
-import org.compiere.model.ServerStateChangeEvent;
-import org.compiere.model.ServerStateChangeListener;
 import org.osgi.framework.BundleContext;
-
-import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 
 /**
  * 
@@ -43,21 +38,9 @@ public class Activator extends Incremental2PackActivator {
 	
 	@Override
 	public void start(BundleContext context) throws Exception {
-		super.start(context);
-
 		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
 		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		
-		if (Adempiere.isStarted())
-			MAuthToken.loadBlockedTokens();
-		else {
-			Adempiere.addServerStateChangeListener(new ServerStateChangeListener() {
-				@Override
-				public void stateChange(ServerStateChangeEvent event) {
-					if (event.getEventType() == ServerStateChangeEvent.SERVER_START) 
-						MAuthToken.loadBlockedTokens();
-				}
-			});		
-		}		
+
+		super.start(context);
 	}
 }

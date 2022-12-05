@@ -31,18 +31,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -56,10 +49,7 @@ import org.adempiere.base.event.IEventManager;
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
-import org.compiere.model.MRole;
-import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
-import org.compiere.model.MValRule;
 import org.compiere.model.MWindow;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -79,13 +69,16 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.ModelHelper;
+import com.trekglobal.idempiere.rest.api.json.POParser;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
+import com.trekglobal.idempiere.rest.api.json.expand.ExpandParser;
+import com.trekglobal.idempiere.rest.api.json.expand.ExpandUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
-import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -96,16 +89,10 @@ import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
  */
 public class ModelResourceImpl implements ModelResource {
 
-	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
-	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private final static CLogger log = CLogger.getCLogger(ModelResourceImpl.class);
 	
-	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
-	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
 	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
 	public static final String PO_AFTER_REST_SAVE = "idempiere-rest/po/afterSave";
-	
-	private static final AtomicInteger windowNoAtomic = new AtomicInteger();
 
 	/**
 	 * default constructor
@@ -114,8 +101,8 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getPO(String tableName, String id, String details, String select) {
-		return getPO(tableName, id, details, select, null);
+	public Response getPO(String tableName, String id, String details, String select, String showsql) {
+		return getPO(tableName, id, details, select, null, showsql);
 	}
 	
 	/**
@@ -127,73 +114,57 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param singleProperty single column
 	 * @return
 	 */
-	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
+	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		try {
-			PO po = RestUtils.getPO(tableName, id, true, false);
+			Query query = RestUtils.getQuery(tableName, id, true, false);
+			PO po = query.first();
 
-			if (po != null) {
+			POParser poParser = new POParser(tableName, id, po);
+			if (poParser.isValidPO()) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, multiProperty, details);
 				String[] includes = null;
 				if (!Util.isEmpty(multiProperty, true)) {
-					includes =  includeParser != null && includeParser.get(table.getTableName()) != null ? 
-							includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-								null;;
+					includes = RestUtils.getSelectedColumns(tableName, multiProperty);
 				} else if (!Util.isEmpty(singleProperty, true)) {
 					if (po.get_Value(singleProperty) == null) {
-						return Response.status(Status.NOT_FOUND)
-								.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid property name").append("No match found for table name: ").append(singleProperty).build().toString())
-								.build();
+						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
 					}
 					includes = new String[] {singleProperty};
 				}
-				JsonObject json = serializer.toJson(po, includes, null);
+				JsonObject json;
+				boolean showData = (showsql == null || !"nodata".equals(showsql));
+				if (showData)
+					json = serializer.toJson(po, includes, null);
+				else
+					json = new JsonObject();
+
+				if (showsql != null) {
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
+				}
 				if (!Util.isEmpty(details, true))
-					loadDetails(po, json, details, includeParser);
+					expandDetailsInJsonObject(po, json, json, details, showsql != null, showData);
+
 				return Response.ok(json.toString()).build();
 			} else {
-				po = RestUtils.getPO(tableName, id, false, false);
-
-				if (po != null) {
-					return Response.status(Status.FORBIDDEN)
-							.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-							.build();
-				} else {
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-							.build();
-				}
+				return poParser.getResponseError();
 			}
 		} catch(Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
-							.append("Get POs with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get PO with exception: ");
 		}
 	}
 	
+	private void expandDetailsInJsonObject(PO po, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
+		ExpandParser expandParser = new ExpandParser(po, expandParameter);
+		if (showSql)
+			ExpandUtils.addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
+		
+		if (showData)
+			ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), detailJsonObject);			
+	}
+	
 	@Override
-	public Response getPOProperty(String tableName, String id, String propertyName) {
-		return getPO(tableName, id, null, null, propertyName);
+	public Response getPOProperty(String tableName, String id, String propertyName, String showsql) {
+		return getPO(tableName, id, null, null, propertyName, showsql);
 	}
 
 	@Override
@@ -211,7 +182,7 @@ public class ModelResourceImpl implements ModelResource {
 			List<MTable> tables = query.setOrderBy("AD_Table.TableName").list();
 			JsonArray array = new JsonArray();
 			for(MTable table : tables) {
-				if (hasAccess(table, false)) {
+				if (RestUtils.hasAccess(table, false)) {
 					JsonObject json = new JsonObject();
 					json.addProperty("id", table.getAD_Table_ID());
 					if (!Util.isEmpty(table.getAD_Table_UU())) {
@@ -229,111 +200,49 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("models", array);
 			return Response.ok(json.toString()).build();			
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-			
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
-							.append("Get models with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get models with exception: ");
 		}
 
 	}
 
 	@Override
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
-			String validationRuleID, String context) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		String whereClause = "";
-		if (!Util.isEmpty(filter, true) ) {
-			whereClause = filter;
-		}
-		
-		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+			String validationRuleID, String context, String showsql) {
 		try {
-			ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
-			String convertedWhereClause = convertedStatement.getWhereClause();
-			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedWhereClause);
+			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
+			List<PO> list = modelHelper.getPOsFromRequest();
 			
-			if (validationRuleID != null) {
-				MValRule validationRule = getValidationRule(validationRuleID);
-				if (validationRule == null ||validationRule.getAD_Val_Rule_ID() == 0) {
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid validation rule").append("No match found for validation with ID: ").append(validationRuleID).build().toString())
-							.build();
-				}
-
-				if (validationRule.getCode() != null) {
-					if (!Util.isEmpty(convertedWhereClause))
-						convertedWhereClause =  convertedWhereClause + " AND ";
-					convertedWhereClause = convertedWhereClause + "(" + validationRule.getCode() + ")";
-
-					if (!Util.isEmpty(context)) {
-						convertedWhereClause = parseContext(convertedWhereClause, context);
-					}
-				}
-			}
-
-			Query query = RestUtils.getQuery(tableName, convertedWhereClause, convertedStatement.getParameters());
-
-			if (isValidOrderBy(table, order)) {
-				query.setOrderBy(order);
-			}
-			query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
-			int rowCount = query.count();
-			int pageCount = 1;
-			if (MAX_RECORDS_SIZE > 0 && (top > MAX_RECORDS_SIZE || top <= 0))
-				top = MAX_RECORDS_SIZE;
-
-			if (top > 0 && rowCount > top) {
-				pageCount = (int)Math.ceil(rowCount / (double)top);
-			} 
-			query.setPageSize(top);
-			query.setRecordstoSkip(skip);
-
-			List<PO> list = query.list();
 			JsonArray array = new JsonArray();
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				
-				HashMap<String, ArrayList<String>> includeParser = RestUtils.getIncludes(tableName, select, details);
-				String[] includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
-						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-						null;
+				String[] includes = RestUtils.getSelectedColumns(tableName, select);
 
-				for(PO po : list) {
-					JsonObject json = serializer.toJson(po, includes, null);
-					if (!Util.isEmpty(details, true))
-						loadDetails(po, json, details, includeParser);
-					array.add(json);
-				}
+				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				JsonObject json = new JsonObject();
-				json.addProperty("page-count", pageCount);
-				json.addProperty("records-size", top);
-				json.addProperty("skip-records", skip);
-				json.addProperty("row-count", rowCount);
+				json.addProperty("page-count", modelHelper.getPageCount());
+				json.addProperty("records-size", modelHelper.getTop());
+				json.addProperty("skip-records", modelHelper.getSkip());
+				json.addProperty("row-count", modelHelper.getRowCount());
 				json.addProperty("array-count", array.size());
-				json.add("records", array);
+				if (showsql != null) {
+					json.addProperty("sql-command", DB.getDatabase().convertStatement(modelHelper.getSQLStatement()));
+				}
+				
+				for (PO po : list) {
+					JsonObject detailJson = serializer.toJson(po, includes, null);
+					if (!Util.isEmpty(details, true))
+						expandDetailsInJsonObject(po, json, detailJson, details, showsql != null, showData);
+					array.add(detailJson);
+				}
+				
+				if (showData)
+					json.add("records", array);
+				
 				return Response.ok(json.toString())
-						.header("X-Page-Count", pageCount)
-						.header("X-Records-Size", top)
-						.header("X-Skip-Records", skip)
-						.header("X-Row-Count", rowCount)
+						.header("X-Page-Count", modelHelper.getPageCount())
+						.header("X-Records-Size", modelHelper.getTop())
+						.header("X-Skip-Records", modelHelper.getSkip())
+						.header("X-Row-Count", modelHelper.getRowCount())
 						.header("X-Array-Count", array.size())
 						.build();
 			} else {
@@ -342,73 +251,16 @@ public class ModelResourceImpl implements ModelResource {
 				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
-			Status status = Status.INTERNAL_SERVER_ERROR;
-			if (ex instanceof IDempiereRestException)
-				status = ((IDempiereRestException) ex).getErrorResponseStatus();
-
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(status)
-					.entity(new ErrorBuilder().status(status)
-							.title("GET Error")
-							.append("Get POs with exception: ")
-							.append(ex.getMessage())
-							.build().toString())
-					.build();
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get POs with exception: ");
 		}
 	}
 	
-	private MValRule getValidationRule(String validationRuleID) {
-		return (MValRule) RestUtils.getPO(MValRule.Table_Name, validationRuleID, false, false);
-	}
-	
-	private String parseContext(String whereClause, String context) {
-		String parsedWhereClause = whereClause;
-		int windowNo = windowNoAtomic.getAndIncrement();
-
-		for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
-			String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);
-			String contextName = namevaluePair[0];
-			String contextValue = namevaluePair[1];
-			
-			if (!isValidContextValue(contextValue)) 
-				continue;
-			Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
-		}
-		
-		parsedWhereClause = Env.parseContext(Env.getCtx(), windowNo, parsedWhereClause, false, true);
-		Env.clearWinContext(windowNo);
-
-		return parsedWhereClause;
-	}
-	
-	/**
-	 * Validates the context value to avoid
-	 * potential SQL injection
-	 * @param value
-	 * @return
-	 */
-	private boolean isValidContextValue(String value) {
-		// At the moment accept context values just composed by letters, numbers, space and dash (for UUID)
-		// this is mainly to avoid the usage of strange characters (like semicolon or quotes) opening the door for SQL injection
-		final String sanitize = "^[A-Za-z0-9\\s\\-]+$";
-		return Pattern.matches(sanitize, value);
-	}
-
 	@Override
 	public Response create(String tableName, String jsonText) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
+			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
+
 			trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
@@ -425,64 +277,23 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (Exception ex) {
 				trx.rollback();
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
-			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
 			for(String field : fields) {
-				JsonElement fieldElement = jsonObject.get(field);
-				if (fieldElement != null && fieldElement.isJsonArray()) {
-					MTable childTable = MTable.get(Env.getCtx(), field);
-					if (childTable != null && childTable.getAD_Table_ID() > 0) {
-						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
-						JsonArray fieldArray = fieldElement.getAsJsonArray();
-						JsonArray savedArray = new JsonArray();
-						try {
-							fieldArray.forEach(e -> {
-								if (e.isJsonObject()) {
-									JsonObject childJsonObject = e.getAsJsonObject();
-									PO childPO = childSerializer.fromJson(childJsonObject, childTable);
-									childPO.set_TrxName(trx.getTrxName());
-									childPO.set_ValueOfColumn(tableName+"_ID", po.get_ID());
-									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
-								if (! childPO.validForeignKeys()) {
-										String msg = CLogger.retrieveErrorString("Foreign key validation error");
-										throw new AdempiereException(msg);
-									}
-									childPO.saveEx();
-									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
-									childJsonObject = serializer.toJson(childPO);
-									savedArray.add(childJsonObject);
-								}
-							});
-							if (savedArray.size() > 0)
-								detailMap.put(field, savedArray);
-						} catch (Exception ex) {
-							trx.rollback();
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
-						}
-					}
-				}
+				String strError = createChild(field, jsonObject, po, detailMap, trx);
+				if(strError != null)
+					return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", "Save error with exception: ", strError);
 			}
 
 			StringBuilder processMsg = new StringBuilder();
-			String error = runDocAction(po, jsonObject, processMsg);
-			if (Util.isEmpty(error, true)) {
-				trx.commit(true);
-			} else {
+			String processError = runDocAction(po, jsonObject, processMsg);
+			if (!Util.isEmpty(processError, true)) {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", processError);
 			}
-
+			trx.commit(true);
 			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po);
 			if (processMsg.length() > 0)
@@ -496,44 +307,89 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
-					.build();
+			return ResponseUtils.getResponseErrorFromException(ex, "Server error", "Server error with exception: ");
 		} finally {
 			trx.close();
 		}
 	}
 
-	@Override
-	public Response update(String tableName, String id, String jsonText) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po == null) {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
+	/**
+	 * Recursive Method to Create Children
+	 * @param field
+	 * @param jsonObject
+	 * @param po
+	 * @param detailMap
+	 * @param trx
+	 * @return
+	 */
+	private String createChild(String field, JsonObject jsonObject, PO po, Map<String, JsonArray> detailMap, Trx trx) {
+		JsonElement fieldElement = jsonObject.get(field);
+		if (fieldElement != null && fieldElement.isJsonArray()) {
+			MTable childTable = MTable.get(Env.getCtx(), field);
+			if (childTable != null && childTable.getAD_Table_ID() > 0) {
+				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
+				JsonArray fieldArray = fieldElement.getAsJsonArray();
+				JsonArray savedArray = new JsonArray();
+				try {
+					fieldArray.forEach(e -> {
+						if (e.isJsonObject()) {
+							JsonObject childJsonObject = e.getAsJsonObject();
+							PO childPO = childSerializer.fromJson(childJsonObject, childTable);
+							childPO.set_TrxName(trx.getTrxName());
+							childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
+							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
+						if (! childPO.validForeignKeys()) {
+								String msg = CLogger.retrieveErrorString("Foreign key validation error");
+								throw new AdempiereException(msg);
+							}
+							childPO.saveEx();
+							fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
+							childJsonObject = childSerializer.toJson(childPO);
+							JsonObject newChildJsonObject = e.getAsJsonObject();
+							Map<String, JsonArray> childDetailMap = new LinkedHashMap<>();
+							Set<String> fields = newChildJsonObject.keySet();
+							for(String childField : fields) {
+								String strError = createChild(childField, newChildJsonObject, childPO, childDetailMap, trx);
+								if(strError != null)
+									throw new AdempiereException(strError);
+							}
+							if (childDetailMap.size() > 0) {
+								for(String childTableName : childDetailMap.keySet()) {
+									JsonArray childArray = childDetailMap.get(childTableName);
+									childJsonObject.add(childTableName, childArray);
+								}
+							}
+							savedArray.add(childJsonObject);
+							StringBuilder processMsg = new StringBuilder();
+							String processError = runDocAction(childPO, newChildJsonObject, processMsg);
+							if(processError != null)
+								throw new AdempiereException(processError + " - " + processMsg != null ? processMsg.toString() : "");
+						}
+					});
+					if (savedArray.size() > 0)
+						detailMap.put(field, savedArray);
+				} catch (Exception ex) {
+					trx.rollback();
+					log.log(Level.SEVERE, ex.getMessage(), ex);
+					return ex.getMessage();
+				}
 			}
 		}
+		return null;
+	}
+
+	@Override
+	public Response update(String tableName, String id, String jsonText) {
+
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (!poParser.isValidPO()) {
+			return poParser.getResponseError();
+		}
 		
+		PO po = poParser.getPO();
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
+
 			trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
@@ -550,10 +406,7 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (Exception ex) {
 				trx.rollback();
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
 			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
@@ -575,7 +428,7 @@ public class ModelResourceImpl implements ModelResource {
 									
 									if (childPO == null) {
 										childPO = childSerializer.fromJson(childJsonObject, childTable);
-										childPO.set_ValueOfColumn(tableName+"_ID", parentId);
+										childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(tableName), parentId);
 									} else {
 										childPO = childSerializer.fromJson(childJsonObject, childPO);
 									}
@@ -595,10 +448,7 @@ public class ModelResourceImpl implements ModelResource {
 								detailMap.put(field, savedArray);
 						} catch (Exception ex) {
 							trx.rollback();
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
+							return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 						}
 					}
 				}
@@ -610,9 +460,7 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Can't perform document action").append("Encounter exception during execution of document action: ").append(error).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", error);
 			}
 			
 			po.load(trx.getTrxName());
@@ -628,10 +476,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			return Response.status(Status.INTERNAL_SERVER_ERROR)
-					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
-					.build();
+			return ResponseUtils.getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
 		} finally {
 			trx.close();
 		}
@@ -654,61 +499,29 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response delete(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			try {
 				po.deleteEx(true);
 				JsonObject json = new JsonObject();
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
 	@Override
 	public Response getAttachments(String tableName, String id) {
 		JsonArray array = new JsonArray();
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
@@ -723,34 +536,16 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("attachments", array);
 			return Response.ok(json.toString()).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
 	@Override
 	public Response getAttachmentsAsZip(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				File zipFile = attachment.saveAsZip();
@@ -761,16 +556,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -786,33 +572,19 @@ public class ModelResourceImpl implements ModelResource {
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
+
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
 		
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST)
-						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
+
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -828,9 +600,7 @@ public class ModelResourceImpl implements ModelResource {
 	    						attachment.deleteEntry(i);
 	    						break;
 	    					} else {
-	    						return Response.status(Status.CONFLICT)
-	    								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(name).build().toString())
-	    								.build();
+	    						return ResponseUtils.getResponseError(Status.CONFLICT, "Duplicate file name", "Duplicate file name: ", name);
 	    					}
 	    				}
 	    			}
@@ -845,42 +615,21 @@ public class ModelResourceImpl implements ModelResource {
 	            }
 	            attachment.saveEx();
 	        } catch (Exception ex) {
-	        	log.log(Level.SEVERE, ex.getMessage(), ex);
-	        	return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
 			}
 															
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
 	@Override
 	public Response getAttachmentEntry(String tableName, String id, String fileName) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, false)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+	
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				for(MAttachmentEntry entry : attachment.getEntries()) {
@@ -893,26 +642,14 @@ public class ModelResourceImpl implements ModelResource {
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
 							return Response.ok(fso).build();
 						} catch (IOException ex) {
-							log.log(Level.SEVERE, ex.getMessage(), ex);
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("IO error").append("IO error with exception: ").append(ex.getMessage()).build().toString())
-									.build();
+							return ResponseUtils.getResponseErrorFromException(ex, "IO error", "IO error with exception: ");
 						}
 					}
 				}
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
@@ -923,49 +660,32 @@ public class ModelResourceImpl implements ModelResource {
 		
 		JsonElement jsonElement = jsonObject.get("name");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "name property is mandatory", "", "");
+
 		String fileName = jsonElement.getAsString();
 		if (Util.isEmpty(fileName, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("name property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "name property is mandatory", "", "");
 		
 		jsonElement = jsonObject.get("data");
 		if (jsonElement == null || !jsonElement.isJsonPrimitive())
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
+
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
-			return Response.status(Status.BAD_REQUEST)
-					.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("data property is mandatory").build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
 		
 		boolean overwrite = false;
 		jsonElement = jsonObject.get("overwrite");
 		if (jsonElement != null && jsonElement.isJsonPrimitive())
 			overwrite = jsonElement.getAsBoolean();
 		
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
-		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
 			if (data == null || data.length == 0)
-				return Response.status(Status.BAD_REQUEST)
-						.entity(new ErrorBuilder().status(Status.BAD_REQUEST).title("Can't parse data").append("Can't parse data in Json content, not base64 encoded").build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.BAD_REQUEST, "Can't parse data", "Can't parse data in Json content, not base64 encoded", "");
+
 			MAttachment attachment = po.getAttachment();
 			if (attachment == null)
 				attachment = po.createAttachment();
@@ -977,9 +697,7 @@ public class ModelResourceImpl implements ModelResource {
 						attachment.deleteEntry(i);
 						break;
 					} else {
-						return Response.status(Status.CONFLICT)
-								.entity(new ErrorBuilder().status(Status.CONFLICT).title("Duplicate file name").append("Duplicate file name: ").append(fileName).build().toString())
-								.build();
+						return ResponseUtils.getResponseError(Status.CONFLICT, "Duplicate file name", "Duplicate file name: ", fileName);
 					}
 				}
 			}		
@@ -988,90 +706,44 @@ public class ModelResourceImpl implements ModelResource {
 				attachment.addEntry(fileName, data);
 				attachment.saveEx();
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
 	@Override
 	public Response deleteAttachments(String tableName, String id) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				try {
 					attachment.deleteEx(true);
 				} catch (Exception ex) {
-					log.log(Level.SEVERE, ex.getMessage(), ex);
-					return Response.status(Status.INTERNAL_SERVER_ERROR)
-							.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Delete error").append("Delete error with exception: ").append(ex.getMessage()).build().toString())
-							.build();
+					return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 				}
 				JsonObject json = new JsonObject();
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 
 	@Override
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid table name").append("No match found for table name: ").append(tableName).build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for table: ").append(tableName).build().toString())
-					.build();
-		
-
-		PO po = RestUtils.getPO(tableName, id, true, false);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, false);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
 				int i = 0;
@@ -1081,180 +753,53 @@ public class ModelResourceImpl implements ModelResource {
 							try {
 								attachment.saveEx();
 							} catch (Exception ex) {
-								log.log(Level.SEVERE, ex.getMessage(), ex);
-								return Response.status(Status.INTERNAL_SERVER_ERROR)
-										.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error").append("Save error with exception: ").append(ex.getMessage()).build().toString())
-										.build();
+								return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
 							}
 							JsonObject json = new JsonObject();
 							json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 							return Response.ok(json.toString()).build();
 						} else {
-							return Response.status(Status.INTERNAL_SERVER_ERROR)
-									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Fail to remove attachment entry").build().toString())
-									.build();
+							return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Fail to remove attachment entry", "", "");
 						}
 					}
 					i++;
 				}
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No matching attachment entry").append("No attachment entry is found for name: ").append(fileName).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "No matching attachment entry", "No attachment entry is found for name ", fileName);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("No attachments").append("No attachment is found for record with id ").append(id).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "No attachments", "No attachment is found for record with id ", id);
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for record with id ").append(id).build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(id).build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
 	}
 	
 	@Override
 	public Response printModelRecord(String tableName, String id, String reportType) {
-		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table == null || table.getAD_Table_ID()==0)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder()
-							.status(Status.NOT_FOUND)
-							.title("Invalid table name")
-							.append("No match found for table name: ").append(tableName)
-							.build().toString())
-					.build();
 		
-		if (!hasAccess(table, true)) 
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder()
-							.status(Status.FORBIDDEN)
-							.title("Access denied")
-							.append("Access denied for table: ").append(tableName)
-							.build().toString())
-					.build();
-		
-		PO po = RestUtils.getPO(tableName, id, true, true);
-		if (po != null) {
+		POParser poParser = new POParser(tableName, id, true, true);
+		if (poParser.isValidPO()) {
+			PO po = poParser.getPO();
 			try {
+				MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
 				if (windowId == 0)
-					return Response.status(Status.NOT_FOUND)
-							.entity(new ErrorBuilder()
-									.status(Status.NOT_FOUND)
-									.title("Window not found")
-									.append("No valid window found for table name: ").append(tableName)
-									.build().toString())
-							.build();
+					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Window not found", "No valid window found for table name: ", tableName);
 				
 				MWindow window = MWindow.get(Env.getCtx(), windowId);
 				String windowSlug = TypeConverterUtils.slugify(window.getName());
 				WindowResource windowResource = new WindowResourceImpl();
 				return windowResource.printWindowRecord(windowSlug, po.get_ID(), reportType);
 			} catch (Exception ex) {
-				log.log(Level.SEVERE, ex.getMessage(), ex);
-				return Response.status(Status.INTERNAL_SERVER_ERROR)
-						.entity(new ErrorBuilder()
-							.status(Status.INTERNAL_SERVER_ERROR)
-							.title("Print model error")
-							.append("Print model error with exception: ").append(ex.getMessage())
-							.build().toString())
-						.build();
+				return ResponseUtils.getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
 			}
 		} else {
-			po = RestUtils.getPO(tableName, id, false, false);
-
-			if (po != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder()
-								.status(Status.FORBIDDEN)
-								.title("Access denied")
-								.append("Access denied for record with id ").append(id)
-								.build().toString())
-						.build();
-			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder()
-								.status(Status.NOT_FOUND)
-								.title("Record not found")
-								.append("No record found matching id ").append(id)
-								.build().toString())
-						.build();
-			}
+			return poParser.getResponseError();
 		}
-	}
-
-	private void loadDetails(PO po, JsonObject jsonObject, String details, HashMap<String, ArrayList<String>> includeParser) {
-		if (Util.isEmpty(details, true))
-			return;
-		
-		String[] tableNames = details.split("[,]");
-		String keyColumn = po.get_TableName() + "_ID";
-		String[] includes;
-		for(String tableName : tableNames) {
-			MTable table = MTable.get(Env.getCtx(), tableName);
-			if (table == null)
-				continue;
-			
-			if (!hasAccess(table, false))
-				continue;
-			
-			Query query = new Query(Env.getCtx(), table, keyColumn + "=?", null);
-			query.setApplyAccessFilter(true, false)
-				 .setOnlyActiveRecords(true);
-			List<PO> childPOs = query.setParameters(po.get_ID()).list();
-			if (childPOs != null && childPOs.size() > 0) {
-				JsonArray childArray = new JsonArray();
-				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				includes = includeParser != null && includeParser.get(table.getTableName()) != null ? 
-						includeParser.get(table.getTableName()).toArray(new String[includeParser.get(table.getTableName()).size()]) : 
-						null;
-				
-				for(PO child : childPOs) {							
-					JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-					childArray.add(childJsonObject);
-				}
-				jsonObject.add(tableName, childArray);
-			}
-		}
-	}
-	
-	private boolean hasAccess(MTable table, boolean rw) {
-		MRole role = MRole.getDefault();
-		if (role == null)
-			return false;
-		
-		StringBuilder builder = new StringBuilder("SELECT DISTINCT a.AD_Window_ID FROM AD_Window a JOIN AD_Tab b ON a.AD_Window_ID=b.AD_Window_ID ");
-		builder.append("WHERE a.IsActive='Y' AND b.IsActive='Y' AND b.AD_Table_ID=?");
-		try (PreparedStatement stmt = DB.prepareStatement(builder.toString(), null)) {
-			stmt.setInt(1, table.getAD_Table_ID());			
-			ResultSet rs = stmt.executeQuery();
-			while (rs.next()) {
-				int windowId = rs.getInt(1);
-				Boolean b = role.getWindowAccess(windowId);
-				if (b != null) {
-					if (!rw || b.booleanValue())
-						return true;
-				}
-			}
-		} catch (SQLException ex) {
-			log.log(Level.SEVERE, ex.getMessage(), ex);
-			throw new RuntimeException(ex.getMessage());
-		}
-		
-		//If no window or no access to the window - check if the role has read/write access to the table
-		return role.isTableAccess(table.getAD_Table_ID(), false);
 	}
 	
 	private PO loadPO(String tableName, JsonObject jsonObject) {
 		PO po = null;
-		String idColumn = tableName + "_ID";
+		String idColumn = RestUtils.getKeyColumnName(tableName);
 		String uidColumn = PO.getUUIDColumnName(tableName);
 		JsonElement idElement = jsonObject.get("id");											
 		if (idElement != null && idElement.isJsonPrimitive()) {
@@ -1306,31 +851,5 @@ public class ModelResourceImpl implements ModelResource {
 		}
 		return null;
 	}
-	
-	private boolean isValidOrderBy(MTable table, String orderBy) {
-		if (!Util.isEmpty(orderBy, true)) {
-			String[] columnNames = orderBy.split("[,]");
-			for (String columnName : columnNames) {
-				columnName = columnName.trim();
 
-				if (columnName.contains(" ")) {
-					String[] names = columnName.split(" ");
-					columnName = names[0];
-					String orderPreference = names[1];
-					if (names.length > 2 || (!"asc".equals(orderPreference.toLowerCase()) && !"desc".equals(orderPreference.toLowerCase()))) {
-						log.log(Level.WARNING, "Invalid order by clause.");
-						return false;
-					}
-				}
-				if (table.getColumnIndex(columnName) < 0) {
-					log.log(Level.WARNING, "Column: " + columnName + " is not a valid column to be ordered by");
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		return false;
-	}
 }

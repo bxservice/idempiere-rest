@@ -282,12 +282,11 @@ public class Process {
 
 	private static void addFile(JsonObject processInfoJson, File file, String property, String extension) {
 		JsonElement jsonElement = null;
-		JsonParser parser = new JsonParser();
 		try {
 			if ("json".equals(extension)) {
 				FileReader reader = new FileReader(file.getAbsolutePath());
 				JsonReader jsonReader = new JsonReader(reader);
-				jsonElement = parser.parse(jsonReader);
+				jsonElement = JsonParser.parseReader(jsonReader);
 			} else {
 				// treat as binary
 				ByteArrayOutputStream ba= loadFile(file);

@@ -533,6 +533,201 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?$expand={childTables($filter={subfilter})}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order?$select=DocumentNo,Description&$expand=C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order"
+					],
+					"query": [
+						{
+							"key": "$select",
+							"value": "DocumentNo,Description"
+						},
+						{
+							"key": "$expand",
+							"value": "C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}?$expand={tablename}.{columnname}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/ad_user/100?$expand=C_order.salesrep_id($select=documentno)&$select=Name",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"ad_user",
+						"100"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "C_order.salesrep_id($select=documentno)"
+						},
+						{
+							"key": "$select",
+							"value": "Name"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}?$expand=fact_acct.recordid",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_invoice/104?$expand=fact_acct.record_id($select=fact_acct_id),c_invoiceline",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_invoice",
+						"104"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "fact_acct.record_id($select=fact_acct_id),c_invoiceline"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}?$expand={childtable($expand={subchildTable})}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_bpartner/119?$select=Name&$expand=AD_User($select=Name ; $expand=R_ContactInterest($select=IsActive ; $filter=IsActive eq true))&showsql",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_bpartner",
+						"119"
+					],
+					"query": [
+						{
+							"key": "$select",
+							"value": "Name"
+						},
+						{
+							"key": "$expand",
+							"value": "AD_User($select=Name ; $expand=R_ContactInterest($select=IsActive ; $filter=IsActive eq true))"
+						},
+						{
+							"key": "showsql",
+							"value": null
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}?$filter={where clause}",
 			"request": {
 				"method": "GET",
@@ -710,6 +905,51 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?$expand={masterFK}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/m_product/122?$expand=m_product_category_id($select=Name,IsDefault),M_ProductPrice",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"m_product",
+						"122"
+					],
+					"query": [
+						{
+							"key": "$expand",
+							"value": "m_product_category_id($select=Name,IsDefault),M_ProductPrice"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}/{uuid}",
 			"request": {
 				"method": "GET",
@@ -790,6 +1030,50 @@
 					]
 				},
 				"description": "Create new record."
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\":\"Test creating BP with User and Interest Area from REST\",\n     \"AD_User\": [\n         {\n             \"Name\":\"Test User with Interest area\",\n             \"R_ContactInterest\": [\n                 {\n                     \"R_InterestArea_ID\":101\n                 }\n             ]\n         }\n     ]\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"C_BPartner"
+					]
+				},
+				"description": "Create new record with multiple level children."
 			},
 			"response": []
 		},

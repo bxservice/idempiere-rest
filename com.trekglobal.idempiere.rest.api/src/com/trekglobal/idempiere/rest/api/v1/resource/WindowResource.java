@@ -37,6 +37,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+
 /**
  * 
  * @author hengsin
@@ -52,8 +54,8 @@ public interface WindowResource {
 	 * @param filter optional where clause
 	 * @return json array of windows
 	 */
-	public Response getWindows(@QueryParam("$filter") String filter, @QueryParam("$expand") String details,
-			@QueryParam("$select") String select);
+	public Response getWindows(@QueryParam(QueryOperators.FILTER) String filter, @QueryParam(QueryOperators.EXPAND) String details,
+			@QueryParam(QueryOperators.SELECT) String select);
 	
 	@Path("{windowSlug}/tabs")
 	@GET
@@ -75,7 +77,7 @@ public interface WindowResource {
 	 * @param filter optional where clause
 	 * @return json array of tab field 
 	 */
-	public Response getTabFields(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @QueryParam("$filter") String filter);
+	public Response getTabFields(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @QueryParam(QueryOperators.FILTER) String filter);
 	
 	@Path("{windowSlug}")
 	@GET
@@ -88,7 +90,7 @@ public interface WindowResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getWindowRecords(@PathParam("windowSlug") String windowSlug, @QueryParam("$filter") String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
+	public Response getWindowRecords(@PathParam("windowSlug") String windowSlug, @QueryParam(QueryOperators.FILTER) String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
 	
 	@Path("{windowSlug}/{recordId}")
 	@GET
@@ -100,7 +102,7 @@ public interface WindowResource {
 	 * @param details optional comma separated list of child tabs to retrieve
 	 * @return json representation of record
 	 */
-	public Response getWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam("$expand") String details);
+	public Response getWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, @QueryParam(QueryOperators.EXPAND) String details);
 	
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}/{childTabSlug}")
 	@GET
@@ -117,7 +119,7 @@ public interface WindowResource {
 	 * @return json array of child tab records
 	 */
 	public Response getChildTabRecords(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, 
-			@PathParam("childTabSlug") String childTabSlug, @QueryParam("$filter") String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
+			@PathParam("childTabSlug") String childTabSlug, @QueryParam(QueryOperators.FILTER) String filter, @QueryParam("$sort_column") String sortColumn, @QueryParam("$page_no") int pageNo);
 
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}")
 	@GET
@@ -130,7 +132,7 @@ public interface WindowResource {
 	 * @param details optional comma separated list of child tabs to retrieve
 	 * @return json representation of record
 	 */
-	public Response getTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam("$expand") String details);
+	public Response getTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, @QueryParam(QueryOperators.EXPAND) String details);
 	
 	@Path("{windowSlug}/{recordId}")
 	@PUT
