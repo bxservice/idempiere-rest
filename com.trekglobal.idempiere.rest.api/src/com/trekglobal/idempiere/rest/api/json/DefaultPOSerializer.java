@@ -209,7 +209,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	}
 	
 	private void setDefaultValue(PO po, MColumn column) {
-		if (!Util.isEmpty(column.getDefaultValue(), true)) {
+		if (!column.isVirtualColumn() && !Util.isEmpty(column.getDefaultValue(), true)) {
 			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), 0, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
