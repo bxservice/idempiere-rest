@@ -8,6 +8,6 @@
 		<version>0.1.0-SNAPSHOT</version>
 		<relativePath>../com.trekglobal.idempiere.extensions.parent/pom.xml</relativePath>
 	</parent>
-	<artifactId>com.trekglobal.idempiere.extension.server.feature</artifactId>
+	<artifactId>com.trekglobal.idempiere.extensions.server.feature</artifactId>
 	<packaging>eclipse-feature</packaging>
 </project>
