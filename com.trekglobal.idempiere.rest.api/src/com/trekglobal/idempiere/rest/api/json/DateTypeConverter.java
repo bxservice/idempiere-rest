@@ -30,6 +30,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import javax.ws.rs.core.Response.Status;
+
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
@@ -82,7 +84,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 			try {
 				parsed = new SimpleDateFormat(pattern).parse(value.getAsString());
 			} catch (ParseException e) {
-				return null;
+				throw new IDempiereRestException("Invalid date", "The date pattern should be: " + pattern + ". Exception: " + e.getLocalizedMessage(), Status.BAD_REQUEST);
 			}
 			return new Timestamp(parsed.getTime());
 		} else {
