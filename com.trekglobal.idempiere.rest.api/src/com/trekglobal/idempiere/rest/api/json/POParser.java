@@ -80,7 +80,11 @@ public class POParser {
 		if (responseError != null)
 			return responseError;
 
-		po = RestUtils.getPO(tableName, recordID, false, false);
+		try {
+			po = RestUtils.getPO(tableName, recordID, false, false);
+		} catch (Exception e) {
+			return ResponseUtils.getResponseErrorFromException(e, "Exception reading " + recordID, "");
+		}
 
 		if (po != null) {
 			return ResponseUtils.getResponseError(Status.FORBIDDEN, ACCESS_DENIED_TITLE, ACCESS_DENIED_MESSAGE, recordID);
