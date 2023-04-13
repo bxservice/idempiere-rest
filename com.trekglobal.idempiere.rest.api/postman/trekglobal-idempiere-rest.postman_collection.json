@@ -1013,7 +1013,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"AD_Org_ID\": {\n        \"id\": 0,\n        \"tableName\": \"AD_Org\"\n    },\n    \"isActive\": true,\n    \"name\": \"MyGST\",\n    \"description\": \"MyCanadian Federal Sales Tax\",\n    \"Parent_Tax_ID\": {\n        \"identifier\": \"GST/PST\",\n        \"tableName\": \"C_Tax\"\n    },\n    \"C_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"To_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"C_TaxCategory_ID\": {\n        \"identifier\": \"Standard\",\n        \"tableName\": \"C_TaxCategory\"\n    },\n    \"isDocumentLevel\": false,\n    \"validFrom\": \"01/01/2001\",\n    \"isSummary\": false,\n    \"rate\": \"7.0\",\n    \"requiresTaxCertificate\": false,\n    \"taxIndicator\": \"GST\",\n    \"isDefault\": false,\n    \"isTaxExempt\": false,\n    \"sOPOType\": {\n        \"id\": \"B\"\n    },\n    \"isSalesTax\": false,\n    \"tableName\": \"C_Tax\"\n}"
+					"raw": "{\n    \"AD_Org_ID\": {\n        \"id\": 0,\n        \"tableName\": \"AD_Org\"\n    },\n    \"isActive\": true,\n    \"name\": \"MyGST\",\n    \"description\": \"MyCanadian Federal Sales Tax\",\n    \"Parent_Tax_ID\": {\n        \"identifier\": \"GST/PST\",\n        \"tableName\": \"C_Tax\"\n    },\n    \"C_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"To_Country_ID\": {\n        \"identifier\": \"Canada\",\n        \"tableName\": \"C_Country\"\n    },\n    \"C_TaxCategory_ID\": {\n        \"identifier\": \"Standard\",\n        \"tableName\": \"C_TaxCategory\"\n    },\n    \"isDocumentLevel\": false,\n    \"validFrom\": \"2001-01-01\",\n    \"isSummary\": false,\n    \"rate\": \"7.0\",\n    \"requiresTaxCertificate\": false,\n    \"taxIndicator\": \"GST\",\n    \"isDefault\": false,\n    \"isTaxExempt\": false,\n    \"sOPOType\": {\n        \"id\": \"B\"\n    },\n    \"isSalesTax\": false,\n    \"tableName\": \"C_Tax\"\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax",
@@ -1101,7 +1101,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"id\": 1000000,\n    \"name\": \"MyGST\",\n    \"description\": \"My Sales Tax\",\n    \"validFrom\": \"01/01/2019\",\n    \"rate\": \"6.0\",\n    \"isSalesTax\": true,\n    \"taxIndicator\": \"GST\",\n    \"tableName\": \"C_Tax\"\n}"
+					"raw": "{\n    \"id\": 1000000,\n    \"name\": \"MyGST\",\n    \"description\": \"My Sales Tax\",\n    \"validFrom\": \"2019-01-01\",\n    \"rate\": \"6.0\",\n    \"isSalesTax\": true,\n    \"taxIndicator\": \"GST\",\n    \"tableName\": \"C_Tax\"\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax/1000000",
@@ -1611,10 +1611,6 @@
 						"value": "Bearer {{authToken}}"
 					}
 				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"id\": 200084,\n    \"name\": \"Jan-19\",\n    \"endDate\": \"01/30/2019\"\n}"
-				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/bank-cash/tabs/bank-account-document/1000001",
 					"protocol": "{{protocol}}",

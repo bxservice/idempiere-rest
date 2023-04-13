@@ -84,7 +84,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 			try {
 				parsed = new SimpleDateFormat(pattern).parse(value.getAsString());
 			} catch (ParseException e) {
-				throw new IDempiereRestException("Invalid date", "The date pattern should be: " + pattern + ". Exception: " + e.getLocalizedMessage(), Status.BAD_REQUEST);
+				throw new IDempiereRestException("Invalid date", "The " + DisplayType.getDescription(displayType) + " pattern should be: " + pattern + ". Exception: " + e.getLocalizedMessage(), Status.BAD_REQUEST);
 			}
 			return new Timestamp(parsed.getTime());
 		} else {
