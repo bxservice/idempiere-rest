@@ -33,6 +33,7 @@ import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
 import static org.compiere.util.DisplayType.Payment;
 import static org.compiere.util.DisplayType.Button;
+import static org.compiere.util.DisplayType.RecordID;
 
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -178,7 +179,7 @@ public class TypeConverterUtils {
 		query.put("displayType", Integer.toString(displayType));
 		typeConverter = Service.locator().locate(ITypeConverter.class, query).getService();
 		if (typeConverter == null) {
-			if (((DisplayType.isNumeric(displayType) || displayType == Button) && value instanceof Number)) {
+			if (((DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID) && value instanceof Number)) {
 				typeConverter = new NumericTypeConverter();
 			} else if (DisplayType.isDate(displayType) && value instanceof Date) {
 				typeConverter = new DateTypeConverter();
@@ -207,7 +208,7 @@ public class TypeConverterUtils {
 		query.put("displayType", Integer.toString(displayType));
 		typeConverter = Service.locator().locate(ITypeConverter.class, query).getService();
 		if (typeConverter == null) {
-			if ((DisplayType.isNumeric(displayType) || displayType == Button) && (isNumber(value) || isString(value))) {
+			if ((DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID) && (isNumber(value) || isString(value))) {
 				typeConverter = new NumericTypeConverter();
 			} else if (DisplayType.isDate(displayType) && isString(value)) {
 				typeConverter = new DateTypeConverter();
