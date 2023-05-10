@@ -74,6 +74,7 @@ import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IGridTabSerializer;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.Process;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
@@ -1288,20 +1289,23 @@ public class WindowResourceImpl implements WindowResource {
 			query.setApplyAccessFilter(false);
 			window = query.first();
 			if (window != null) {
-				return Response.status(Status.FORBIDDEN)
-						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.FORBIDDEN, 
+						"Access denied", 
+						"Access denied for window: ", 
+						windowSlug);
 			} else {
-				return Response.status(Status.NOT_FOUND)
-						.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid window name").append("No match found for window name: ").append(windowSlug).build().toString())
-						.build();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, 
+						"Invalid window name", 
+						"No match found for window name: ", 
+						windowSlug);
 			}
 		}
 		
 		if (role.getWindowAccess(window.getAD_Window_ID()) == null) {
-			return Response.status(Status.FORBIDDEN)
-					.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for window: ").append(windowSlug).build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.FORBIDDEN, 
+					"Access denied", 
+					"Access denied for window: ", 
+					windowSlug);
 		}
 		
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
@@ -1321,23 +1325,26 @@ public class WindowResourceImpl implements WindowResource {
 		}
 		
 		if (headerTab == null)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Invalid tab name").append("No match found for tab name: ").append(tabSlug).build().toString())
-					.build();
+			return ResponseUtils.getResponseError(Status.NOT_FOUND, 
+					"Invalid tab name", 
+					"No match found for tab name: ", 
+					tabSlug);
 		
 		int AD_Process_ID = headerTab.getAD_Process_ID();
 		if (AD_Process_ID == 0)
-			return Response.status(Status.NO_CONTENT)
-					.entity(new ErrorBuilder().status(Status.NO_CONTENT).title("No print process").append("No print process have been defined for ").append(tabSlug==null?"window":"tab"))
-					.build();
+			return ResponseUtils.getResponseError(Status.NOT_FOUND, 
+					"No print process", 
+					"No print process have been defined for ", 
+					tabSlug==null?"window":"tab");
 		
 		JsonObject jsonObject = loadTabRecord(window, tabSlug, recordId, null);
 		
 		if (jsonObject == null)
-			return Response.status(Status.NOT_FOUND)
-					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("Record not found").append("No record found matching id ").append(recordId).build().toString())
-					.build();
-		
+			return ResponseUtils.getResponseError(Status.NOT_FOUND, 
+					"Record not found", 
+					"No record found matching id ", 
+					String.valueOf(recordId));
+					
 		MProcess process = MProcess.get(Env.getCtx(), AD_Process_ID);
 		MPInstance pinstance = Process.createPInstance(process, new JsonObject(), false);
 		JsonObject processConfig = new JsonObject();
