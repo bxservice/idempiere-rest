@@ -29,6 +29,7 @@ import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
 import static org.compiere.util.DisplayType.Button;
+import static org.compiere.util.DisplayType.RecordID;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
@@ -68,7 +69,7 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object toJsonValue(int displayType, Number value) {
-		if (!(DisplayType.isNumeric(displayType) || displayType == Button))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID))
 			return null;
 		
 		if (displayType == DisplayType.Integer) {
@@ -79,7 +80,7 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object fromJsonValue(int displayType, JsonElement value) {
-		if (!(DisplayType.isNumeric(displayType) || displayType == Button))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID))
 			return null;
 		
 		JsonPrimitive primitive = (JsonPrimitive) value;
