@@ -38,6 +38,7 @@ import org.adempiere.model.IInfoColumn;
 import org.adempiere.model.MInfoProcess;
 import org.compiere.minigrid.ColumnInfo;
 import org.compiere.minigrid.IDColumn;
+import org.compiere.minigrid.UUIDColumn;
 import org.compiere.model.AccessSqlParser;
 import org.compiere.model.AccessSqlParser.TableInfo;
 import org.compiere.model.GridField;
@@ -183,7 +184,12 @@ public class InfoWindow {
 				: tableInfos[0].getTableName();
 					
 		String keySelectClause = keyTableAlias+"."+p_keyColumn;
-		ColumnInfo columnInfo = new ColumnInfo(" ", keySelectClause, IDColumn.class, true, false, null, p_keyColumn);
+		ColumnInfo columnInfo;
+		columnInfo = new ColumnInfo(" ", keySelectClause, IDColumn.class, true, false, null, p_keyColumn);
+		if (p_keyColumn.endsWith("_UU"))
+			columnInfo = new ColumnInfo(" ", keySelectClause, UUIDColumn.class, true, false, null, p_keyColumn);
+		else
+			columnInfo = new ColumnInfo(" ", keySelectClause, IDColumn.class, true, false, null, p_keyColumn);
 		columnInfo.setGridField(findGridField(p_keyColumn));
 		list.add(columnInfo);
 		
