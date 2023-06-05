@@ -399,7 +399,7 @@ public class AuthServiceImpl implements AuthService {
 			return "Invalid roleId";
 		}
 
-		return "";
+		return login.validateLogin(new KeyNamePair(orgId, ""));
 	}
 
 	private boolean isValidRole(int roleId, KeyNamePair[] roles) {

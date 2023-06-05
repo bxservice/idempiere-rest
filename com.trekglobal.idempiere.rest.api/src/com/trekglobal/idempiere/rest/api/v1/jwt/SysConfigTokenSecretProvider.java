@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.v1.jwt;
 import java.util.UUID;
 
 import org.compiere.model.MSysConfig;
+import org.compiere.model.PO;
 import org.compiere.util.CacheMgt;
 import org.compiere.util.Env;
 
@@ -43,20 +44,23 @@ public class SysConfigTokenSecretProvider implements ITokenSecretProvider {
 	private SysConfigTokenSecretProvider() {
 		String secret = MSysConfig.getValue(REST_TOKEN_SECRET);
 		if (secret == null) {
+			MSysConfig sysConfig = new MSysConfig(Env.getCtx(), 0, null);
+			sysConfig.set_ValueNoCheck(MSysConfig.COLUMNNAME_AD_Client_ID, 0);
+			sysConfig.set_ValueNoCheck(MSysConfig.COLUMNNAME_AD_Org_ID, 0);
+			sysConfig.setName(REST_TOKEN_SECRET);
+			sysConfig.setValue(UUID.randomUUID().toString());
+			String oldClientID = Env.getContext(Env.getCtx(), Env.AD_CLIENT_ID);
 			try {
-				MSysConfig.setCrossTenantSafe();
-				MSysConfig sysConfig = new MSysConfig(Env.getCtx(), 0, null);
-				sysConfig.set_ValueNoCheck(MSysConfig.COLUMNNAME_AD_Client_ID, 0);
-				sysConfig.set_ValueNoCheck(MSysConfig.COLUMNNAME_AD_Org_ID, 0);
-				sysConfig.setName(REST_TOKEN_SECRET);
-				sysConfig.setValue(UUID.randomUUID().toString());
+				PO.setCrossTenantSafe();
+				Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, "0");
 				sysConfig.saveEx();
-				CacheMgt.get().reset(MSysConfig.Table_Name);
 			} catch (Exception e) {
 				e.printStackTrace();
 			} finally {
-				MSysConfig.clearCrossTenantSafe();
+				Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, oldClientID);
+				PO.clearCrossTenantSafe();
 			}
+			CacheMgt.get().reset(MSysConfig.Table_Name);
 		}
 	}
 
