@@ -27,12 +27,12 @@ package com.trekglobal.idempiere.rest.api.json;
 
 import static org.compiere.util.DisplayType.Account;
 import static org.compiere.util.DisplayType.Binary;
+import static org.compiere.util.DisplayType.Button;
 import static org.compiere.util.DisplayType.Image;
 import static org.compiere.util.DisplayType.Location;
 import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
 import static org.compiere.util.DisplayType.Payment;
-import static org.compiere.util.DisplayType.Button;
 import static org.compiere.util.DisplayType.RecordID;
 
 import java.text.Normalizer;
@@ -185,8 +185,9 @@ public class TypeConverterUtils {
 				typeConverter = new DateTypeConverter();
 			} else if (DisplayType.YesNo == displayType) {
 				typeConverter = new YesNoTypeConverter();
-			} else if (displayType == Location
-					|| displayType == Locator
+			} else if (displayType == Location) {
+					return new LocationTypeConverter();
+			} else if (displayType == Locator
 					|| displayType == Account
 					|| displayType == PAttribute
 					|| displayType == Payment
@@ -214,8 +215,9 @@ public class TypeConverterUtils {
 				typeConverter = new DateTypeConverter();
 			} else if (DisplayType.YesNo == displayType && (isBoolean(value) || isString(value))) {
 				typeConverter = new YesNoTypeConverter();
-			} else if (displayType == Location
-					|| displayType == Locator
+			} else if (displayType == Location) {
+				return new LocationTypeConverter();
+			} else if (displayType == Locator
 					|| displayType == Account
 					|| displayType == PAttribute
 					|| displayType == Payment
