@@ -185,8 +185,9 @@ public class TypeConverterUtils {
 				typeConverter = new DateTypeConverter();
 			} else if (DisplayType.YesNo == displayType) {
 				typeConverter = new YesNoTypeConverter();
-			} else if (displayType == Location
-					|| displayType == Locator
+			} else if (displayType == Location) {
+					return new LocationTypeConverter();
+			} else if (displayType == Locator
 					|| displayType == Account
 					|| displayType == PAttribute
 					|| displayType == Payment
@@ -214,8 +215,9 @@ public class TypeConverterUtils {
 				typeConverter = new DateTypeConverter();
 			} else if (DisplayType.YesNo == displayType && (isBoolean(value) || isString(value))) {
 				typeConverter = new YesNoTypeConverter();
-			} else if (displayType == Location
-					|| displayType == Locator
+			} else if (displayType == Location) {
+				return new LocationTypeConverter();
+			} else if (displayType == Locator
 					|| displayType == Account
 					|| displayType == PAttribute
 					|| displayType == Payment
