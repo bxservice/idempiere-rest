@@ -447,7 +447,7 @@ public class InfoWindow {
 	private String getSQLWhere() {
 		StringBuilder builder = new StringBuilder();
 		MTable table = MTable.get(Env.getCtx(), tableName);
-		if (table.get_ColumnIndex("IsActive") >=0 ) {
+		if (table.getColumnIndex("IsActive") >=0 ) {
 			if (p_whereClause != null && p_whereClause.trim().length() > 0) {
 				builder.append(" AND ");
 			}
