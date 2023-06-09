@@ -105,7 +105,7 @@ public class CacheResourceImpl implements CacheResource {
 				count = CacheMgt.get().reset(tableName);
 			}
 		}
-		return Response.ok("{entriesReset: " + count + "}").build();
+		return Response.ok("{\"entriesReset\": " + count + "}").build();
 	}
 
 	private Response forbidden(String title, String detail) {
