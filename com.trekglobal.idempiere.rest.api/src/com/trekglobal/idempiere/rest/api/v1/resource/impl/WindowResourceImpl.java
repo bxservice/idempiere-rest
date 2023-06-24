@@ -280,9 +280,10 @@ public class WindowResourceImpl implements WindowResource {
 				whereClause.append(" AND (").append(convertedStatement.getWhereClause()).append(")");
 			}
 			query = new Query(Env.getCtx(), MField.Table_Name, whereClause.toString(), null);
-			convertedStatement.addParameter(0, tabId);
-			
-			List<MField> fields = query.setParameters(convertedStatement.getParameters()).list();
+			List<Object> prmCopy = new ArrayList<>(convertedStatement.getParameters());
+			prmCopy.add(0, tabId);
+
+			List<MField> fields = query.setParameters(prmCopy).list();
 			JsonArray fieldArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
 			for(MField field : fields ) {
