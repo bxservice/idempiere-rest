@@ -10,7 +10,7 @@
 	<name>Maven parent project for Trek Global iDempiere Extensions</name>
 
 	<properties>
-		<tycho.version>3.0.5-SNAPSHOT</tycho.version>
+		<tycho.version>3.0.5</tycho.version>
 		<tycho.extras.version>${tycho.version}</tycho.extras.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.dependency.version>3.1.1</maven.dependency.version>
@@ -168,6 +168,20 @@
 									<arch>x86_64</arch>
 								</environment>
 							</environments>
+							<dependency-resolution>
+								<extraRequirements>
+									<requirement>
+										<type>eclipse-plugin</type>
+										<id>org.eclipse.core.runtime</id>
+										<versionRange>0.0.0</versionRange>
+									</requirement>
+									<requirement>
+										<type>eclipse-plugin</type>
+										<id>org.eclipse.equinox.common</id>
+										<versionRange>0.0.0</versionRange>
+									</requirement>
+								</extraRequirements>
+							</dependency-resolution>
 							<executionEnvironmentDefault>JavaSE-17</executionEnvironmentDefault>
 							<executionEnvironment>JavaSE-17</executionEnvironment>
 						</configuration>
