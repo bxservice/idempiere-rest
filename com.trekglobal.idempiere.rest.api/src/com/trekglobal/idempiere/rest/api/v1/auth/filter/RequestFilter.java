@@ -51,6 +51,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
+import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
@@ -88,7 +89,7 @@ public class RequestFilter implements ContainerRequestFilter {
 		// consume JWT i.e. execute signature validation
 		if (authHeaderVal != null && authHeaderVal.startsWith("Bearer")) {
 			try {
-				validate(authHeaderVal.split(" ")[1]);
+				validate(authHeaderVal.split(" ")[1], requestContext);
 				if (Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_USER_ID)) ||
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
@@ -96,8 +97,10 @@ public class RequestFilter implements ContainerRequestFilter {
 					}
 				}
 			} catch (JWTVerificationException ex) {
+				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 			} catch (Exception ex) {
+				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());
 			}
 		} else {
@@ -105,10 +108,16 @@ public class RequestFilter implements ContainerRequestFilter {
 		}
 	}
 
-	private void validate(String token) throws IllegalArgumentException, UnsupportedEncodingException {
+	private void validate(String token, ContainerRequestContext requestContext) throws IllegalArgumentException, UnsupportedEncodingException {
 		
 		if(MAuthToken.isBlocked(token)) {
 			throw new JWTVerificationException("Token is blocked");
+		}
+		
+		MOIDCService service = MOIDCService.fromToken(token);
+		if (service != null) {
+			service.validateAccessToken(token, requestContext);
+			return;
 		}
 		
 		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
