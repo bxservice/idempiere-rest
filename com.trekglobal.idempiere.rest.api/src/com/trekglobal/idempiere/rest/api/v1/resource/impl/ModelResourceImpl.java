@@ -207,9 +207,11 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
-			String validationRuleID, String context, String showsql) {
+			String validationRuleID, String context, String showsql, String includeinactive) {
 		try {
-			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
+//			MTable table = MTable.get(Env.getCtx(), tableName);
+//			tableName = table.getTableName();
+			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context, includeinactive);
 			List<PO> list = modelHelper.getPOsFromRequest();
 			
 			JsonArray array = new JsonArray();

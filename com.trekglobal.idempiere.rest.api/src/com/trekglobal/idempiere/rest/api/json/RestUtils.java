@@ -157,7 +157,7 @@ public class RestUtils {
 	 * @param params
 	 * @return Query
 	 */
-	public static Query getQuery(String tableName, String whereClause, List<Object> params) {
+	public static Query getQuery(String tableName, String whereClause, List<Object> params, String includeInactive) {
 		MTable table = getQueryTable(tableName);
 
 		if (   table != null
@@ -170,12 +170,21 @@ public class RestUtils {
 			whereClause = whereClause + "AD_Language=?";
 			params.add(Env.getAD_Language(Env.getCtx()));
 		}
+		
+		if(includeInactive!=null && includeInactive.equals("only")) {
+			whereClause += "isActive=?";
+			params.add("N");
+		}
 
 		Query query = new Query(Env.getCtx(), table, whereClause, null);
 
-		query.setApplyAccessFilter(true, false)
-			.setOnlyActiveRecords(true)
-			.setParameters(params);
+		query.setApplyAccessFilter(true, false);
+		
+		if(includeInactive==null)
+			query.setOnlyActiveRecords(true);
+		
+		
+		query.setParameters(params);
 
 		return query;
 	}

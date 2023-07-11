@@ -66,9 +66,11 @@ public class ModelHelper {
 	private int rowCount = 0;
 	private int pageCount = 0;
 	private String sqlStatement;
+	private String includeinactive;
 	
 	public ModelHelper(String tableName, String filter, String orderBy, 
-			int top, int skip, String validationRuleID, String context) {
+			int top, int skip, String validationRuleID, String context, 
+			String includeinactive) {
 		this.tableName=tableName;
 		this.filter=filter;
 		this.orderBy=orderBy;
@@ -76,10 +78,17 @@ public class ModelHelper {
 		this.skip=skip;
 		this.validationRuleID=validationRuleID;
 		this.context=context;		
+		this.includeinactive=includeinactive;		
 	}
 	
 	public ModelHelper(String tableName, String filter, String orderBy, int top, int skip) {
 		this(tableName, filter, orderBy, top, skip, null, null);
+	}
+	
+	public ModelHelper(String tableName, String filter, String orderBy, 
+			int top, int skip, String validationRuleID, String context)
+	{
+		this(tableName, filter, orderBy, top, skip, null, null, null);
 	}
 	
 	public List<PO> getPOsFromRequest() {
@@ -91,7 +100,7 @@ public class ModelHelper {
 		ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
 		String convertedWhereClause = getFullWhereClause(convertedStatement);
 
-		Query query = RestUtils.getQuery(tableName, convertedWhereClause,  new ArrayList<Object>(convertedStatement.getParameters()));
+		Query query = RestUtils.getQuery(tableName, convertedWhereClause,  new ArrayList<Object>(convertedStatement.getParameters()), includeinactive);
 		if (isValidOrderBy(table, orderBy)) {
 			query.setOrderBy(orderBy);
 		}
