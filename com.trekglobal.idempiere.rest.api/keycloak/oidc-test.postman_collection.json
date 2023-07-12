@@ -61,12 +61,10 @@
 					]
 				},
 				"url": {
-					"raw": "http://localhost:9080/realms/GardenWorld/protocol/openid-connect/token",
-					"protocol": "http",
+					"raw": "{{keycloakHost}}/realms/GardenWorld/protocol/openid-connect/token",
 					"host": [
-						"localhost"
+						"{{keycloakHost}}"
 					],
-					"port": "9080",
 					"path": [
 						"realms",
 						"GardenWorld",
@@ -133,12 +131,10 @@
 					]
 				},
 				"url": {
-					"raw": "http://localhost:9080/realms/GardenWorld/protocol/openid-connect/token",
-					"protocol": "http",
+					"raw": "{{keycloakHost}}/realms/GardenWorld/protocol/openid-connect/token",
 					"host": [
-						"localhost"
+						"{{keycloakHost}}"
 					],
-					"port": "9080",
 					"path": [
 						"realms",
 						"GardenWorld",
@@ -216,12 +212,10 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8080/api/v1/models/c_order?select=DocumentNo,Description",
-					"protocol": "http",
+					"raw": "{{idempiereHost}}/api/v1/models/c_order?select=DocumentNo,Description",
 					"host": [
-						"localhost"
+						"{{idempiereHost}}"
 					],
-					"port": "8080",
 					"path": [
 						"api",
 						"v1",
