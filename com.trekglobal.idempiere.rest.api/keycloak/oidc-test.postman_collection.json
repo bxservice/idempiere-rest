@@ -25,11 +25,6 @@
 				"method": "POST",
 				"header": [
 					{
-						"key": "Authorization",
-						"value": "Basic cmVzdC1hcGk6MnV1UE5LcjNpcW10R2V6WTc2aUVFSHU3d2ZmU0Z5SUk=",
-						"type": "text"
-					},
-					{
 						"key": "Content-Type",
 						"value": "application/x-www-form-urlencoded",
 						"type": "text"
@@ -51,6 +46,16 @@
 						{
 							"key": "grant_type",
 							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "rest-api",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "{{clientSecret}}",
 							"type": "text"
 						}
 					]
@@ -92,11 +97,6 @@
 				"method": "POST",
 				"header": [
 					{
-						"key": "Authorization",
-						"value": "Basic cmVzdC1hcGk6MnV1UE5LcjNpcW10R2V6WTc2aUVFSHU3d2ZmU0Z5SUk=",
-						"type": "text"
-					},
-					{
 						"key": "Content-Type",
 						"value": "application/x-www-form-urlencoded",
 						"type": "text"
@@ -118,6 +118,16 @@
 						{
 							"key": "grant_type",
 							"value": "password",
+							"type": "text"
+						},
+						{
+							"key": "client_id",
+							"value": "rest-api",
+							"type": "text"
+						},
+						{
+							"key": "client_secret",
+							"value": "{{clientSecret}}",
 							"type": "text"
 						}
 					]
