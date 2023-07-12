@@ -180,8 +180,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	 * Get MOIDCService from OIDC access token
 	 * @param token
 	 * @return Matching MOIDCService or null
+	 * @throws JWTVerificationException if token is an OIDC access token and there's no matching service configuration
 	 */
-	public static MOIDCService fromToken(String token) {
+	public static MOIDCService findMatchingOIDCService(String token) {
 		DecodedJWT decoded = JWT.decode(token);
 		Instant expire = decoded.getExpiresAtAsInstant(); 
 		if (expire != null && !expire.isAfter(Instant.now()))
@@ -195,12 +196,14 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		Claim aud = decoded.getClaim("aud");
 		Claim azp = decoded.getClaim("azp");
 		
+		MOIDCService service = null;
 		if (isWithStringValue(alg) && isWithStringValue(typ) && "JWT".equals(typ.asString()) && isWithStringValue(kid) &&
 			isWithStringValue(iss) && isWithStringValue(aud) && isWithStringValue(azp)) {
-			MOIDCService service = fromIssuerAndAudience(iss.asString(), aud.asString());
-			return service;
+			service = fromIssuerAndAudience(iss.asString(), aud.asString());
+			if (service == null)
+				throw new JWTVerificationException("No matching OpenID Connect service configuration for access token");			
 		}
-		return null;
+		return service;
 	}
 	
 	/**
