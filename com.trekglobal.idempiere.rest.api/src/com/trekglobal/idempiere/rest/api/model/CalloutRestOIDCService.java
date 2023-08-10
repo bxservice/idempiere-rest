@@ -23,25 +23,42 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
+package com.trekglobal.idempiere.rest.api.model;
 
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.osgi.framework.BundleContext;
+import java.util.Properties;
+
+import org.adempiere.base.IColumnCallout;
+import org.adempiere.base.annotation.Callout;
+import org.compiere.model.GridField;
+import org.compiere.model.GridTab;
+import org.compiere.util.Env;
 
 /**
- * 
  * @author hengsin
- *
  */
-public class Activator extends Incremental2PackActivator {
-	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
+@Callout(tableName = I_REST_OIDCService.Table_Name, columnName = I_REST_OIDCService.COLUMNNAME_OIDC_AuthorityURL)
+public class CalloutRestOIDCService implements IColumnCallout {
 
-		super.start(context);
+	/**
+	 * Default constructor
+	 */
+	public CalloutRestOIDCService() {
 	}
+
+	@Override
+	public String start(Properties ctx, int WindowNo, GridTab mTab, GridField mField, Object value, Object oldValue) {
+		if (value != null) {
+			String url = value.toString();
+			Integer providerId = (Integer) mTab.getValue(I_REST_OIDCService.COLUMNNAME_REST_OIDCProvider_ID);
+			if (providerId != null) {
+				MOIDCProvider provider = new MOIDCProvider(Env.getCtx(), providerId, null);
+				String configurationURL = provider.getOIDC_ConfigurationURL();
+				configurationURL = configurationURL.replace("@"+I_REST_OIDCService.COLUMNNAME_OIDC_AuthorityURL+"@", url);
+				mTab.setValue(I_REST_OIDCService.COLUMNNAME_OIDC_ConfigurationURL, configurationURL);
+				mTab.setValue(I_REST_OIDCService.COLUMNNAME_OIDC_IssuerURL, url);
+			}
+		}
+		return null;
+	}
+
 }

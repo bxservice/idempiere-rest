@@ -23,25 +23,57 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
-
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.osgi.framework.BundleContext;
+package com.trekglobal.idempiere.rest.api.oidc;
 
 /**
- * 
  * @author hengsin
- *
  */
-public class Activator extends Incremental2PackActivator {
-	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
+public class AuthenticatedUser {
 
-		super.start(context);
+	private int tenantId;
+	private int organizationId;
+	private int roleId;
+	private int userId;
+	
+	/**
+	 * @param tenantId
+	 * @param organizationId
+	 * @param roleId
+	 * @param userId
+	 */
+	public AuthenticatedUser(int tenantId, int organizationId, int roleId, int userId) {
+		this.tenantId = tenantId;
+		this.organizationId = organizationId;
+		this.roleId = roleId;
+		this.userId = userId;
 	}
+
+	/**
+	 * @return AD_Client_ID
+	 */
+	public int getTenantId() {
+		return tenantId;
+	}
+
+	/**
+	 * @return AD_Org_ID
+	 */
+	public int getOrganizationId() {
+		return organizationId;
+	}
+
+	/**
+	 * @return AD_Role_ID
+	 */
+	public int getRoleId() {
+		return roleId;
+	}
+
+	/**
+	 * @return AD_User_ID
+	 */
+	public int getUserId() {
+		return userId;
+	}
+		
 }

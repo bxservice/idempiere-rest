@@ -51,6 +51,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
+import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
@@ -88,7 +89,7 @@ public class RequestFilter implements ContainerRequestFilter {
 		// consume JWT i.e. execute signature validation
 		if (authHeaderVal != null && authHeaderVal.startsWith("Bearer")) {
 			try {
-				validate(authHeaderVal.split(" ")[1]);
+				validate(authHeaderVal.split(" ")[1], requestContext);
 				if (Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_USER_ID)) ||
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
@@ -96,8 +97,10 @@ public class RequestFilter implements ContainerRequestFilter {
 					}
 				}
 			} catch (JWTVerificationException ex) {
+				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 			} catch (Exception ex) {
+				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());
 			}
 		} else {
@@ -105,10 +108,16 @@ public class RequestFilter implements ContainerRequestFilter {
 		}
 	}
 
-	private void validate(String token) throws IllegalArgumentException, UnsupportedEncodingException {
+	private void validate(String token, ContainerRequestContext requestContext) throws IllegalArgumentException, UnsupportedEncodingException {
 		
 		if(MAuthToken.isBlocked(token)) {
 			throw new JWTVerificationException("Token is blocked");
+		}
+		
+		MOIDCService service = MOIDCService.findMatchingOIDCService(token);
+		if (service != null) {
+			service.validateAccessToken(token, requestContext);
+			return;
 		}
 		
 		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
@@ -120,44 +129,44 @@ public class RequestFilter implements ContainerRequestFilter {
 		ServerContext.setCurrentInstance(new Properties());
 		Env.setContext(Env.getCtx(), LOGIN_NAME, userName);
 		Claim claim = jwt.getClaim(LoginClaims.Clients.name());
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			String clients = claim.asString();
 			Env.setContext(Env.getCtx(), LOGIN_CLIENTS, clients);
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
 		int AD_Client_ID = 0;
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Client_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, AD_Client_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.AD_User_ID.name());
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, claim.asInt());
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Role_ID.name());
 		int AD_Role_ID = 0;
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Role_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, AD_Role_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Org_ID.name());
 		int AD_Org_ID = 0;
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Org_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, AD_Org_ID);				
 		}
 		claim = jwt.getClaim(LoginClaims.M_Warehouse_ID.name());
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			Env.setContext(Env.getCtx(), Env.M_WAREHOUSE_ID, claim.asInt());				
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Language.name());
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			String AD_Language = claim.asString();
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Session_ID.name());
 		int AD_Session_ID = 0;
-		if (!claim.isNull()) {
+		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Session_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), "#AD_Session_ID", AD_Session_ID);
 		}
