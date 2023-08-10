@@ -43,11 +43,4 @@
 			</plugin>
 		</plugins>
 	</build>
-	<dependencies>
-		<dependency>
-			<groupId>org.idempiere</groupId>
-			<artifactId>org.idempiere.webservices</artifactId>
-			<version>11.0.0-SNAPSHOT</version>
-		</dependency>
-	</dependencies>
 </project>
