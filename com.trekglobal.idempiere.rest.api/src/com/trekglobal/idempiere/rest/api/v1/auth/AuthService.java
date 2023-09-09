@@ -118,4 +118,15 @@ public interface AuthService {
 	 * @return jwk keys
 	 */
 	public Response getJWK();
+
+	@Path("auth/refresh")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get auth token with a refresh token
+	 * @return new auth token
+	 */
+	public Response tokenRefresh(RefreshParameters refresh);
+
 }

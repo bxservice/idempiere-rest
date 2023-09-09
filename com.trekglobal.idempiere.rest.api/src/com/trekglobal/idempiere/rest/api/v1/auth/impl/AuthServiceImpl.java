@@ -26,6 +26,8 @@
 package com.trekglobal.idempiere.rest.api.v1.auth.impl;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
@@ -53,14 +55,20 @@ import org.compiere.util.Util;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTCreator.Builder;
+import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginParameters;
+import com.trekglobal.idempiere.rest.api.v1.auth.RefreshParameters;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
@@ -358,6 +366,7 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
 			responseNode.addProperty("token", token);
+			responseNode.addProperty("refresh_token", generateRefreshToken(token));
 		} catch (IllegalArgumentException | JWTCreationException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();
@@ -486,6 +495,126 @@ public class AuthServiceImpl implements AuthService {
 		}
 
 		return Response.ok(jwks.toString()).build();
+	}
+
+	/**
+	 * Refresh a token, returns a new auth token and a new refresh token
+	 */
+	@Override
+	public Response tokenRefresh(RefreshParameters refresh) {
+		String refreshToken = refresh.getRefresh_token();
+		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
+		JWTVerifier verifier = JWT.require(algorithm)
+		        .withIssuer(TokenUtils.getTokenIssuer())
+		        .build(); //Reusable verifier instance
+
+		// Verify the refresh token (expiration, signature)
+		try {
+			verifier.verify(refreshToken);
+		} catch (JWTVerificationException e) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(e.getLocalizedMessage()).build().toString())
+					.build();
+		}
+
+		// get the auth token from the refresh token
+		String authToken = MRefreshToken.getAuthToken(refreshToken);
+		if (Util.isEmpty(authToken)) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("Invalid refresh token").build().toString())
+					.build();
+		}
+
+		JWTVerifier decoder = JWT.require(algorithm)
+		        .withIssuer(TokenUtils.getTokenIssuer())
+		        .acceptExpiresAt(Instant.MAX.getEpochSecond()) // do not validate expiration of token
+		        .build(); //Reusable verifier instance
+		DecodedJWT jwt;
+		try {
+			jwt = decoder.verify(authToken);
+		} catch (JWTVerificationException e) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(e.getLocalizedMessage()).build().toString())
+					.build();
+		}
+		String userName = jwt.getSubject();
+
+		Claim claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
+		int clientId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			clientId = claim.asInt();
+
+		claim = jwt.getClaim(LoginClaims.AD_User_ID.name());
+		int userId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			userId = claim.asInt();
+
+		claim = jwt.getClaim(LoginClaims.AD_Role_ID.name());
+		int roleId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			roleId = claim.asInt();
+
+		claim = jwt.getClaim(LoginClaims.AD_Org_ID.name());
+		int orgId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			orgId = claim.asInt();
+
+		claim = jwt.getClaim(LoginClaims.M_Warehouse_ID.name());
+		int warehouseId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			warehouseId = claim.asInt();
+
+		claim = jwt.getClaim(LoginClaims.AD_Language.name());
+		String defaultLanguage = null;
+		if (!claim.isNull() && !claim.isMissing())
+			defaultLanguage = claim.asString();
+
+		claim = jwt.getClaim(LoginClaims.AD_Session_ID.name());
+		int sessionId = -1;
+		if (!claim.isNull() && !claim.isMissing())
+			sessionId = claim.asInt();
+
+		JsonObject responseNode = new JsonObject();
+		Builder builder = JWT.create().withSubject(userName);
+		builder.withClaim(LoginClaims.AD_Client_ID.name(), clientId);
+		builder.withClaim(LoginClaims.AD_User_ID.name(), userId);
+		builder.withClaim(LoginClaims.AD_Role_ID.name(), roleId);
+		builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
+		if (orgId > 0 && warehouseId > 0)
+			builder.withClaim(LoginClaims.M_Warehouse_ID.name(), warehouseId);
+		builder.withClaim(LoginClaims.AD_Language.name(), defaultLanguage);
+		builder.withClaim(LoginClaims.AD_Session_ID.name(), sessionId);
+
+		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
+		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
+		try {
+			String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
+			responseNode.addProperty("token", token);
+			responseNode.addProperty("refresh_token", generateRefreshToken(token));
+		} catch (IllegalArgumentException | JWTCreationException e) {
+			e.printStackTrace();
+			return Response.status(Status.BAD_REQUEST).build();
+		}
+		return Response.ok(responseNode.toString()).build();
+	}
+
+	/**
+	 * Generate a random refresh token
+	 * @return
+	 */
+	private String generateRefreshToken(String token) {
+		String uuidJWT = UUID.randomUUID().toString();
+		Builder builder = JWT.create().withJWTId(uuidJWT);
+
+		Timestamp expiresAt = TokenUtils.getRefreshTokenExpiresAt();
+		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
+		String refreshToken = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
+
+		// persist in database
+		MRefreshToken refreshTokenInDB = new MRefreshToken(token, refreshToken, expiresAt);
+		refreshTokenInDB.save();
+
+		return refreshToken;
 	}
 
 }

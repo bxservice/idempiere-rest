@@ -92,4 +92,16 @@ public class TokenUtils {
 		expiresAt = TimeUtil.addMinutess(expiresAt, expMinutes);
 		return expiresAt;
 	}
+
+	/**
+	 * 
+	 * @return refresh token expire time stamp
+	 */
+	public static Timestamp getRefreshTokenExpiresAt() {
+		Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
+		int expMinutes = MSysConfig.getIntValue("REST_REFRESH_TOKEN_EXPIRE_IN_MINUTES", 1440, Env.getAD_Client_ID(Env.getCtx()));
+		expiresAt = TimeUtil.addMinutess(expiresAt, expMinutes);
+		return expiresAt;
+	}
+
 }
