@@ -32,7 +32,25 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20230909L;
+	private static final long serialVersionUID = 20230913L;
+
+    /** Standard Constructor */
+    public X_REST_RefreshToken (Properties ctx, int REST_RefreshToken_ID_ignored, String trxName)
+    {
+      super (ctx, REST_RefreshToken_ID_ignored, trxName);
+      /** if (REST_RefreshToken_ID_ignored == 0)
+        {
+        } */
+    }
+
+    /** Standard Constructor */
+    public X_REST_RefreshToken (Properties ctx, int REST_RefreshToken_ID_ignored, String trxName, String ... virtualColumns)
+    {
+      super (ctx, REST_RefreshToken_ID_ignored, trxName, virtualColumns);
+      /** if (REST_RefreshToken_ID_ignored == 0)
+        {
+        } */
+    }
 
     /** Standard Constructor */
     public X_REST_RefreshToken (Properties ctx, String REST_RefreshToken_UU, String trxName)
