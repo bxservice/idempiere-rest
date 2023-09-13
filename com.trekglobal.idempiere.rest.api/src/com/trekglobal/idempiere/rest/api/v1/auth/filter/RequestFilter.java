@@ -80,6 +80,9 @@ public class RequestFilter implements ContainerRequestFilter {
 			|| (   HttpMethod.GET.equals(requestContext.getMethod())
 					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/jwk")
 					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/refresh")
+					)
 			) {
 			return;
 		}
