@@ -23,16 +23,16 @@ import java.util.Properties;
 import org.compiere.model.*;
 
 /** Generated Model for REST_AuthToken
- *  @author iDempiere (generated) 
- *  @version Release 10 - $Id$ */
+ *  @author iDempiere (generated)
+ *  @version Release 11 - $Id$ */
 @org.adempiere.base.Model(table="REST_AuthToken")
-public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persistent 
+public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persistent
 {
 
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20221029L;
+	private static final long serialVersionUID = 20230914L;
 
     /** Standard Constructor */
     public X_REST_AuthToken (Properties ctx, int REST_AuthToken_ID, String trxName)
@@ -68,6 +68,40 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
         } */
     }
 
+    /** Standard Constructor */
+    public X_REST_AuthToken (Properties ctx, String REST_AuthToken_UU, String trxName)
+    {
+      super (ctx, REST_AuthToken_UU, trxName);
+      /** if (REST_AuthToken_UU == null)
+        {
+			setAD_Language (null);
+			setAD_Role_ID (0);
+			setAD_User_ID (0);
+			setExpireInMinutes (0);
+			setName (null);
+			setProcessed (false);
+// N
+			setREST_AuthToken_ID (0);
+        } */
+    }
+
+    /** Standard Constructor */
+    public X_REST_AuthToken (Properties ctx, String REST_AuthToken_UU, String trxName, String ... virtualColumns)
+    {
+      super (ctx, REST_AuthToken_UU, trxName, virtualColumns);
+      /** if (REST_AuthToken_UU == null)
+        {
+			setAD_Language (null);
+			setAD_Role_ID (0);
+			setAD_User_ID (0);
+			setExpireInMinutes (0);
+			setName (null);
+			setProcessed (false);
+// N
+			setREST_AuthToken_ID (0);
+        } */
+    }
+
     /** Load Constructor */
     public X_REST_AuthToken (Properties ctx, ResultSet rs, String trxName)
     {
@@ -75,7 +109,7 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
     }
 
     /** AccessLevel
-      * @return 6 - System - Client 
+      * @return 6 - System - Client
       */
     protected int get_AccessLevel()
     {
@@ -261,10 +295,10 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 	public boolean isExpired()
 	{
 		Object oo = get_Value(COLUMNNAME_IsExpired);
-		if (oo != null) 
+		if (oo != null)
 		{
-			 if (oo instanceof Boolean) 
-				 return ((Boolean)oo).booleanValue(); 
+			 if (oo instanceof Boolean)
+				 return ((Boolean)oo).booleanValue();
 			return "Y".equals(oo);
 		}
 		return false;
@@ -328,10 +362,10 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 	public boolean isProcessed()
 	{
 		Object oo = get_Value(COLUMNNAME_Processed);
-		if (oo != null) 
+		if (oo != null)
 		{
-			 if (oo instanceof Boolean) 
-				 return ((Boolean)oo).booleanValue(); 
+			 if (oo instanceof Boolean)
+				 return ((Boolean)oo).booleanValue();
 			return "Y".equals(oo);
 		}
 		return false;
@@ -350,10 +384,10 @@ public class X_REST_AuthToken extends PO implements I_REST_AuthToken, I_Persiste
 	public boolean isProcessing()
 	{
 		Object oo = get_Value(COLUMNNAME_Processing);
-		if (oo != null) 
+		if (oo != null)
 		{
-			 if (oo instanceof Boolean) 
-				 return ((Boolean)oo).booleanValue(); 
+			 if (oo instanceof Boolean)
+				 return ((Boolean)oo).booleanValue();
 			return "Y".equals(oo);
 		}
 		return false;

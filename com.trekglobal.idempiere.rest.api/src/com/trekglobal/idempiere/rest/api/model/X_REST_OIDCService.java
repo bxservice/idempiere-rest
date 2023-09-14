@@ -31,7 +31,7 @@ public class X_REST_OIDCService extends PO implements I_REST_OIDCService, I_Pers
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20230707L;
+	private static final long serialVersionUID = 20230914L;
 
     /** Standard Constructor */
     public X_REST_OIDCService (Properties ctx, int REST_OIDCService_ID, String trxName)

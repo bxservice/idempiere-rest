@@ -123,12 +123,12 @@ public interface I_REST_OIDCProvider
     public static final String COLUMNNAME_OIDC_ConfigurationURL = "OIDC_ConfigurationURL";
 
 	/** Set Configuration URL.
-	  * OIDC Configuration Endpoint
+	  * OpenID Connect Configuration Endpoint
 	  */
 	public void setOIDC_ConfigurationURL (String OIDC_ConfigurationURL);
 
 	/** Get Configuration URL.
-	  * OIDC Configuration Endpoint
+	  * OpenID Connect Configuration Endpoint
 	  */
 	public String getOIDC_ConfigurationURL();
 
