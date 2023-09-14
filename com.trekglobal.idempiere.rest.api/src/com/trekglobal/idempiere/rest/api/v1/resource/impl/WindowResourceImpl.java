@@ -1354,8 +1354,10 @@ public class WindowResourceImpl implements WindowResource {
 		if (!Util.isEmpty(reportType, true)) {
 			processConfig.addProperty("report-type", reportType);
 		}
-		ProcessInfo processInfo = Process.createProcessInfo(process, pinstance, processConfig);
-		ServerProcessCtl.process(processInfo, null);
+		Trx trx = Trx.get(Trx.createTrxName(), true);
+	    ProcessInfo processInfo = Process.createProcessInfo(process, pinstance, processConfig);
+	    processInfo.setTransactionName(trx.getTrxName());
+	    ServerProcessCtl.process(processInfo, trx);
 		
 		JsonObject processInfoJson = Process.toJsonObject(processInfo, TypeConverterUtils.slugify(process.getValue()));
 		
