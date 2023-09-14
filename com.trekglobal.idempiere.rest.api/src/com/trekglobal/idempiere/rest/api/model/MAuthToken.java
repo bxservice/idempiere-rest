@@ -52,15 +52,20 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  *
  */
 public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
-
-
-	private static final long serialVersionUID = 8603366924280993536L;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3420277395055535123L;
 
 	/** Context Help Message Cache				*/
 	private static ImmutablePOCache<String, MAuthToken> s_authtoken_cache = new ImmutablePOCache<String, MAuthToken>(Table_Name, 40);
 	
 	public MAuthToken(Properties ctx, int REST_AuthToken_ID, String trxName) {
 		super(ctx, REST_AuthToken_ID, trxName);
+	}
+
+	public MAuthToken(Properties ctx, String REST_AuthToken_UUID, String trxName) {
+		super(ctx, REST_AuthToken_UUID, trxName);
 	}
 
 	public MAuthToken(Properties ctx, ResultSet rs, String trxName) {

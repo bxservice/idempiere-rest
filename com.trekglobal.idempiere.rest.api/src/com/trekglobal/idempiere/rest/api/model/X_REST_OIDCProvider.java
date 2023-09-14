@@ -31,7 +31,7 @@ public class X_REST_OIDCProvider extends PO implements I_REST_OIDCProvider, I_Pe
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20230703L;
+	private static final long serialVersionUID = 20230914L;
 
     /** Standard Constructor */
     public X_REST_OIDCProvider (Properties ctx, int REST_OIDCProvider_ID, String trxName)
@@ -146,7 +146,7 @@ public class X_REST_OIDCProvider extends PO implements I_REST_OIDCProvider, I_Pe
 	}
 
 	/** Set Configuration URL.
-		@param OIDC_ConfigurationURL OIDC Configuration Endpoint
+		@param OIDC_ConfigurationURL OpenID Connect Configuration Endpoint
 	*/
 	public void setOIDC_ConfigurationURL (String OIDC_ConfigurationURL)
 	{
@@ -154,7 +154,7 @@ public class X_REST_OIDCProvider extends PO implements I_REST_OIDCProvider, I_Pe
 	}
 
 	/** Get Configuration URL.
-		@return OIDC Configuration Endpoint
+		@return OpenID Connect Configuration Endpoint
 	  */
 	public String getOIDC_ConfigurationURL()
 	{
