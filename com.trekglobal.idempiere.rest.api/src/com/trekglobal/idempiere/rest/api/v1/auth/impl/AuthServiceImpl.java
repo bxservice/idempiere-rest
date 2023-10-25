@@ -88,6 +88,12 @@ public class AuthServiceImpl implements AuthService {
 	 */
 	@Override
 	public Response authenticate(LoginCredential credential) {
+
+		if (credential.getParameters() != null
+				&& !Util.isEmpty(credential.getParameters().getLanguage())
+				&& isAllowedLanguage(credential.getParameters().getLanguage()))
+			Env.getCtx().put(Env.LANGUAGE, credential.getParameters().getLanguage());
+
 		Login login = new Login(Env.getCtx());
 		KeyNamePair[] clients = login.getClients(credential.getUserName(), credential.getPassword(), ROLE_TYPES_WEBSERVICE);
 		if (clients == null || clients.length == 0) {
@@ -109,7 +115,10 @@ public class AuthServiceImpl implements AuthService {
 				LoginParameters parameters = credential.getParameters();
 				String userName = credential.getUserName();
 				Env.setContext(Env.getCtx(), RequestFilter.LOGIN_NAME, userName);
-				return processLoginParameters(parameters, userName, clientsSB.toString());
+				String errorMessage = validateLoginParameters(userName, parameters.getClientId(), parameters.getRoleId(), parameters.getOrganizationId(), parameters.getWarehouseId());
+
+				if (Util.isEmpty(errorMessage))
+					return processLoginParameters(parameters, userName, clientsSB.toString());
 			}
 			JsonObject responseNode = new JsonObject();
 			responseNode.add("clients", clientNodes);
@@ -332,14 +341,9 @@ public class AuthServiceImpl implements AuthService {
 		} else {
 			return unauthorized("Invalid clientId", userName);
 		}
-		if (parameters.getLanguage() != null) {
-			for (String langAllowed : Env.getLoginLanguages()) {
-				if (parameters.getLanguage().equals(langAllowed)) {
-					defaultLanguage = parameters.getLanguage();
-					break;
-				}
-			}
-		}
+		if (parameters.getLanguage() != null)
+			if (isAllowedLanguage(parameters.getLanguage()))
+				defaultLanguage = parameters.getLanguage();
 
 		builder.withClaim(LoginClaims.AD_Language.name(), defaultLanguage);
 		responseNode.addProperty("language", defaultLanguage);
@@ -486,6 +490,15 @@ public class AuthServiceImpl implements AuthService {
 		}
 
 		return Response.ok(jwks.toString()).build();
+	}
+
+	private boolean isAllowedLanguage(String language) {
+
+		for (String langAllowed : Env.getLoginLanguages())
+			if (language.equals(langAllowed))
+				return true;
+		
+		return false;
 	}
 
 }
