@@ -87,7 +87,7 @@ public interface ModelResource {
 	public Response getPOs(@PathParam("tableName") String tableName, @QueryParam(QueryOperators.EXPAND) String details, @QueryParam(QueryOperators.FILTER) String filter, @QueryParam(QueryOperators.ORDERBY) String order, 
 			@QueryParam(QueryOperators.SELECT) String select, @QueryParam(QueryOperators.TOP) int top, @DefaultValue("0") @QueryParam(QueryOperators.SKIP) int skip,
 			@QueryParam(QueryOperators.VALRULE) String validationRuleID, @QueryParam(QueryOperators.CONTEXT) String context, @QueryParam(QueryOperators.SHOW_SQL) String showsql,
-			@QueryParam(QueryOperators.INCLUDE_INACTIVE) String includeinactive);
+			@QueryParam(QueryOperators.INCLUDEINACTIVE) String includeinactive);
 	
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)

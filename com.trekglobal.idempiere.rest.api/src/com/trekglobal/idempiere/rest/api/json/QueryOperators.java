@@ -40,6 +40,6 @@ public interface QueryOperators {
 	public static final String VALRULE    = "$valrule";
 	public static final String CONTEXT    = "$context";
 	public static final String REPORTTYPE = "$report_type";
-	public static final String INCLUDE_INACTIVE   = "includeinactive";
+	public static final String INCLUDEINACTIVE   = "includeinactive";
 
 }

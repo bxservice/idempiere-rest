@@ -172,6 +172,9 @@ public class RestUtils {
 		}
 		
 		if(includeInactive!=null && includeInactive.equals("only")) {
+			if (!Util.isEmpty(whereClause))
+				whereClause = whereClause + " AND ";
+			
 			whereClause += "isActive=?";
 			params.add("N");
 		}
@@ -182,7 +185,6 @@ public class RestUtils {
 		
 		if(includeInactive==null)
 			query.setOnlyActiveRecords(true);
-		
 		
 		query.setParameters(params);
 
