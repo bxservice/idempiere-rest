@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MColumn;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
@@ -92,9 +93,7 @@ public class ModelHelper {
 		String convertedWhereClause = getFullWhereClause(convertedStatement);
 
 		Query query = RestUtils.getQuery(tableName, convertedWhereClause,  new ArrayList<Object>(convertedStatement.getParameters()));
-		if (isValidOrderBy(table, orderBy)) {
-			query.setOrderBy(orderBy);
-		}
+		addOrderByWhenValid(table, orderBy, query);
 
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 		rowCount = query.count();
@@ -178,9 +177,10 @@ public class ModelHelper {
 		return Pattern.matches(sanitize, value);
 	}
 	
-	private boolean isValidOrderBy(MTable table, String orderBy) {
+	private boolean addOrderByWhenValid(MTable table, String orderBy, Query query) {
 		if (!Util.isEmpty(orderBy, true)) {
 			String[] columnNames = orderBy.split("[,]");
+			List<String> virtualColumns = new ArrayList<String>();
 			for (String columnName : columnNames) {
 				columnName = columnName.trim();
 
@@ -193,12 +193,18 @@ public class ModelHelper {
 						return false;
 					}
 				}
-				if (table.getColumnIndex(columnName) < 0) {
+				MColumn column = table.getColumn(columnName);
+				if (column == null) {
 					log.log(Level.WARNING, "Column: " + columnName + " is not a valid column to be ordered by");
 					return false;
 				}
+				if (!Util.isEmpty(column.getColumnSQL())) {
+					virtualColumns.add(columnName);
+				}
 			}
-
+			query.setOrderBy(orderBy);
+			if (virtualColumns.size() > 0)
+				query.setVirtualColumns(virtualColumns.toArray(new String[virtualColumns.size()]));
 			return true;
 		}
 
