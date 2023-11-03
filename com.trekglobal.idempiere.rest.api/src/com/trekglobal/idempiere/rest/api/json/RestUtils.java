@@ -171,11 +171,12 @@ public class RestUtils {
 			params.add(Env.getAD_Language(Env.getCtx()));
 		}
 
-		Query query = new Query(Env.getCtx(), table, whereClause, null);
+		Query query = new Query(Env.getCtx(), table, whereClause, null)
+				.setApplyAccessFilter(true, false)
+				.setParameters(params);
 
-		query.setApplyAccessFilter(true, false)
-			.setOnlyActiveRecords(true)
-			.setParameters(params);
+		if (! whereClause.toLowerCase().matches(".*\\bisactive\\b.*"))
+			query.setOnlyActiveRecords(true);
 
 		return query;
 	}
