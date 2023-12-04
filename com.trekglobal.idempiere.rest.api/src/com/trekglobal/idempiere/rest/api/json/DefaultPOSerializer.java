@@ -25,13 +25,16 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
+import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
 import org.compiere.model.MColumn;
-import org.compiere.model.MTable;
 import org.compiere.model.MSysConfig;
+import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.POInfo;
 import org.compiere.util.DisplayType;
@@ -39,6 +42,7 @@ import org.compiere.util.Env;
 import org.compiere.util.Util;
 import org.osgi.service.component.annotations.Component;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
@@ -121,6 +125,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	public PO fromJson(JsonObject json, MTable table) {
 		PO po = table.getPO(0, null);
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
+		validateJsonFields(json, po);
 		Set<String> jsonFields = json.keySet();
 		for(int i = 0; i < poInfo.getColumnCount(); i++) {
 			String columnName = poInfo.getColumnName(i);
@@ -130,8 +135,22 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				setDefaultValue(po, column);
 				continue;
 			}
-			if (column.isSecure() || column.isEncrypted() || column.isVirtualColumn())
-				continue;
+			boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
+			boolean allowUpdateSecure = MSysConfig.getBooleanValue("REST_ALLOW_UPDATE_SECURE_COLUMN", true);
+			if (! allowUpdateSecure) {
+				if (column.isSecure() || column.isEncrypted()) {
+					if (errorOnNonUpdatable)
+						throw new AdempiereException("Cannot update secure/encrypted column " + columnName);
+					else
+						continue;
+				}
+			}
+			if (column.isVirtualColumn()) {
+				if (errorOnNonUpdatable)
+					throw new AdempiereException("Cannot update virtual column " + columnName);
+				else
+					continue;
+			}
 			
 			JsonElement field = json.get(propertyName);
 			if (field == null)
@@ -161,6 +180,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	public PO fromJson(JsonObject json, PO po) {
 		MTable table = MTable.get(Env.getCtx(), po.get_Table_ID());
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
+		validateJsonFields(json, po);
 		Set<String> jsonFields = json.keySet();
 		for(int i = 0; i < poInfo.getColumnCount(); i++) {
 			String columnName = poInfo.getColumnName(i);
@@ -173,20 +193,46 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				field = json.get(columnName);
 			if (field == null)
 				continue;
-			if (!column.isUpdateable())
-				continue;
-			if (column.isSecure() || column.isEncrypted())
-				continue;
+			boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
+			boolean allowUpdateSecure = MSysConfig.getBooleanValue("REST_ALLOW_UPDATE_SECURE_COLUMN", true);
+			if (!column.isUpdateable()) {
+				if (errorOnNonUpdatable)
+					throw new AdempiereException("Cannot update column " + columnName);
+				else
+					continue;
+			}
+			if (! allowUpdateSecure) {
+				if (column.isSecure() || column.isEncrypted()) {
+					if (errorOnNonUpdatable)
+						throw new AdempiereException("Cannot update secure/encrypted column " + columnName);
+					else
+						continue;
+				}
+			}
+			if (column.isVirtualColumn()) {
+				if (errorOnNonUpdatable)
+					throw new AdempiereException("Cannot update virtual column " + columnName);
+				else
+					continue;
+			}
 			if (po.get_ColumnIndex("processed") >= 0) {
 				if (po.get_ValueAsBoolean("processed")) {
-					if (!column.isAlwaysUpdateable())
-						continue;
+					if (!column.isAlwaysUpdateable()) {
+						if (errorOnNonUpdatable)
+							throw new AdempiereException("Cannot update " + columnName + " on processed record");
+						else
+							continue;
+					}
 				}
 			}
 			if (po.get_ColumnIndex("posted") >= 0) {
 				if (po.get_ValueAsBoolean("posted")) {
-					if (!column.isAlwaysUpdateable())
-						continue;
+					if (!column.isAlwaysUpdateable()) {
+						if (errorOnNonUpdatable)
+							throw new AdempiereException("Cannot update " + columnName + " on posted record");
+						else
+							continue;
+					}
 				}
 			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field);
@@ -205,7 +251,44 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		
 		return po;
 	}
-	
+
+	final List<String> ALLOWED_EXTRA_COLUMNS = new ArrayList<>(
+			List.of(
+					"doc-action",
+					"id",
+					"identifier",
+					"model-name",
+					"tableName",
+					"uid"
+					));
+
+	/**
+	 * Validate that all json fields exist as columns and are properly named
+	 * @param json
+	 * @param po
+	 */
+	private void validateJsonFields(JsonObject json, PO po) {
+		boolean errorOnNonExisting = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_EXISTING_COLUMN", true);
+		Set<String> jsonFields = json.keySet();
+		if (errorOnNonExisting) {
+			for (String jsonField : jsonFields) {
+				if (ALLOWED_EXTRA_COLUMNS.contains(jsonField))
+					continue;
+				JsonElement jsonObj = json.get(jsonField);
+				if (jsonObj instanceof JsonArray)
+					continue;
+				int colIdx = po.get_ColumnIndex(jsonField);
+				if (colIdx < 0)
+					throw new AdempiereException("Column " + jsonField + " does not exist");
+				String columnName = po.get_ColumnName(colIdx);
+				String propertyName = TypeConverterUtils.toPropertyName(columnName);
+				if (! jsonField.equals(propertyName) && !jsonField.equals(columnName))
+					throw new AdempiereException("Wrong name for column " + jsonField + ", you must use " + propertyName +
+							(propertyName.equals(columnName) ? "" : " or " + columnName));
+			}
+		}
+	}
+
 	private boolean exclude(String columnName, String[] excludes) {
 		if (excludes == null || excludes.length == 0)
 			return false;
