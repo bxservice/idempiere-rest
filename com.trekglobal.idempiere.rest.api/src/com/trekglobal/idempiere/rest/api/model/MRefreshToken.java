@@ -59,7 +59,14 @@ public class MRefreshToken {
 	 * Delete all expired refresh tokens
 	 */
 	private static void deleteExpired() {
-		DB.executeUpdateEx(deleteSql, null);
+		deleteExpired(null);
+	}
+
+	/**
+	 * Delete all expired refresh tokens using transaction
+	 */
+	public static void deleteExpired(String trxName) {
+		DB.executeUpdateEx(deleteSql, trxName);
 	}
 
 	/**
