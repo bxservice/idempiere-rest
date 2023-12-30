@@ -135,23 +135,9 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				setDefaultValue(po, column);
 				continue;
 			}
-			boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
-			boolean allowUpdateSecure = MSysConfig.getBooleanValue("REST_ALLOW_UPDATE_SECURE_COLUMN", true);
-			if (! allowUpdateSecure) {
-				if (column.isSecure() || column.isEncrypted()) {
-					if (errorOnNonUpdatable)
-						throw new AdempiereException("Cannot update secure/encrypted column " + columnName);
-					else
-						continue;
-				}
-			}
-			if (column.isVirtualColumn()) {
-				if (errorOnNonUpdatable)
-					throw new AdempiereException("Cannot update virtual column " + columnName);
-				else
-					continue;
-			}
-			
+			if (! isUpdatable(column, false))
+				continue;
+
 			JsonElement field = json.get(propertyName);
 			if (field == null)
 				field = json.get(columnName);
@@ -193,28 +179,9 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				field = json.get(columnName);
 			if (field == null)
 				continue;
+			if (! isUpdatable(column, true))
+				continue;
 			boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
-			boolean allowUpdateSecure = MSysConfig.getBooleanValue("REST_ALLOW_UPDATE_SECURE_COLUMN", true);
-			if (!column.isUpdateable()) {
-				if (errorOnNonUpdatable)
-					throw new AdempiereException("Cannot update column " + columnName);
-				else
-					continue;
-			}
-			if (! allowUpdateSecure) {
-				if (column.isSecure() || column.isEncrypted()) {
-					if (errorOnNonUpdatable)
-						throw new AdempiereException("Cannot update secure/encrypted column " + columnName);
-					else
-						continue;
-				}
-			}
-			if (column.isVirtualColumn()) {
-				if (errorOnNonUpdatable)
-					throw new AdempiereException("Cannot update virtual column " + columnName);
-				else
-					continue;
-			}
 			if (po.get_ColumnIndex("processed") >= 0) {
 				if (po.get_ValueAsBoolean("processed")) {
 					if (!column.isAlwaysUpdateable()) {
@@ -250,6 +217,38 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		}
 		
 		return po;
+	}
+
+	/**
+	 * Validate if a column can be updated
+	 * @param column
+	 * @param validateUpdateable
+	 * @return true if it can be updated, throws AdempiereException depending on the SysConfig keys REST_ERROR_ON_NON_UPDATABLE_COLUMN and REST_ALLOW_UPDATE_SECURE_COLUMN
+	 */
+	private boolean isUpdatable(MColumn column, boolean validateUpdateable) {
+		boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
+		if (validateUpdateable && !column.isUpdateable()) {
+			if (errorOnNonUpdatable)
+				throw new AdempiereException("Cannot update column " + column.getColumnName());
+			else
+				return false;
+		}
+		if (column.isVirtualColumn()) {
+			if (errorOnNonUpdatable)
+				throw new AdempiereException("Cannot update virtual column " + column.getColumnName());
+			else
+				return false;
+		}
+		boolean allowUpdateSecure = MSysConfig.getBooleanValue("REST_ALLOW_UPDATE_SECURE_COLUMN", true);
+		if (! allowUpdateSecure) {
+			if (column.isSecure() || column.isEncrypted()) {
+				if (errorOnNonUpdatable)
+					throw new AdempiereException("Cannot update secure/encrypted column " + column.getColumnName());
+				else
+					return false;
+			}
+		}
+		return true;
 	}
 
 	final List<String> ALLOWED_EXTRA_COLUMNS = new ArrayList<>(
