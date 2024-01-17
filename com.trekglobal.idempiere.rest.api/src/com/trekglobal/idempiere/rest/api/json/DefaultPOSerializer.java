@@ -33,6 +33,7 @@ import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
 import org.compiere.model.MColumn;
+import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
@@ -91,6 +92,9 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				continue;
 			MColumn column = MColumn.get(Env.getCtx(), poInfo.getAD_Column_ID(columnName));
 			if (column.isSecure() || column.isEncrypted())
+				continue;
+			// Check if the role has access to this column
+			if (!MRole.getDefault(po.getCtx(), false).isColumnAccess(po.get_Table_ID(), column.getAD_Column_ID(), true))
 				continue;
 
 			Object value ;
