@@ -251,6 +251,14 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					return false;
 			}
 		}
+		
+		if (!hasRoleColumnAccess(column.getAD_Table_ID(), column.getAD_Column_ID(), false)) {
+			if (errorOnNonUpdatable)
+				throw new AdempiereException("Cannot update column " + column.getColumnName());
+			else
+				return false;
+		}
+			
 		return true;
 	}
 
