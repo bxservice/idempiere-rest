@@ -248,6 +248,10 @@ public class RestUtils {
 		return role.isTableAccess(table.getAD_Table_ID(), false);
 	}
 	
+	public static boolean hasRoleUpdateAccess(int AD_Client_ID, int AD_Org_ID, int AD_Table_ID, int Record_ID, boolean isNew) {
+		return MRole.getDefault(Env.getCtx(), false).canUpdate(AD_Client_ID, AD_Org_ID, AD_Table_ID, Record_ID, isNew);
+	}
+	
 	/**
 	 * Check if the role has access to this column
 	 * @param AD_Table_ID
