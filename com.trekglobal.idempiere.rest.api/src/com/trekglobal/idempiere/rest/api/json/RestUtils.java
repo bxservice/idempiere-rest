@@ -248,6 +248,17 @@ public class RestUtils {
 		return role.isTableAccess(table.getAD_Table_ID(), false);
 	}
 	
+	/**
+	 * Check if the role has access to this column
+	 * @param AD_Table_ID
+	 * @param AD_Column_ID
+	 * @param readOnly
+	 * @return true if user has access
+	 */
+	public static boolean hasRoleColumnAccess(int AD_Table_ID, int AD_Column_ID, boolean readOnly) {
+		return MRole.getDefault(Env.getCtx(), false).isColumnAccess(AD_Table_ID, AD_Column_ID, readOnly);
+	}
+	
 	public static String getKeyColumnName(String tableName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		String[] keyColumns = table.getKeyColumns();
