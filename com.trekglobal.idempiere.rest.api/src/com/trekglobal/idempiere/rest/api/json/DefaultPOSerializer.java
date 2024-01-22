@@ -33,7 +33,6 @@ import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
 import org.compiere.model.MColumn;
-import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
@@ -93,7 +92,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			MColumn column = MColumn.get(Env.getCtx(), poInfo.getAD_Column_ID(columnName));
 			if (column.isSecure() || column.isEncrypted())
 				continue;
-			if (!hasRoleColumnAccess(po.get_Table_ID(), column.getAD_Column_ID(), true))
+			if (!RestUtils.hasRoleColumnAccess(po.get_Table_ID(), column.getAD_Column_ID(), true))
 				continue;
 
 			Object value ;
@@ -252,7 +251,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			}
 		}
 		
-		if (!hasRoleColumnAccess(column.getAD_Table_ID(), column.getAD_Column_ID(), false)) {
+		if (!RestUtils.hasRoleColumnAccess(column.getAD_Table_ID(), column.getAD_Column_ID(), false)) {
 			if (errorOnNonUpdatable)
 				throw new AdempiereException("Cannot update column " + column.getColumnName());
 			else
@@ -317,18 +316,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				return true;
 		}
 		return false;
-	}
-	
-	/**
-	 * Check if the role has access to this column
-	 * @param AD_Table_ID
-	 * @param AD_Column_ID
-	 * @param readOnly
-	 * @return true if user has access
-	 */
-	private boolean hasRoleColumnAccess(int AD_Table_ID, int AD_Column_ID, boolean readOnly) {
-		return MRole.getDefault(Env.getCtx(), false).isColumnAccess(AD_Table_ID, AD_Column_ID, readOnly);
-
 	}
 	
 	private void setDefaultValue(PO po, MColumn column) {
