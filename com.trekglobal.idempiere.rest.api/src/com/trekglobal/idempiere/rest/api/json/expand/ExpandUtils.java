@@ -9,6 +9,7 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MSysConfig;
 import org.compiere.util.DB;
 
 import com.google.gson.JsonElement;
@@ -167,7 +168,8 @@ public class ExpandUtils {
 
 		if (parameter.contains("(")) {
 			String queryOperators = parameter.substring(parameter.indexOf("(")+1, parameter.lastIndexOf(")"));
-			for (String operator : splitStringByChar(queryOperators, ';')) {
+			String separator = MSysConfig.getValue("REST_EXPAND_SEPARATOR", ";");
+			for (String operator : splitStringByChar(queryOperators, separator.charAt(0))) {
 				operators.add(operator.trim());
 			}
 		}
