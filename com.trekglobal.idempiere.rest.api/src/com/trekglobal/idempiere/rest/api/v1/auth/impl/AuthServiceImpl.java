@@ -68,6 +68,7 @@ import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginParameters;
+import com.trekglobal.idempiere.rest.api.v1.auth.LogoutParameters;
 import com.trekglobal.idempiere.rest.api.v1.auth.RefreshParameters;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
@@ -366,7 +367,7 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
 			responseNode.addProperty("token", token);
-			responseNode.addProperty("refresh_token", generateRefreshToken(token));
+			responseNode.addProperty("refresh_token", generateRefreshToken(token, null));
 		} catch (IllegalArgumentException | JWTCreationException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();
@@ -590,7 +591,7 @@ public class AuthServiceImpl implements AuthService {
 		try {
 			String token = builder.sign(Algorithm.HMAC512(TokenUtils.getTokenSecret()));
 			responseNode.addProperty("token", token);
-			responseNode.addProperty("refresh_token", generateRefreshToken(token));
+			responseNode.addProperty("refresh_token", generateRefreshToken(token, refreshToken));
 		} catch (IllegalArgumentException | JWTCreationException e) {
 			e.printStackTrace();
 			return Response.status(Status.BAD_REQUEST).build();
@@ -600,9 +601,10 @@ public class AuthServiceImpl implements AuthService {
 
 	/**
 	 * Generate a random refresh token
+	 * @param previousRefreshToken 
 	 * @return
 	 */
-	private String generateRefreshToken(String token) {
+	private String generateRefreshToken(String token, String previousRefreshToken) {
 		String uuidJWT = UUID.randomUUID().toString();
 		Builder builder = JWT.create().withJWTId(uuidJWT);
 
@@ -613,8 +615,51 @@ public class AuthServiceImpl implements AuthService {
 		// persist in database
 		MRefreshToken refreshTokenInDB = new MRefreshToken(token, refreshToken, expiresAt);
 		refreshTokenInDB.save();
+		if (previousRefreshToken != null)
+			MRefreshToken.deleteRefreshToken(previousRefreshToken);
 
 		return refreshToken;
+	}
+
+	/**
+	 * Logout a token
+	 */
+	@Override
+	public Response tokenLogout(LogoutParameters logout) {
+		String token = logout.getToken();
+		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
+		JWTVerifier verifier = JWT.require(algorithm)
+		        .withIssuer(TokenUtils.getTokenIssuer())
+		        .acceptExpiresAt(Instant.MAX.getEpochSecond()) // do not validate expiration of token
+		        .build(); //Reusable verifier instance
+
+		// Verify the token (signature)
+		DecodedJWT jwt;
+		try {
+			jwt = verifier.verify(token);
+		} catch (JWTVerificationException e) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append(e.getLocalizedMessage()).build().toString())
+					.build();
+		}
+
+		Claim claim = jwt.getClaim(LoginClaims.AD_Session_ID.name());
+		int sessionId = -1;
+		if (!claim.isNull() && !claim.isMissing()) {
+			sessionId = claim.asInt();
+		} else {
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("AD_Session_ID not found").build().toString())
+					.build();
+		}
+		Env.setContext(Env.getCtx(), "#AD_Session_ID", sessionId);
+		MSession session = new MSession(Env.getCtx(), sessionId, null);
+		session.logout();
+
+		MRefreshToken.deleteToken(token);
+
+		return Response.ok()
+				.build();
 	}
 
 }
