@@ -41,6 +41,7 @@ import org.adempiere.util.ServerContext;
 import org.compiere.model.MAcctSchema;
 import org.compiere.model.MClientInfo;
 import org.compiere.model.MRole;
+import org.compiere.model.MSession;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -81,6 +82,9 @@ public class RequestFilter implements ContainerRequestFilter {
 					)
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
 					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/refresh")
+					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/logout")
 					)
 			) {
 			return;
@@ -163,6 +167,9 @@ public class RequestFilter implements ContainerRequestFilter {
 		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Session_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), "#AD_Session_ID", AD_Session_ID);
+			MSession session = MSession.get(Env.getCtx());
+			if (session.isProcessed())
+				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 		}
 		
 		if (AD_Role_ID > 0) {

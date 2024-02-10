@@ -44,6 +44,8 @@ public class MRefreshToken {
 	private final static String insertSql = "INSERT INTO REST_RefreshToken (Token, RefreshToken, ExpiresAt) VALUES (?,?,?)";
 	private final static String selectSql = "SELECT Token FROM REST_RefreshToken WHERE RefreshToken = ?";
 	private final static String deleteSql = "DELETE FROM REST_RefreshToken WHERE ExpiresAt<getdate()";
+	private final static String deleteRefreshTokenSql = "DELETE FROM REST_RefreshToken WHERE RefreshToken = ?";
+	private final static String deleteTokenSql = "DELETE FROM REST_RefreshToken WHERE Token = ?";
 
 	/**
 	 * Get an auth token based on a refresh token
@@ -60,6 +62,22 @@ public class MRefreshToken {
 	 */
 	private static void deleteExpired() {
 		DB.executeUpdateEx(deleteSql, null);
+	}
+
+	/**
+	 * Delete refresh token based on a previous refresh token
+	 * @param RefreshToken
+	 */
+	public static void deleteRefreshToken(String refreshToken) {
+		DB.executeUpdateEx(deleteRefreshTokenSql, new Object[] {refreshToken},  null);
+	}
+
+	/**
+	 * Delete refresh token based on a token
+	 * @param RefreshToken
+	 */
+	public static void deleteToken(String token) {
+		DB.executeUpdateEx(deleteTokenSql, new Object[] {token},  null);
 	}
 
 	/**
