@@ -25,11 +25,13 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import static org.compiere.util.DisplayType.Button;
+import static org.compiere.util.DisplayType.ID;
+import static org.compiere.util.DisplayType.RecordID;
+
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
-import static org.compiere.util.DisplayType.Button;
-import static org.compiere.util.DisplayType.RecordID;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
@@ -69,10 +71,10 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object toJsonValue(int displayType, Number value) {
-		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID || displayType == ID))
 			return null;
 		
-		if (displayType == DisplayType.Integer) {
+		if (displayType == DisplayType.Integer || displayType == RecordID || displayType == ID) {
 			return value.intValue();
 		} else {
 			return value;
@@ -80,11 +82,11 @@ public class NumericTypeConverter implements ITypeConverter<Number> {
 	}
 	
 	private Object fromJsonValue(int displayType, JsonElement value) {
-		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID))
+		if (!(DisplayType.isNumeric(displayType) || displayType == Button || displayType == RecordID || displayType == ID))
 			return null;
 		
 		JsonPrimitive primitive = (JsonPrimitive) value;
-		if (displayType == DisplayType.Integer) {
+		if (displayType == DisplayType.Integer || displayType == RecordID || displayType == ID) {
 			if (primitive.isString())
 				return Integer.parseInt(primitive.getAsString());
 			else
