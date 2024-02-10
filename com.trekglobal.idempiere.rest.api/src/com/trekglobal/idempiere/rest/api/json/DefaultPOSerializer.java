@@ -25,6 +25,7 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -137,8 +138,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				setDefaultValue(po, column);
 				continue;
 			}
-			if (! isUpdatable(column, false))
-				continue;
 
 			JsonElement field = json.get(propertyName);
 			if (field == null)
@@ -148,17 +147,20 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				continue;
 			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field);
-			if (value != null) {
-				if (value instanceof Integer) {
-					if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
+			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
+				continue;
+			if (! isUpdatable(column, false, po))
+				continue;
+			if (   value != null
+				&& value instanceof Integer) {
+				if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
+					value = null;
+				} else if (((Integer)value).intValue() == 0 && DisplayType.isLookup(column.getAD_Reference_ID())) {
+					if (! MTable.isZeroIDTable(column.getReferenceTableName()))
 						value = null;
-					} else if (((Integer)value).intValue() == 0 && DisplayType.isLookup(column.getAD_Reference_ID())) {
-						if (! MTable.isZeroIDTable(column.getReferenceTableName()))
-							value = null;
-					}
 				}
-				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 			}
+			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 		}
 		
 		return po;
@@ -181,54 +183,61 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				field = json.get(columnName);
 			if (field == null)
 				continue;
-			if (! isUpdatable(column, true))
-				continue;
-			boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
-			if (po.get_ColumnIndex("processed") >= 0) {
-				if (po.get_ValueAsBoolean("processed")) {
-					if (!column.isAlwaysUpdateable()) {
-						if (errorOnNonUpdatable)
-							throw new AdempiereException("Cannot update " + columnName + " on processed record");
-						else
-							continue;
-					}
-				}
-			}
-			if (po.get_ColumnIndex("posted") >= 0) {
-				if (po.get_ValueAsBoolean("posted")) {
-					if (!column.isAlwaysUpdateable()) {
-						if (errorOnNonUpdatable)
-							throw new AdempiereException("Cannot update " + columnName + " on posted record");
-						else
-							continue;
-					}
-				}
-			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field);
-			if (value != null) {
-				if (value instanceof Integer) {
-					if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
+			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
+				continue;
+			if (! isUpdatable(column, true, po))
+				continue;
+			if (   value != null
+				&& value instanceof Integer) {
+				if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
+					value = null;
+				} else if (((Integer)value).intValue() == 0 && DisplayType.isLookup(column.getAD_Reference_ID())) {
+					if (! MTable.isZeroIDTable(column.getReferenceTableName()))
 						value = null;
-					} else if (((Integer)value).intValue() == 0 && DisplayType.isLookup(column.getAD_Reference_ID())) {
-						if (! MTable.isZeroIDTable(column.getReferenceTableName()))
-							value = null;
-					}
 				}
-				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 			}
+			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 		}
 		
 		return po;
 	}
 
 	/**
+	 * Validate if a value has been modified
+	 * @param oldValue 
+	 * @param newValue 
+	 * @return true if it has been modified
+	 */
+	private boolean isValueUpdated(Object oldValue, Object newValue) {
+		if (oldValue == null && newValue == null)
+			return false; // both values are null, nothing to update
+		if (   oldValue != null
+			&& newValue != null) {
+			if (   oldValue.getClass().equals(newValue.getClass())
+			    && oldValue.equals(newValue))
+				// both objects have the same class and value, nothing to update
+				return false;
+			if (   oldValue instanceof Integer
+				&& newValue instanceof BigDecimal
+				&& ((BigDecimal)newValue).intValue() == ((Integer)((Integer) oldValue).intValue()))
+				return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Validate if a column can be updated
 	 * @param column
 	 * @param validateUpdateable
+	 * @param po 
+	 * @param prevValue 
 	 * @return true if it can be updated, throws AdempiereException depending on the SysConfig keys REST_ERROR_ON_NON_UPDATABLE_COLUMN and REST_ALLOW_UPDATE_SECURE_COLUMN
 	 */
-	private boolean isUpdatable(MColumn column, boolean validateUpdateable) {
+	private boolean isUpdatable(MColumn column, boolean validateUpdateable, PO po) {
 		boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
+
 		if (validateUpdateable && !column.isUpdateable()) {
 			if (errorOnNonUpdatable)
 				throw new AdempiereException("Cannot update column " + column.getColumnName());
@@ -250,14 +259,36 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					return false;
 			}
 		}
-		
+
 		if (!RestUtils.hasRoleColumnAccess(column.getAD_Table_ID(), column.getAD_Column_ID(), false)) {
 			if (errorOnNonUpdatable)
-				throw new AdempiereException("Cannot update column " + column.getColumnName());
+				throw new AdempiereException("No access to update column " + column.getColumnName());
 			else
 				return false;
 		}
-			
+
+		if (! po.is_new()) {
+			if (po.get_ColumnIndex("processed") >= 0) {
+				if (po.get_ValueAsBoolean("processed")) {
+					if (!column.isAlwaysUpdateable()) {
+						if (errorOnNonUpdatable)
+							throw new AdempiereException("Cannot update " + column.getColumnName() + " on processed record");
+						else
+							return false;
+					}
+				}
+			}
+			if (po.get_ColumnIndex("posted") >= 0) {
+				if (po.get_ValueAsBoolean("posted")) {
+					if (!column.isAlwaysUpdateable()) {
+						if (errorOnNonUpdatable)
+							throw new AdempiereException("Cannot update " + column.getColumnName() + " on posted record");
+						else
+							return false;
+					}
+				}
+			}
+		}
 		return true;
 	}
 
