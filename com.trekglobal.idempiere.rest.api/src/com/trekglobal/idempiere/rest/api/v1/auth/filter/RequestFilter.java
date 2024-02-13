@@ -95,7 +95,7 @@ public class RequestFilter implements ContainerRequestFilter {
 		// consume JWT i.e. execute signature validation
 		if (authHeaderVal != null && authHeaderVal.startsWith("Bearer")) {
 			try {
-				validate(authHeaderVal.split(" ")[1]);
+				validate(authHeaderVal.split(" ")[1], requestContext);
 				if (Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_USER_ID)) ||
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
@@ -112,7 +112,7 @@ public class RequestFilter implements ContainerRequestFilter {
 		}
 	}
 
-	private void validate(String token) throws IllegalArgumentException, UnsupportedEncodingException {
+	private void validate(String token, ContainerRequestContext requestContext) throws IllegalArgumentException, UnsupportedEncodingException {
 		
 		if(MAuthToken.isBlocked(token)) {
 			throw new JWTVerificationException("Token is blocked");
