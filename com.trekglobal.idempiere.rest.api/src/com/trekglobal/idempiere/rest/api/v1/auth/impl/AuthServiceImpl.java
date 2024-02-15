@@ -658,8 +658,10 @@ public class AuthServiceImpl implements AuthService {
 
 		MRefreshToken.deleteToken(token);
 
-		return Response.ok()
-				.build();
+		JsonObject okResponse = new JsonObject();
+		okResponse.addProperty("summary", "OK");
+		
+		return Response.ok(okResponse.toString()).build();
 	}
 
 }
