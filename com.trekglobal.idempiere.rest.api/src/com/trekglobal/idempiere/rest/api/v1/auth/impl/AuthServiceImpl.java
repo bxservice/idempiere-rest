@@ -652,7 +652,12 @@ public class AuthServiceImpl implements AuthService {
 					.entity(new ErrorBuilder().status(Status.NOT_FOUND).title("AD_Session_ID not found").build().toString())
 					.build();
 		}
-		Env.setContext(Env.getCtx(), "#AD_Session_ID", sessionId);
+		claim = jwt.getClaim(LoginClaims.AD_User_ID.name());
+		if (!claim.isNull() && !claim.isMissing()) {
+			int userId = claim.asInt();
+			Env.setContext(Env.getCtx(), Env.AD_USER_ID, userId);
+		}
+		Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, sessionId);
 		MSession session = new MSession(Env.getCtx(), sessionId, null);
 		session.logout();
 

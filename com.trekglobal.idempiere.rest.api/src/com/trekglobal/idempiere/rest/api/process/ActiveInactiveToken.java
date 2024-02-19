@@ -22,6 +22,7 @@
 
 package com.trekglobal.idempiere.rest.api.process;
 
+import org.compiere.model.MSession;
 import org.compiere.process.SvrProcess;
 
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
@@ -44,7 +45,10 @@ public class ActiveInactiveToken extends SvrProcess {
 		MAuthToken token = new MAuthToken(getCtx(), getRecord_ID(), get_TrxName());
 		token.setIsActive(!token.isActive());		
 		token.saveEx();
-		
+
+		MSession sessionToken = new MSession(getCtx(), token.getAD_Session_ID(), get_TrxName());
+		sessionToken.logout();
+
 		return null;
 	}
 
