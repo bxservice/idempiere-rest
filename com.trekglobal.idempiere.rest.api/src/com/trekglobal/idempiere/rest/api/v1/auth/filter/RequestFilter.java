@@ -42,6 +42,7 @@ import org.compiere.model.MAcctSchema;
 import org.compiere.model.MClientInfo;
 import org.compiere.model.MRole;
 import org.compiere.model.MSession;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -53,6 +54,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
+import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
@@ -175,10 +177,19 @@ public class RequestFilter implements ContainerRequestFilter {
 		int AD_Session_ID = 0;
 		if (!claim.isNull() && !claim.isMissing()) {
 			AD_Session_ID = claim.asInt();
-			Env.setContext(Env.getCtx(), "#AD_Session_ID", AD_Session_ID);
+			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, AD_Session_ID);
 			MSession session = MSession.get(Env.getCtx());
-			if (session.isProcessed())
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+			if (session.isProcessed()) {
+				// is possible that the session was finished in a reboot instead of a logout
+				// if there is a REST_AuthToken or a REST_RefreshToken, then the user has not logged out
+				MAuthToken authToken = MAuthToken.get(Env.getCtx(), token);
+				if (authToken != null || MRefreshToken.exists(token)) {
+					DB.executeUpdateEx("UPDATE AD_Session SET Processed='N', UpdatedBy=CreatedBy, Updated=getDate() WHERE AD_Session_ID=?", new Object[] {AD_Session_ID}, null);
+					session.load(session.get_TrxName());
+				} else {
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				}
+			}
 		}
 		
 		if (AD_Role_ID > 0) {
