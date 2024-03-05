@@ -115,7 +115,7 @@ public class ConvertedQuery {
 			else if (displayType == DisplayType.YesNo) //	Boolean
 				addParameter(Boolean.valueOf("Y".equals(parameter) || "true".equals(parameter)));
 			else if (displayType == DisplayType.String || DisplayType.isList(displayType)  || 
-					parameter.startsWith("'") && parameter.endsWith("'")) {
+					(parameter.startsWith("'") && parameter.endsWith("'"))) {
 				if (parameter.startsWith("'") && parameter.endsWith("'"))
 					addParameter(extractFromStringValue(parameter));
 				else 
@@ -130,7 +130,7 @@ public class ConvertedQuery {
 	
 	
 	/**
-	 * Remove the ' from the call Strings 
+	 * Remove the initial and ending ' from the call Strings 
 	 * */
     public static String extractFromStringValue(String value) {
         return value.substring(1, value.length() - 1);
