@@ -200,6 +200,15 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				if (id > 0)
 					return id;
 			}
+			JsonElement columnName = ref.get("columnName");
+			if (columnName != null) {
+				uidField = ref;
+				JsonElement searchValue = ref.get("value");
+
+				int id = findIdbyColumn(refTableName, columnName.getAsString(), searchValue);
+				if (id >= 0)
+					return id;
+			}
 			throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
 		} else if (value != null && value.isJsonPrimitive()) {
 			JsonPrimitive primitive = (JsonPrimitive) value;
@@ -232,5 +241,21 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 			return DB.getSQLValue(null, sql, identifier.getAsString());
 		}
 		return -1;
+	}
+	private int findIdbyColumn(String tableName, String columnName, JsonElement searchValue) {
+		MTable table = MTable.get(Env.getCtx(), tableName);
+		MColumn column = table.getColumn(columnName);
+		if (column == null)
+			throw new AdempiereException("Column not found for " + columnName);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ")
+				.append(tableName)
+				.append("_ID FROM ")
+				.append(tableName)
+				.append(" WHERE ")
+				.append(column.getColumnName())
+				.append("=?");
+		String sql = MRole.getDefault().addAccessSQL(builder.toString(), tableName, true, false);
+		return DB.getSQLValue(null, sql, searchValue.getAsString());
 	}
 }
