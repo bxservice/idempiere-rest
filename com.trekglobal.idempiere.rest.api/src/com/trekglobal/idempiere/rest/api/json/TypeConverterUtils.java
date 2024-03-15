@@ -35,6 +35,7 @@ import static org.compiere.util.DisplayType.Locator;
 import static org.compiere.util.DisplayType.PAttribute;
 import static org.compiere.util.DisplayType.Payment;
 import static org.compiere.util.DisplayType.RecordID;
+import static org.compiere.util.DisplayType.JSON;
 
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
@@ -198,6 +199,8 @@ public class TypeConverterUtils {
 				return new BinaryTypeConverter();
 			} else if (displayType == Image) {
 				return new ImageTypeConverter();		
+			} else if (displayType == JSON) {
+				return new JSONTypeConverter();		
 			}
 		}
 		return typeConverter;
@@ -229,6 +232,8 @@ public class TypeConverterUtils {
 			}
 			else if (displayType == Image) {
 				return new ImageTypeConverter();
+			} else if (displayType == JSON) {
+				return new JSONTypeConverter();		
 			}
 		}
 		return typeConverter;
