@@ -25,6 +25,14 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.Lookup;
@@ -200,6 +208,15 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				if (id > 0)
 					return id;
 			}
+			JsonElement columnName = ref.get("lookupColumn");
+			if (columnName != null) {
+				uidField = ref;
+				JsonElement searchValue = ref.get("lookupValue");
+
+				int id = findIdbyColumn(refTableName, columnName.getAsString(), searchValue);
+				if (id >= 0)
+					return id;
+			}
 			throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
 		} else if (value != null && value.isJsonPrimitive()) {
 			JsonPrimitive primitive = (JsonPrimitive) value;
@@ -216,21 +233,91 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		}
 	}
 
+	/**
+	 * Find ID using the first column defined as identifier
+	 * @param tableName
+	 * @param identifier
+	 * @return
+	 */
 	private int findId(String tableName, JsonElement identifier) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		String[] identifiers = table.getIdentifierColumns();
 		if (identifiers != null && identifiers.length > 0) {
-			StringBuilder builder = new StringBuilder();
-			builder.append("SELECT ")
-			   .append(tableName)
-			   .append("_ID FROM ")
-			   .append(tableName)
-			   .append(" WHERE ")
-			   .append(identifiers[0])
-			   .append("=?");
-			String sql = MRole.getDefault().addAccessSQL(builder.toString(), tableName, true, false);
-			return DB.getSQLValue(null, sql, identifier.getAsString());
+			MColumn column = table.getColumn(identifiers[0]);
+			return getFirstIdOnly(table, column, identifier);
 		}
 		return -1;
 	}
+
+	/**
+	 * Find ID using columnName
+	 * @param tableName
+	 * @param columnName
+	 * @param searchValue
+	 * @return
+	 */
+	private int findIdbyColumn(String tableName, String columnName, JsonElement searchValue) {
+		MTable table = MTable.get(Env.getCtx(), tableName);
+		MColumn column = table.getColumn(columnName);
+		if (column == null)
+			throw new AdempiereException("Column not found -> " + tableName + "." + columnName);
+		return getFirstIdOnly(table, column, searchValue);
+	}
+
+	/**
+	 * Get the first ID found, error if it finds more than one ID with same parameters
+	 * @param table
+	 * @param columnName
+	 * @param identifier
+	 * @return
+	 */
+	private int getFirstIdOnly(MTable table, MColumn column, JsonElement identifier) {
+		int id = -1;
+		String tableName = table.getTableName();
+		StringBuilder builder = new StringBuilder()
+		   .append("SELECT ").append(tableName).append("_ID FROM ").append(tableName)
+		   .append(" WHERE ").append(column.getColumnName()).append("=?");
+		String sql = MRole.getDefault().addAccessSQL(builder.toString(), tableName, true, false);
+
+		try (PreparedStatement stmt = DB.prepareStatement(sql, null)) {
+			Object param;
+			if (DisplayType.isID(column.getAD_Reference_ID()))
+				param = identifier.getAsInt();
+			else if (DisplayType.isNumeric(column.getAD_Reference_ID()))
+				param = identifier.getAsBigDecimal();
+			else if (DisplayType.isDate(column.getAD_Reference_ID())) {
+				Date date;
+				SimpleDateFormat dateTimeFormat = DisplayType.getTimestampFormat_Default();
+				SimpleDateFormat dateFormat = DisplayType.getDateFormat_JDBC();
+				try {
+					if (column.getAD_Reference_ID() == DisplayType.Date) {
+						date = dateFormat.parse(identifier.getAsString());
+					} else {
+						date = dateTimeFormat.parse(identifier.getAsString());
+					}
+				} catch (ParseException e) {
+					try {
+						date = dateFormat.parse(identifier.getAsString());
+					} catch (ParseException e1) {
+						throw new AdempiereException("Date wrongly formatted -> " + identifier.getAsString());
+					}
+				}
+				param = new Timestamp(date.getTime());
+			} else
+				param = identifier.getAsString();
+			stmt.setObject(1, param);
+			ResultSet rs = stmt.executeQuery();
+			if (rs.next()) {
+				id = rs.getInt(1);
+				if (rs.next()) {
+					throw new AdempiereException("More than one ID found for " + tableName + "." + column.getColumnName() + " = " + identifier.getAsString());
+				}
+			}
+		} catch (SQLException ex) {
+			throw new AdempiereException("Error getting the first ID -> " + sql, ex);
+		}
+
+		return id;
+	}
+
 }
