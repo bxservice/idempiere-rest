@@ -1270,6 +1270,96 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}/{id} - Location Converter",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"Name\": \"Monroe\",\n     \"C_Location_ID\": {\n        \"id\": 125,  // if id = 0 a new C_Location is created an linked to the record\n        \"address1\": \"address 1\",\n        \"address2\": \"address 2\",\n        \"address3\": \"address 3\",\n        \"address4\": \"address 4\",\n        \"address5\": \"address 5\",\n        \"postal\": \"postal\",\n        \"postal_add\": \"add\",\n        \"c_country_id\": 100,\n        \"c_region_id\": 102,\n        \"regionname\": \"RN\",\n        \"c_city_id\": 0,\n        \"city\": \"Near Village\",\n        \"comments\": \"comments\",\n        \"isactive\": true\n    }\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_bpartner_location/117",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_bpartner_location",
+						"117"
+					]
+				},
+				"description": "Update record by id and using the Location converter to update/create location using the same request"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id} - Image Converter",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n   \"AD_Image_ID\":{\n      \"id\":5000074, //optional, if not informed a new ad_image is created an linked to the record\n      \"file_name\":\"idempiereLogo.jpg\",\n      \"url\":\"org/idempiere/idempiereLogo.jpg\",\n      \"data\":\"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\"\n   }\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/ad_user/100",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"ad_user",
+						"100"
+					]
+				},
+				"description": "Update record by id and using the Image converter to update/create location using the same request"
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}/{id}",
 			"request": {
 				"method": "DELETE",
