@@ -25,6 +25,8 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.util.Set;
+
 import org.compiere.model.GridField;
 import org.compiere.model.Lookup;
 import org.compiere.model.MColumn;
@@ -34,6 +36,8 @@ import org.compiere.model.MLookupFactory;
 import org.compiere.model.MProcessPara;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
+import org.compiere.model.POInfo;
+import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.compiere.util.Util;
@@ -118,7 +122,7 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 						String displayValue = getColumnLookup(column).getDisplay(columnValue);
 						if(displayValue!=null)
 							refChild.addProperty("identifier",displayValue);
-						refChild.addProperty("model-name", MTable.get(Env.getCtx(), columnName.replace("_ID", "")).getTableName());
+						refChild.addProperty("model-name", MTable.get(Env.getCtx(), columnName.replace("_ID", "")).getTableName().toLowerCase());
 						ref.add(columnName, refChild);
 					}
 				} else {
@@ -143,11 +147,11 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 		return fromJson(value);
 	}
 	
-	public Object fromJson(JsonElement value) {
-		if (value != null && value.isJsonObject()) {
+	public Object fromJson(JsonElement element) {
+		if (element != null && element.isJsonObject()) {
 		
-			JsonObject ref = value.getAsJsonObject();
-			JsonElement idField = ref.get("id");
+			JsonObject json = element.getAsJsonObject();
+			JsonElement idField = json.get("id");
 			int C_Location_ID = 0;
 			if (idField != null) {
 				JsonPrimitive primitive = (JsonPrimitive) idField;
@@ -157,146 +161,41 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 					C_Location_ID = 0;
 			}
 
-			JsonElement address1Field = ref.get(MLocation.COLUMNNAME_Address1.toLowerCase());
-			String address1 = null;
-			if (address1Field != null) {
-				JsonPrimitive primitive = (JsonPrimitive) address1Field;
-				address1 = primitive.getAsString();
+			MLocation po = new MLocation(Env.getCtx(), C_Location_ID, null);
+
+			MTable table = MTable.get(Env.getCtx(), MLocation.Table_ID);
+			POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
+			DefaultPOSerializer.validateJsonFields(json, po);
+			Set<String> jsonFields = json.keySet();
+			for(int i = 0; i < poInfo.getColumnCount(); i++) {
+				String columnName = poInfo.getColumnName(i);
+				String propertyName = TypeConverterUtils.toPropertyName(columnName);
+				if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
+					continue;
+				JsonElement field = json.get(propertyName);
+				if (field == null)
+					field = json.get(columnName);
+				if (field == null)
+					continue;
+				MColumn column = table.getColumn(columnName);
+				Object value = TypeConverterUtils.fromJsonValue(column, field);
+				if (! DefaultPOSerializer.isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
+					continue;
+				if (! DefaultPOSerializer.isUpdatable(column, false, po))
+					continue;
+				if (   value != null
+					&& value instanceof Integer) {
+					if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
+						element = null;
+					} else if (((Integer)value).intValue() == 0 && DisplayType.isLookup(column.getAD_Reference_ID())) {
+						if (! MTable.isZeroIDTable(column.getReferenceTableName()))
+							element = null;
+					}
+				}
+				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 			}
-			
-			JsonElement address2Field = ref.get(MLocation.COLUMNNAME_Address2.toLowerCase());
-			String address2 = null;
-			if (address2Field != null) {
-				JsonPrimitive primitive = (JsonPrimitive) address2Field;
-				address2 = primitive.getAsString();
-			}
-			
-			JsonElement address3Field = ref.get(MLocation.COLUMNNAME_Address3.toLowerCase());
-			String address3 = null;
-			if (address3Field != null) {
-				JsonPrimitive primitive = (JsonPrimitive) address3Field;
-				address3 = primitive.getAsString();
-			}
-			
-			JsonElement address4Field = ref.get(MLocation.COLUMNNAME_Address3.toLowerCase());
-			String address4 = null;
-			if (address3Field != null) {
-				JsonPrimitive primitive = (JsonPrimitive) address4Field;
-				address4 = primitive.getAsString();
-			}
-			
-			JsonElement address5Field = ref.get(MLocation.COLUMNNAME_Address5.toLowerCase());
-			String address5 = null;
-			if (address5Field != null) {
-				JsonPrimitive primitive = (JsonPrimitive) address5Field;
-				address5 = primitive.getAsString();
-			}
-			
-			JsonElement postalField = ref.get(MLocation.COLUMNNAME_Postal.toLowerCase());
-			String postal = null;
-			if (postalField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) postalField;
-				postal = primitive.getAsString();
-			}
-			
-			JsonElement postalAddField = ref.get(MLocation.COLUMNNAME_Postal_Add.toLowerCase());
-			String postalAdd = null;
-			if (postalAddField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) postalAddField;
-				postalAdd = primitive.getAsString();
-			}
-			
-			JsonElement countryField = ref.get(MLocation.COLUMNNAME_C_Country_ID.toLowerCase());
-			int C_Country_ID = 0;
-			if (countryField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) countryField;
-				if (primitive.isNumber())
-					C_Country_ID = primitive.getAsInt();
-			}
-			
-			JsonElement regionField = ref.get(MLocation.COLUMNNAME_C_Region_ID.toLowerCase());
-			int C_Region_ID = 0;
-			if (countryField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) regionField;
-				if (primitive.isNumber())
-					C_Region_ID = primitive.getAsInt();
-			}
-			
-			JsonElement regionNameField = ref.get(MLocation.COLUMNNAME_RegionName.toLowerCase());
-			String regionName = null;
-			if (regionNameField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) regionNameField;
-				regionName = primitive.getAsString();
-			}
-			
-			JsonElement cityIDField = ref.get(MLocation.COLUMNNAME_C_City_ID.toLowerCase());
-			int C_City_ID = 0;
-			if (cityIDField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) cityIDField;
-				if (primitive.isNumber())
-					C_City_ID = primitive.getAsInt();
-			}
-			
-			JsonElement cityField = ref.get(MLocation.COLUMNNAME_City.toLowerCase());
-			String city = null;
-			if (cityField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) cityField;
-				city = primitive.getAsString();
-			}
-			
-			JsonElement commentsField = ref.get(MLocation.COLUMNNAME_Comments.toLowerCase());
-			String comments = null;
-			if (commentsField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) commentsField;
-				comments = primitive.getAsString();
-			}
-			
-			JsonElement isActiveField = ref.get(MLocation.COLUMNNAME_IsActive.toLowerCase());
-			boolean isActive = false;
-			if (isActiveField != null) {
-				JsonPrimitive primitive = (JsonPrimitive) isActiveField;
-				isActive = primitive.getAsBoolean();
-			}
-			
-			MLocation loc = new MLocation(Env.getCtx(), C_Location_ID, null);
-			
-			if (address1 != null)
-				loc.setAddress1(address1);
-			if (address2 != null)
-				loc.setAddress2(address2);
-			if (address3 != null)
-				loc.setAddress3(address3);
-			if (address4 != null)
-				loc.setAddress4(address4);
-			if (address5 != null)
-				loc.setAddress5(address5);
-			if (postal != null)
-				loc.setPostal(postal);
-			if (postalAdd != null)
-				loc.setPostal_Add(postalAdd);
-			
-			if (C_Country_ID > 0)
-				loc.setC_Country_ID(C_Country_ID);
-			
-			if (C_Region_ID > 0)
-				loc.setC_Region_ID(C_Region_ID);
-			
-			if (regionName != null)
-				loc.setRegionName(regionName);
-			
-			if (C_City_ID > 0)
-				loc.setC_City_ID(C_City_ID);
-			
-			if (city != null)
-				loc.setCity(city);
-			
-			if (comments != null)
-				loc.setComments(comments);
-			
-			loc.setIsActive(isActive);
-			loc.saveEx();
-			
-			return loc.get_ID();
+			po.saveEx();
+			return po.get_ID();
 		} 
 		
 		return null;
