@@ -209,7 +209,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	 * @param newValue 
 	 * @return true if it has been modified
 	 */
-	private boolean isValueUpdated(Object oldValue, Object newValue) {
+	public static boolean isValueUpdated(Object oldValue, Object newValue) {
 		if (oldValue == null && newValue == null)
 			return false; // both values are null, nothing to update
 		if (   oldValue != null
@@ -235,7 +235,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	 * @param prevValue 
 	 * @return true if it can be updated, throws AdempiereException depending on the SysConfig keys REST_ERROR_ON_NON_UPDATABLE_COLUMN and REST_ALLOW_UPDATE_SECURE_COLUMN
 	 */
-	private boolean isUpdatable(MColumn column, boolean validateUpdateable, PO po) {
+	public static boolean isUpdatable(MColumn column, boolean validateUpdateable, PO po) {
 		boolean errorOnNonUpdatable = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true);
 
 		if (validateUpdateable && !column.isUpdateable()) {
@@ -292,7 +292,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		return true;
 	}
 
-	final List<String> ALLOWED_EXTRA_COLUMNS = new ArrayList<>(
+	final static List<String> ALLOWED_EXTRA_COLUMNS = new ArrayList<>(
 			List.of(
 					"doc-action",
 					"id",
@@ -307,7 +307,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	 * @param json
 	 * @param po
 	 */
-	private void validateJsonFields(JsonObject json, PO po) {
+	public static void validateJsonFields(JsonObject json, PO po) {
 		boolean errorOnNonExisting = MSysConfig.getBooleanValue("REST_ERROR_ON_NON_EXISTING_COLUMN", true);
 		Set<String> jsonFields = json.keySet();
 		if (errorOnNonExisting) {
