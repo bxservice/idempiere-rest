@@ -73,7 +73,7 @@ public class FormResourceImpl implements FormResource {
 			query.setApplyAccessFilter(true).setOnlyActiveRecords(true).setOrderBy("Name");
 			query.setParameters(convertedStatement.getParameters());
 			query.setOrderBy(" AD_Form_ID");
-			int rowCount = query.count();
+			int rowCount = 0;
 
 			List<MForm> forms = query.list();
 			MRole role = MRole.getDefault();
@@ -85,7 +85,7 @@ public class FormResourceImpl implements FormResource {
 				JsonObject jsonObject = serializer.toJson(form, new String[] {"AD_Form_ID", "AD_Form_UU", "Name", "Description", "Help", "Classname", "EntityType"}, null);
 				jsonObject.addProperty("slug", TypeConverterUtils.slugify(form.getName()));
 				formArray.add(jsonObject);
-				
+				rowCount++;
 			}
 			JsonObject json = new JsonObject();
 			json.add("forms", formArray);
