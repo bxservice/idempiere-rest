@@ -578,6 +578,7 @@ public class AuthServiceImpl implements AuthService {
 		JsonObject responseNode = new JsonObject();
 		Builder builder = JWT.create().withSubject(userName);
 		builder.withClaim(LoginClaims.AD_Client_ID.name(), clientId);
+		Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, clientId);
 		builder.withClaim(LoginClaims.AD_User_ID.name(), userId);
 		builder.withClaim(LoginClaims.AD_Role_ID.name(), roleId);
 		builder.withClaim(LoginClaims.AD_Org_ID.name(), orgId);
