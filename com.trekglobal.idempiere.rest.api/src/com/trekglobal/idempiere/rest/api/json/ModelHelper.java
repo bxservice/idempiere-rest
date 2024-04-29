@@ -84,6 +84,10 @@ public class ModelHelper {
 	}
 	
 	public List<PO> getPOsFromRequest() {
+		return getPOsFromRequest(null);
+	}
+	
+	public List<PO> getPOsFromRequest(String[] includeColumns) {
 
 		String whereClause = getRequestWhereClause();
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
@@ -107,6 +111,9 @@ public class ModelHelper {
 		query.setPageSize(top);
 		query.setRecordstoSkip(skip);
 
+		if (includeColumns != null && includeColumns.length > 0)
+			query.selectColumns(includeColumns);
+		
 		sqlStatement= query.getSQL();
 		return query.list();
 	}
