@@ -116,21 +116,26 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		try {
+
+			String[] includes = null;
+			if (!Util.isEmpty(multiProperty, true)) {
+				includes = RestUtils.getSelectedColumns(tableName, multiProperty);
+			} else if (!Util.isEmpty(singleProperty, true)) {
+				MTable table = MTable.get(Env.getCtx(), tableName);
+				if (!table.columnExists(singleProperty)) {
+					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for column name: ", singleProperty);
+				}
+				includes = new String[] {singleProperty};
+			}
+
 			Query query = RestUtils.getQuery(tableName, id, true, false);
+			if (includes != null && includes.length > 0)
+				query.selectColumns(includes);
 			PO po = query.first();
 
 			POParser poParser = new POParser(tableName, id, po);
 			if (poParser.isValidPO()) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-				String[] includes = null;
-				if (!Util.isEmpty(multiProperty, true)) {
-					includes = RestUtils.getSelectedColumns(tableName, multiProperty);
-				} else if (!Util.isEmpty(singleProperty, true)) {
-					if (po.get_Value(singleProperty) == null) {
-						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
-					}
-					includes = new String[] {singleProperty};
-				}
 				JsonObject json;
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				if (showData)
@@ -210,12 +215,12 @@ public class ModelResourceImpl implements ModelResource {
 			String validationRuleID, String context, String showsql) {
 		try {
 			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
-			List<PO> list = modelHelper.getPOsFromRequest();
+			String[] includes = RestUtils.getSelectedColumns(tableName, select);
+			List<PO> list = modelHelper.getPOsFromRequest(includes);
 			
 			JsonArray array = new JsonArray();
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-				String[] includes = RestUtils.getSelectedColumns(tableName, select);
 
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				JsonObject json = new JsonObject();

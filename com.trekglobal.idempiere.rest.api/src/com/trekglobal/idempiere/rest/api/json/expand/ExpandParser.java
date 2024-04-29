@@ -101,14 +101,17 @@ public class ExpandParser {
 		
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
 
+		String select = ExpandUtils.getSelectClause(operators);
+		String[] includes = RestUtils.getSelectedColumns(tableName, select);
+		if (includes != null && includes.length > 0)
+			query.selectColumns(includes);
+		
 		PO po = query.first();
 		addSQLStatementToMap(tableName, columnName, query.getSQL());
 
 		POParser poParser = new POParser(tableName, foreignTableID, po);
 		if (poParser.isValidPO()) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			String select = ExpandUtils.getSelectClause(operators);
-			String[] includes = RestUtils.getSelectedColumns(tableName, select); 
 			JsonObject json = serializer.toJson(po, includes, null);
 			tableNameChildArrayMap.put(column.getColumnName(), json);
 		}
@@ -121,13 +124,12 @@ public class ExpandParser {
 		String tableName = tableNameKeyColumnName[0];
 		String keyColumn = tableNameKeyColumnName[1];		
 
-		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
+		String select = ExpandUtils.getSelectClause(operators);
+		includes = RestUtils.getSelectedColumns(tableName, select);
+		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn, includes);
 		if (childPOs != null && childPOs.size() > 0) {
 			JsonArray childArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-
-			String select = ExpandUtils.getSelectClause(operators);
-			includes = RestUtils.getSelectedColumns(tableName, select); 
 
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
@@ -184,9 +186,9 @@ public class ExpandParser {
 				(ExpandUtils.isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
 	}	
 
-	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName) {
+	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName, String[] includes) {
 		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
-		List<PO> poList = modelHelper.getPOsFromRequest();
+		List<PO> poList = modelHelper.getPOsFromRequest(includes);
 		addSQLStatementToMap(tableName, keyColumnName, modelHelper.getSQLStatement());
 
 		return poList;
