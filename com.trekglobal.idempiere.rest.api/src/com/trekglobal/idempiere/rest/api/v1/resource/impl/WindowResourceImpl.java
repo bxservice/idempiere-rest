@@ -107,7 +107,7 @@ public class WindowResourceImpl implements WindowResource {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			JsonArray windowArray = new JsonArray();
-			ConvertedQuery convertedStatement = converter.convertStatement(MForm.Table_Name, filter);
+			ConvertedQuery convertedStatement = converter.convertStatement(MWindow.Table_Name, filter);
 			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
 
 			Query query = new Query(Env.getCtx(), MWindow.Table_Name, convertedStatement.getWhereClause(), null);
