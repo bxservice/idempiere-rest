@@ -119,8 +119,16 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 			if (!Util.isEmpty(display, true)) {
 				ref.addProperty("identifier", display);
 			}							
-			if (!Util.isEmpty(refTableName))
+			if (!Util.isEmpty(refTableName)) {
 				ref.addProperty("model-name", refTableName.toLowerCase());
+				if (RestUtils.isReturnUULookup(refTableName)) {
+					String uidColumn = PO.getUUIDColumnName(refTableName);
+					String keyColumn = RestUtils.getKeyColumnName(refTableName);
+					String uuid = DB.getSQLValueString(null, "SELECT " + uidColumn + " FROM " + refTableName + " WHERE " + keyColumn + "=?", value);
+					if (!Util.isEmpty(uuid))
+						ref.addProperty("uuid", uuid);
+				}
+			}
 			return ref;
 		} else {
 			return null;
