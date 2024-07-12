@@ -37,6 +37,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MRole;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -50,6 +51,7 @@ public class RestUtils {
 
 	private final static CLogger log = CLogger.getCLogger(RestUtils.class);
 	private final static String UUID_REGEX="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
+	private final static String EXPORT_UU_LOOKUP_SYSCONFIG_NAME = "REST_TABLES_EXPORT_LOOKUP_UU";
 
 	/**
 	 * @param value
@@ -271,5 +273,27 @@ public class RestUtils {
 			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has none or more than one primary key: " + tableName, Status.INTERNAL_SERVER_ERROR);
 
 		return keyColumns[0];
+	}
+	
+	/**
+	 * Defines whether the UUID value of a lookup record is returned in the response  
+	 * @param tableName
+	 * @return true if the lookup table should return the UUID in the REST response
+	 */
+	public static boolean isReturnUULookup(String tableName) {
+		String exportedUUTables = MSysConfig.getValue(EXPORT_UU_LOOKUP_SYSCONFIG_NAME, Env.getAD_Client_ID(Env.getCtx()));
+		return !Util.isEmpty(exportedUUTables) && 
+				(exportedUUTables.equals("ALL") || isStringInCommaSeparatedList(exportedUUTables, tableName));
+	}
+
+	public static boolean isStringInCommaSeparatedList(String commaSeparatedString, String stringToCompare) {
+		String[] tableArray = commaSeparatedString.split(",");
+		for (String tableName : tableArray) {
+			if (tableName.trim().equalsIgnoreCase(stringToCompare.trim())) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
