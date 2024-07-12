@@ -283,6 +283,17 @@ public class RestUtils {
 	public static boolean isReturnUULookup(String tableName) {
 		String exportedUUTables = MSysConfig.getValue(EXPORT_UU_LOOKUP_SYSCONFIG_NAME, Env.getAD_Client_ID(Env.getCtx()));
 		return !Util.isEmpty(exportedUUTables) && 
-				(exportedUUTables.equals("ALL") || exportedUUTables.toLowerCase().contains(tableName.toLowerCase()));
+				(exportedUUTables.equals("ALL") || isStringInCommaSeparatedList(exportedUUTables, tableName));
+	}
+
+	public static boolean isStringInCommaSeparatedList(String commaSeparatedString, String stringToCompare) {
+		String[] tableArray = commaSeparatedString.split(",");
+		for (String tableName : tableArray) {
+			if (tableName.trim().equalsIgnoreCase(stringToCompare.trim())) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }
