@@ -112,6 +112,8 @@ public class Process {
 			if (processPara.isRange()) {
 				String toPropertyName = propertyName + "_to";
 				element = jsonObject.get(toPropertyName);
+				if (element == null)
+					element = jsonObject.get(columnName + "_to");
 				if (element != null) {			
 					Object value = TypeConverterUtils.fromJsonValue(gridField, element);
 					if (value != null) {
