@@ -2117,7 +2117,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"C_BPartner_ID\": \"117,114\",\n\t\"DateOrdered\": \"2019-01-01\",\n\t\"DateOrdered_to\": \"2019-30-01\",\n\t\"report-type\" : \"HTML\"\n}"
+					"raw": "{\n\t\"C_BPartner_ID\": \"117,114\",\n\t\"DateOrdered\": \"2022-01-01\",\n\t\"DateOrdered_to\": \"2022-12-31\",\n\t\"report-type\" : \"HTML\"\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/processes/rv_orderdetail",
