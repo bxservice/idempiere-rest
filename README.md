@@ -7,7 +7,7 @@ You can find the documentation on how to use it here: https://wiki.idempiere.org
 * com.trekglobal.idempiere.extensions.parent - parent pom project
 * com.trekglobal.idempiere.rest.api - rest api project
 * com.trekglobal.idempiere.extensions.p2 - project to build p2 repository
-* iDempiere version - Current Default 8.2
+* iDempiere version - Current Default 11
 
 ## Folder layout:
 * idempiere
@@ -32,7 +32,7 @@ You can find the documentation on how to use it here: https://wiki.idempiere.org
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
-  * must run "POST api/v1/auth/tokens" and "PUT api/v1/auth/tokens" before you can test other calls. the security token created by the 2 call is valid for 1 hour.
+  * must run "POST api/v1/auth/tokens" and "PUT api/v1/auth/tokens" before you can test other calls. the security token created by the 2 calls is valid for 1 hour.
 
 ## p2 deployment
 * at idempiere-rest, run mvn verify 
