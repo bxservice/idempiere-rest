@@ -23,23 +23,43 @@
 * - BX Service GmbH                                                   *
 * - Diego Ruiz                                                        *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.json;
+package com.trekglobal.idempiere.rest.api.v1.resource;
 
-public interface QueryOperators {
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-	//Supported OData query operators
-	public static final String SELECT  = "$select";
-	public static final String EXPAND  = "$expand";
-	public static final String FILTER  = "$filter";
-	public static final String ORDERBY = "$orderby";
-	public static final String TOP     = "$top";
-	public static final String SKIP    = "$skip";
-	
-	//Custom iDempeire query operators
-	public static final String SHOW_SQL   = "showsql";
-	public static final String VALRULE    = "$valrule";
-	public static final String CONTEXT    = "$context";
-	public static final String REPORTTYPE = "$report_type";
-	public static final String INCLUDE_MSG = "with_messages";
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+
+/**
+ * 
+ * @author Diego Ruiz
+ *
+ */
+@Path("v1/statuslines")
+public interface StatusLineResource {
+
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get available status lines
+	 * @param filter
+	 * @return JSON array of status lines
+	 */
+	public Response getStatusLines(@QueryParam(QueryOperators.FILTER) String filter, @QueryParam(QueryOperators.INCLUDE_MSG) boolean includeMsg);
+
+	@Path("{statusLineId}")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get the resulting message of the status line by id
+	 * @param statusLineId
+	 * @return JSON representation of message - can be HTML
+	 */
+	public Response getStatusLineValue(@PathParam("statusLineId") int statusLineId);
 
 }
