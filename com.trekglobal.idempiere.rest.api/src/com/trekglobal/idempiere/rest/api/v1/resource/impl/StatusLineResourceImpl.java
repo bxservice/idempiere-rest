@@ -60,7 +60,7 @@ public class StatusLineResourceImpl implements StatusLineResource {
 	}
 
 	@Override
-	public Response getStatusLines(String filter) {
+	public Response getStatusLines(String filter, boolean includeMsg) {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			ConvertedQuery convertedStatement = converter.convertStatement(MStatusLine.Table_Name, filter);
@@ -79,6 +79,9 @@ public class StatusLineResourceImpl implements StatusLineResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MStatusLine.Table_Name, MTable.getClass(MStatusLine.Table_Name));
 			for(MStatusLine statusLine : statusLines) {
 				JsonObject jsonObject = serializer.toJson(statusLine, new String[] {"AD_StatusLine_ID", "AD_StatusLine_UU", "Name", "EntityType"}, null);
+				if (includeMsg)
+					addMessageToJsonObject(jsonObject, statusLine);
+
 				statusLineArray.add(jsonObject);
 			}
 
@@ -107,7 +110,8 @@ public class StatusLineResourceImpl implements StatusLineResource {
 		try {
 			MStatusLine statusLine = new MStatusLine(Env.getCtx(), statusLineId, null);
 			if (statusLine.getSQLStatement() != null) {
-				JsonObject json = getJsonStatusLine(statusLine);
+				JsonObject json = new JsonObject(); 
+				addMessageToJsonObject(json, statusLine);
 				return Response.ok(json.toString()).build();
 			} else {
 				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Status Line not found", 
@@ -129,12 +133,9 @@ public class StatusLineResourceImpl implements StatusLineResource {
 		}
 	}
 	
-	private JsonObject getJsonStatusLine(MStatusLine statusLine) {
+	private void addMessageToJsonObject(JsonObject json, MStatusLine statusLine) {
 		String line = statusLine.parseLine(0);
-		JsonObject json = new JsonObject();
-		json.addProperty("name", statusLine.getName());
 		json.addProperty("message", line);
-		return json;
 	}
 }
 

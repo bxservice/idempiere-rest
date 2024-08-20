@@ -50,7 +50,7 @@ public interface StatusLineResource {
 	 * @param filter
 	 * @return JSON array of status lines
 	 */
-	public Response getStatusLines(@QueryParam(QueryOperators.FILTER) String filter);
+	public Response getStatusLines(@QueryParam(QueryOperators.FILTER) String filter, @QueryParam(QueryOperators.INCLUDE_MSG) boolean includeMsg);
 
 	@Path("{statusLineId}")
 	@GET
