@@ -4009,6 +4009,93 @@
 				"description": "set user choice in a node by id"
 			},
 			"response": []
+		},
+		{
+			"name": "api/v1/statuslines",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/statuslines?$filter=EntityType neq 'D'&with_messages=true",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"statuslines"
+					],
+					"query": [
+						{
+							"key": "$filter",
+							"value": "EntityType neq 'D'"
+						},
+						{
+							"key": "with_messages",
+							"value": "true"
+						}
+					]
+				},
+				"description": "Get list of status lines"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/statuslines/{statuslineid}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/statuslines/200024",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"statuslines",
+						"200024"
+					]
+				},
+				"description": "Get message of a status line"
+			},
+			"response": []
 		}
 	],
 	"event": [
