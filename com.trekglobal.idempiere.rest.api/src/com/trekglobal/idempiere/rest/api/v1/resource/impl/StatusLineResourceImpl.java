@@ -108,40 +108,40 @@ public class StatusLineResourceImpl implements StatusLineResource {
 	}
 
 	@Override
-	  public Response getStatusLineValue(String id) {
-	    try {
-	      boolean isUUID = Util.isUUID(id);
-	      int statusLineId = isUUID ? getStatusLineID(id) : Integer.valueOf(id);
+	public Response getStatusLineValue(String id) {
+		try {
+			boolean isUUID = Util.isUUID(id);
+			int statusLineId = isUUID ? getStatusLineID(id) : Integer.valueOf(id);
 
-	      MStatusLine statusLine = new MStatusLine(Env.getCtx(), statusLineId, null);
-	      if (statusLine.getSQLStatement() != null) {
-	        JsonObject json = new JsonObject(); 
-	        addMessageToJsonObject(json, statusLine);
-	        return Response.ok(json.toString()).build();
-	      } else {
-	        return ResponseUtils.getResponseError(Status.NOT_FOUND, "Status Line not found", 
-	            "No valid status line with the given id = ", String.valueOf(statusLineId));
-	      }
-	    } catch (Exception ex) {
-	      Status status = Status.INTERNAL_SERVER_ERROR;
-	      if (ex instanceof IDempiereRestException)
-	        status = ((IDempiereRestException) ex).getErrorResponseStatus();
+			MStatusLine statusLine = new MStatusLine(Env.getCtx(), statusLineId, null);
+			if (statusLine.getSQLStatement() != null) {
+				JsonObject json = new JsonObject(); 
+				addMessageToJsonObject(json, statusLine);
+				return Response.ok(json.toString()).build();
+			} else {
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Status Line not found", 
+						"No valid status line with the given id = ", String.valueOf(statusLineId));
+			}
+		} catch (Exception ex) {
+			Status status = Status.INTERNAL_SERVER_ERROR;
+			if (ex instanceof IDempiereRestException)
+				status = ((IDempiereRestException) ex).getErrorResponseStatus();
 
-	      log.log(Level.SEVERE, ex.getMessage(), ex);
-	      return Response.status(status)
-	          .entity(new ErrorBuilder().status(status)
-	              .title("GET Error")
-	              .append("Get status line with exception: ")
-	              .append(ex.getMessage())
-	              .build().toString())
-	          .build();
-	    }
-	  }
-	  
-	  private int getStatusLineID(String uuid) {
-	    String sql = "SELECT AD_StatusLine_ID FROM AD_StatusLine WHERE AD_StatusLine_UU = ?";
-	    return DB.getSQLValue(null, sql, uuid);
-	  }
+			log.log(Level.SEVERE, ex.getMessage(), ex);
+			return Response.status(status)
+					.entity(new ErrorBuilder().status(status)
+							.title("GET Error")
+							.append("Get status line with exception: ")
+							.append(ex.getMessage())
+							.build().toString())
+					.build();
+		}
+	}
+
+	private int getStatusLineID(String uuid) {
+		String sql = "SELECT AD_StatusLine_ID FROM AD_StatusLine WHERE AD_StatusLine_UU = ?";
+		return DB.getSQLValue(null, sql, uuid);
+	}
 	
 	private void addMessageToJsonObject(JsonObject json, MStatusLine statusLine) {
 		String line = statusLine.parseLine(0);
