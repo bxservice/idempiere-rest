@@ -48,6 +48,6 @@ public interface MenuTreeResource {
 	 * @param menuTreeId
 	 * @return JSON representation of menu with its children
 	 */
-	public Response getMenu(@PathParam("menuTreeId") int menuTreeId);
+	public Response getMenu(@PathParam("menuTreeId") String id);
 
 }
