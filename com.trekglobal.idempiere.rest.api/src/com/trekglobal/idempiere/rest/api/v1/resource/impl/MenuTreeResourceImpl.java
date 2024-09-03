@@ -36,12 +36,14 @@ import org.compiere.model.MTable;
 import org.compiere.model.MTree;
 import org.compiere.model.MTreeNode;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.MenuTreeResource;
 
@@ -58,8 +60,11 @@ public class MenuTreeResourceImpl implements MenuTreeResource {
 	}
 
 	@Override
-	public Response getMenu(int menuTreeId) {
+	public Response getMenu(String id) {
 		try {
+			boolean isUUID = RestUtils.isUUID(id);
+			int menuTreeId = isUUID ? getMenuTreeID(id) : Integer.valueOf(id);
+
 			JsonObject jsonRoot = new JsonObject(); 
 			MTree mTree = new MTree(Env.getCtx(), menuTreeId, false, true, null);
 			MTreeNode rootNode = mTree.getRoot();
@@ -120,6 +125,11 @@ public class MenuTreeResourceImpl implements MenuTreeResource {
                 }
             }
         }
+	}
+	
+	private int getMenuTreeID(String uuid) {
+		String sql = "SELECT AD_Tree_ID FROM AD_Tree WHERE AD_Tree_UU = ?";
+		return DB.getSQLValue(null, sql, uuid);
 	}
 
 }
