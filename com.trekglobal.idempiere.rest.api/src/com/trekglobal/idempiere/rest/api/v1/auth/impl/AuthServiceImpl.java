@@ -38,6 +38,7 @@ import javax.xml.bind.DatatypeConverter;
 import org.adempiere.util.LogAuthFailure;
 import org.compiere.model.I_AD_Preference;
 import org.compiere.model.MClient;
+import org.compiere.model.MClientInfo;
 import org.compiere.model.MOrg;
 import org.compiere.model.MPreference;
 import org.compiere.model.MRole;
@@ -361,6 +362,11 @@ public class AuthServiceImpl implements AuthService {
 			session.saveEx();
 		}
 		builder.withClaim(LoginClaims.AD_Session_ID.name(), session.getAD_Session_ID());
+		MRole role = MRole.getDefault();
+		int menuTreeId = role.getAD_Tree_Menu_ID();
+		if (menuTreeId <= 0)
+			menuTreeId = MClientInfo.get().getAD_Tree_Menu_ID();
+		responseNode.addProperty("menuTreeId", menuTreeId);
 
 		Timestamp expiresAt = TokenUtils.getTokenExpiresAt();
 		builder.withIssuer(TokenUtils.getTokenIssuer()).withExpiresAt(expiresAt).withKeyId(TokenUtils.getTokenKeyId());
