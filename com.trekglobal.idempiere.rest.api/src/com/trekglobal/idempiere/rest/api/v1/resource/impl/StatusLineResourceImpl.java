@@ -35,7 +35,9 @@ import org.compiere.model.MStatusLine;
 import org.compiere.model.MTable;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Util;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -106,8 +108,11 @@ public class StatusLineResourceImpl implements StatusLineResource {
 	}
 
 	@Override
-	public Response getStatusLineValue(int statusLineId) {
+	public Response getStatusLineValue(String id) {
 		try {
+			boolean isUUID = Util.isUUID(id);
+			int statusLineId = isUUID ? getStatusLineID(id) : Integer.valueOf(id);
+
 			MStatusLine statusLine = new MStatusLine(Env.getCtx(), statusLineId, null);
 			if (statusLine.getSQLStatement() != null) {
 				JsonObject json = new JsonObject(); 
@@ -131,6 +136,11 @@ public class StatusLineResourceImpl implements StatusLineResource {
 							.build().toString())
 					.build();
 		}
+	}
+
+	private int getStatusLineID(String uuid) {
+		String sql = "SELECT AD_StatusLine_ID FROM AD_StatusLine WHERE AD_StatusLine_UU = ?";
+		return DB.getSQLValue(null, sql, uuid);
 	}
 	
 	private void addMessageToJsonObject(JsonObject json, MStatusLine statusLine) {

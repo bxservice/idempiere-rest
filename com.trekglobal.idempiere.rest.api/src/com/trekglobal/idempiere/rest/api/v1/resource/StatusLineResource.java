@@ -60,6 +60,6 @@ public interface StatusLineResource {
 	 * @param statusLineId
 	 * @return JSON representation of message - can be HTML
 	 */
-	public Response getStatusLineValue(@PathParam("statusLineId") int statusLineId);
+	public Response getStatusLineValue(@PathParam("statusLineId") String id);
 
 }
