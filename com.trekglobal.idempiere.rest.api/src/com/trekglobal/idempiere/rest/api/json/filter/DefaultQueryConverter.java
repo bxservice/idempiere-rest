@@ -173,19 +173,23 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		} else {
 			// Get Right Value
 			if (right.contains("(")) {
-				//Another method, f.i tolower(name)
-				String innerMethodName = ODataUtils.getMethodCall(right);
-				String innerValue = ODataUtils.getFirstParameter(innerMethodName, right);
-				MColumn columnRight = table.getColumn(innerValue.trim());
-				if (columnRight != null) {
-					if(columnRight.isSecure() || columnRight.isEncrypted()) {
-						throw new IDempiereRestException("Invalid column for filter: " + innerValue.trim(), Status.BAD_REQUEST);
-					}
-					
-					rightParameter = ODataUtils.getSQLFunction(innerMethodName, columnRight.getColumnName(), false);
+				if (operator.equals(ODataUtils.IN)) {
+					rightParameter = right;
 				} else {
-					convertedQuery.addParameter(column, innerValue);
-					rightParameter = ODataUtils.getSQLFunction(innerMethodName, "?", false);
+					//Another method, f.i tolower(name)
+					String innerMethodName = ODataUtils.getMethodCall(right);
+					String innerValue = ODataUtils.getFirstParameter(innerMethodName, right);
+					MColumn columnRight = table.getColumn(innerValue.trim());
+					if (columnRight != null) {
+						if(columnRight.isSecure() || columnRight.isEncrypted()) {
+							throw new IDempiereRestException("Invalid column for filter: " + innerValue.trim(), Status.BAD_REQUEST);
+						}
+						
+						rightParameter = ODataUtils.getSQLFunction(innerMethodName, columnRight.getColumnName(), false);
+					} else {
+						convertedQuery.addParameter(column, innerValue);
+						rightParameter = ODataUtils.getSQLFunction(innerMethodName, "?", false);
+					}
 				}
 			} else {
 				// Check Right is Column
