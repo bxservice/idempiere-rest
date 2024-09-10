@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.apache.commons.codec.binary.Base64;
@@ -55,6 +57,7 @@ import org.compiere.util.Msg;
 import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterService;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
@@ -238,6 +241,18 @@ public class Process {
 		processInfoJson.addProperty("AD_PInstance_ID", processInfo.getAD_PInstance_ID());
 		processInfoJson.addProperty("process", processSlug);
 		processInfoJson.addProperty("summary", processInfo.getSummary());
+		
+		String data = processInfo.getJsonData();
+		if (data != null && !data.isEmpty()) {
+			JsonElement dataElement;
+			try {
+				dataElement = JsonParser.parseString(data);
+				processInfoJson.add("data", dataElement.getAsJsonObject());
+			} catch (Exception e) {
+				dataElement = null;
+			}
+		}
+		
 		processInfoJson.addProperty("isError", processInfo.isError());
 		if (processInfo.getPDFReport() != null) {
 			File file = processInfo.getPDFReport();
@@ -261,20 +276,32 @@ public class Process {
 			JsonArray logArray = new JsonArray();
 			SimpleDateFormat dateFormat = DisplayType.getDateFormat(DisplayType.Date);
 			for(ProcessInfoLog log : logs) {
-				StringBuilder sb = new StringBuilder();
+				Map<String, Object> logMap = new HashMap<String, Object>();
+				
 				if (log.getP_Date() != null)
-					sb.append(dateFormat.format(log.getP_Date()))
-					  .append(" \t");
+					logMap.put("date", dateFormat.format(log.getP_Date()));
 				//
 				if (log.getP_Number() != null)
-					sb.append(log.getP_Number())
-					  .append(" \t");
+					logMap.put("number",log.getP_Number());
+				//
+				String logData = log.getJsonData();
+				if (logData != null && !logData.isEmpty()) {
+					JsonElement dataElement;
+					try {
+						dataElement = JsonParser.parseString(logData);
+						logMap.put("data", dataElement.getAsJsonObject());
+					} catch (Exception e) {
+						dataElement = null;
+					}
+				}
 				//
 				if (log.getP_Msg() != null)
-					sb.append(Msg.parseTranslation(Env.getCtx(), log.getP_Msg()));
+					logMap.put("msg",Msg.parseTranslation(Env.getCtx(), log.getP_Msg()));
 				
-				JsonPrimitive logStr = new JsonPrimitive(sb.toString());
-				logArray.add(logStr);
+		        Gson gson = new Gson();
+		        JsonObject jsonObject = gson.toJsonTree(logMap).getAsJsonObject();
+
+				logArray.add(jsonObject);
 			}
 			processInfoJson.add("logs", logArray);
 		}
