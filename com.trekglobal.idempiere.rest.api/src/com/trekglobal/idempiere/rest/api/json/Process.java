@@ -76,7 +76,7 @@ import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
  */
 public class Process {
 
-	private final static CLogger classLog = CLogger.getCLogger(ResponseUtils.class);
+	private final static CLogger classLog = CLogger.getCLogger(Process.class);
 
 	private Process() {
 	}
