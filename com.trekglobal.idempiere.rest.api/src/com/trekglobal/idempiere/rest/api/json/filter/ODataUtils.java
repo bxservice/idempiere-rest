@@ -37,6 +37,7 @@ public class ODataUtils {
 	
 	/** Logical operators **/
 	public static final String EQUALS = "eq";
+	public static final String IN = "in";
 	public static final String NOT_EQUALS = "neq";
 	public static final String GREATER_THAN = "gt";
 	public static final String GREATER_THAN_OR_EQUAL = "ge";
@@ -140,6 +141,7 @@ public class ODataUtils {
 		{
 			put(AND, "AND");
 			put(EQUALS, "=");
+			put(IN, " IN ");
 			put(GREATER_THAN_OR_EQUAL, ">=");
 			put(GREATER_THAN, ">");
 			put(LESS_THAN_OR_EQUAL, "<=");

@@ -577,6 +577,55 @@
 			},
 			"response": []
 		},
+				{
+			"name": "api/v1/models/{table name}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?$filter=Name in ('106','PST','Exempt') AND C_Tax_ID in (106,107)&$select=Name",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_tax"
+					],
+					"query": [
+						{
+							"key": "$filter",
+							"value": "Name in ('106','PST','Exempt') AND C_Tax_ID in (106,107)"
+						},
+						{
+							"key": "$select",
+							"value": "Name"
+						}
+					]
+				},
+				"description": "Get records for table with optional filter using in operator"
+			},
+			"response": []
+		},
 		{
 			"name": "api/v1/models/{table name}?$valrule",
 			"request": {

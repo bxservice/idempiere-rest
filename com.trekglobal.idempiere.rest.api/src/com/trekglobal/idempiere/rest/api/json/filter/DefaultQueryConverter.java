@@ -170,6 +170,25 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 			default: 
 				throw new IDempiereRestException("Operator " + operator + " is not compatible with NULL comparision", Status.BAD_REQUEST);
 			}
+		} else if(ODataUtils.IN.equals(operator)) {
+			if (right.startsWith("(") && right.endsWith(")")) {
+				StringBuilder rightParameterBuilder = new StringBuilder("(");
+				String values = right.substring(1, right.length() - 1).trim();
+
+				String[] valueArray = values.split(",");
+				for (String value : valueArray) {
+					convertedQuery.addParameter(column, value.trim());
+					rightParameterBuilder.append("?,");
+				}
+
+				// Remove last comma and close parentheses
+				rightParameterBuilder.setLength(rightParameterBuilder.length() - 1);
+				rightParameterBuilder.append(")");
+
+				rightParameter = rightParameterBuilder.toString();
+			} else {
+				throw new IDempiereRestException("Wrong right parameter for IN operator", Status.BAD_REQUEST);
+			}
 		} else {
 			// Get Right Value
 			if (right.contains("(")) {
