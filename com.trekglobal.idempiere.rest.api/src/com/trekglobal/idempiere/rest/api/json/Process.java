@@ -51,6 +51,7 @@ import org.compiere.print.MPrintFormat;
 import org.compiere.process.ProcessInfo;
 import org.compiere.process.ProcessInfoLog;
 import org.compiere.process.ProcessInfoUtil;
+import org.compiere.util.CLogger;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
@@ -74,6 +75,8 @@ import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
  *
  */
 public class Process {
+
+	private final static CLogger classLog = CLogger.getCLogger(ResponseUtils.class);
 
 	private Process() {
 	}
@@ -250,6 +253,7 @@ public class Process {
 				processInfoJson.add("data", dataElement.getAsJsonObject());
 			} catch (Exception e) {
 				dataElement = null;
+				classLog.warning(e.getMessage());
 			}
 		}
 		
