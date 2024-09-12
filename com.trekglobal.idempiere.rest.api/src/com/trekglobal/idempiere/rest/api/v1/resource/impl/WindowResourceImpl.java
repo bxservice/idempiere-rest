@@ -44,7 +44,6 @@ import org.compiere.model.GridField;
 import org.compiere.model.GridTab;
 import org.compiere.model.GridWindow;
 import org.compiere.model.MField;
-import org.compiere.model.MForm;
 import org.compiere.model.MPInstance;
 import org.compiere.model.MProcess;
 import org.compiere.model.MQuery;
@@ -273,7 +272,7 @@ public class WindowResourceImpl implements WindowResource {
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		try {
 			StringBuilder whereClause = new StringBuilder("AD_Tab_ID=?");
-			ConvertedQuery convertedStatement = converter.convertStatement(MForm.Table_Name, filter);
+			ConvertedQuery convertedStatement = converter.convertStatement(MField.Table_Name, filter);
 			if (log.isLoggable(Level.INFO)) log.info("Where Clause: " + convertedStatement.getWhereClause());
 			
 			if (!Util.isEmpty(filter, true)) {
