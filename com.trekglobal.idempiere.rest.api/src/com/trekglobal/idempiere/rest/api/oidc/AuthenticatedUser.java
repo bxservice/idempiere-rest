@@ -34,18 +34,21 @@ public class AuthenticatedUser {
 	private int organizationId;
 	private int roleId;
 	private int userId;
+	private int sessionId;
 	
 	/**
 	 * @param tenantId
 	 * @param organizationId
 	 * @param roleId
 	 * @param userId
+	 * @param sessionId 
 	 */
-	public AuthenticatedUser(int tenantId, int organizationId, int roleId, int userId) {
+	public AuthenticatedUser(int tenantId, int organizationId, int roleId, int userId, int sessionId) {
 		this.tenantId = tenantId;
 		this.organizationId = organizationId;
 		this.roleId = roleId;
 		this.userId = userId;
+		this.sessionId = sessionId;
 	}
 
 	/**
@@ -76,4 +79,11 @@ public class AuthenticatedUser {
 		return userId;
 	}
 		
+	/**
+	 * @return AD_Session_ID
+	 */
+	public int getsessionId() {
+		return sessionId;
+	}
+
 }

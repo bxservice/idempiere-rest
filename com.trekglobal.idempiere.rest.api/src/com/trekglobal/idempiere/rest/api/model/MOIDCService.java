@@ -303,7 +303,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, authenticatedUser.getRoleId());
 		if (authenticatedUser.getOrganizationId() >= 0)
 			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, authenticatedUser.getOrganizationId());
-		
+		if (authenticatedUser.getsessionId() >= 0)
+			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, authenticatedUser.getsessionId());
+
 		String AD_Language = requestContext.getHeaderString(LANGUAGE_HEADER);
 		if (!Util.isEmpty(AD_Language))
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
