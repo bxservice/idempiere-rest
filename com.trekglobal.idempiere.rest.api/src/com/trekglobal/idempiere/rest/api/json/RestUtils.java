@@ -384,9 +384,11 @@ public class RestUtils {
 		// TODO: Defaults?     // can have impact on performance, driven by SysConfig?
 		// TODO: ModelValidationEngine.get().afterLoadPreferences(m_ctx);    // is this necessary?
 
-		Properties saveCtx = new Properties();
-		saveCtx.putAll(ctx);
-		ctxSessionCache.put(sessionId, saveCtx);
+		if (sessionId > 0) {
+			Properties saveCtx = new Properties();
+			saveCtx.putAll(ctx);
+			ctxSessionCache.put(sessionId, saveCtx);
+		}
 	}
 
 	/**
