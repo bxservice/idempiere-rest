@@ -306,7 +306,7 @@ public class RestUtils {
 		return false;
 	}
 
-	private static CCache<Integer, Properties> ctxSessionCache = new CCache<Integer, Properties>("REST_SessionCtxCache", 100, 60);
+	private static CCache<Integer, Properties> ctxSessionCache = new CCache<Integer, Properties>("REST_SessionCtxCache", 100, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 
 	/**
 	 * Set the session context variables
