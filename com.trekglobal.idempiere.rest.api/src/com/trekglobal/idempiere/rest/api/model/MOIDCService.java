@@ -40,6 +40,7 @@ import java.util.Properties;
 
 import javax.ws.rs.container.ContainerRequestContext;
 
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MWarehouse;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -74,7 +75,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 
 	private static ImmutablePOCache<String, MOIDCService> s_issuerCache = new ImmutablePOCache<>(Table_Name, 10);
 	
-	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, 10);
+	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 
 	/** HTTP header for AD_Role.Name */
 	public static final String ROLE_HEADER = "X-ID-Role";
@@ -303,7 +304,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, authenticatedUser.getRoleId());
 		if (authenticatedUser.getOrganizationId() >= 0)
 			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, authenticatedUser.getOrganizationId());
-		if (authenticatedUser.getsessionId() >= 0)
+		if (authenticatedUser.getsessionId() > 0)
 			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, authenticatedUser.getsessionId());
 
 		String AD_Language = requestContext.getHeaderString(LANGUAGE_HEADER);
