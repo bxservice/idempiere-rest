@@ -36,6 +36,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 
 import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
+import org.compiere.model.MSession;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MUser;
 import org.compiere.model.Query;
@@ -260,8 +261,15 @@ public class KeycloakProvider implements IOIDCProvider {
 				throw new JWTVerificationException("Invalid user and organization combination");
 			}
 		}
-		
-		return new AuthenticatedUser(AD_Client_ID, AD_Org_ID, AD_Role_ID, AD_User_ID);
+
+		MSession session = MSession.get(Env.getCtx());
+		if (session == null){
+			session = MSession.create(Env.getCtx());
+			session.setWebSession("idempiere-rest-oidc");
+			session.saveEx();
+		}
+
+		return new AuthenticatedUser(AD_Client_ID, AD_Org_ID, AD_Role_ID, AD_User_ID, session.getAD_Session_ID());
 	}
 
 	/**

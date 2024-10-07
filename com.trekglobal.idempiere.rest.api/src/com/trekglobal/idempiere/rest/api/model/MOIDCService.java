@@ -34,16 +34,13 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.sql.ResultSet;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Properties;
 
 import javax.ws.rs.container.ContainerRequestContext;
 
-import org.compiere.model.MAcctSchema;
-import org.compiere.model.MClientInfo;
-import org.compiere.model.MRole;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MWarehouse;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -65,6 +62,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.oidc.AuthenticatedUser;
 import com.trekglobal.idempiere.rest.api.oidc.IOIDCProvider;
 
@@ -77,7 +75,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 
 	private static ImmutablePOCache<String, MOIDCService> s_issuerCache = new ImmutablePOCache<>(Table_Name, 10);
 	
-	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, 10);
+	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 
 	/** HTTP header for AD_Role.Name */
 	public static final String ROLE_HEADER = "X-ID-Role";
@@ -306,7 +304,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, authenticatedUser.getRoleId());
 		if (authenticatedUser.getOrganizationId() >= 0)
 			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, authenticatedUser.getOrganizationId());
-		
+		if (authenticatedUser.getsessionId() > 0)
+			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, authenticatedUser.getsessionId());
+
 		String AD_Language = requestContext.getHeaderString(LANGUAGE_HEADER);
 		if (!Util.isEmpty(AD_Language))
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
@@ -317,38 +317,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			if (wh != null)
 				Env.setContext(Env.getCtx(), Env.M_WAREHOUSE_ID, wh.get_ID());
 		}
-		
-		if (authenticatedUser.getRoleId() >= 0) {
-			if (MRole.getDefault(Env.getCtx(), false).isShowAcct())
-				Env.setContext(Env.getCtx(), "#ShowAcct", "Y");
-			else
-				Env.setContext(Env.getCtx(), "#ShowAcct", "N");
-		}
-		
-		Env.setContext(Env.getCtx(), "#Date", new Timestamp(System.currentTimeMillis()));
-		
-		if (MClientInfo.get(Env.getCtx(), authenticatedUser.getTenantId()).getC_AcctSchema1_ID() > 0) {
-			MAcctSchema primary = MAcctSchema.get(Env.getCtx(), MClientInfo.get(Env.getCtx(), authenticatedUser.getTenantId()).getC_AcctSchema1_ID());
-			Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", primary.getC_AcctSchema_ID());
-			Env.setContext(Env.getCtx(), "$C_Currency_ID", primary.getC_Currency_ID());
-			Env.setContext(Env.getCtx(), "$HasAlias", primary.isHasAlias());
-		}
-		
-		MAcctSchema[] ass = MAcctSchema.getClientAcctSchema(Env.getCtx(), authenticatedUser.getTenantId());
-		if(ass != null && ass.length > 1) {
-			for(MAcctSchema as : ass) {
-				if (as.getAD_OrgOnly_ID() != 0) {
-					if (as.isSkipOrg(authenticatedUser.getOrganizationId())) {
-						continue;
-					} else  {
-						Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", as.getC_AcctSchema_ID());
-						Env.setContext(Env.getCtx(), "$C_Currency_ID", as.getC_Currency_ID());
-						Env.setContext(Env.getCtx(), "$HasAlias", as.isHasAlias());
-						break;
-					}
-				}
-			}
-		}
+		RestUtils.setSessionContextVariables(Env.getCtx());
 	}
 
 	@Override
