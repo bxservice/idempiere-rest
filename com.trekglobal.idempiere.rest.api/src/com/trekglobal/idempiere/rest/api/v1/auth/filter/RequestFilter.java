@@ -27,7 +27,6 @@ package com.trekglobal.idempiere.rest.api.v1.auth.filter;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.sql.Timestamp;
 import java.util.Properties;
 
 import javax.ws.rs.HttpMethod;
@@ -38,9 +37,6 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 
 import org.adempiere.util.ServerContext;
-import org.compiere.model.MAcctSchema;
-import org.compiere.model.MClientInfo;
-import org.compiere.model.MRole;
 import org.compiere.model.MSession;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
@@ -52,6 +48,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
@@ -191,40 +188,7 @@ public class RequestFilter implements ContainerRequestFilter {
 				}
 			}
 		}
-		
-		if (AD_Role_ID > 0) {
-			if (MRole.getDefault(Env.getCtx(), false).isShowAcct())
-				Env.setContext(Env.getCtx(), "#ShowAcct", "Y");
-			else
-				Env.setContext(Env.getCtx(), "#ShowAcct", "N");
-		}
-		
-		Env.setContext(Env.getCtx(), "#Date", new Timestamp(System.currentTimeMillis()));
-		
-		/** Define AcctSchema , Currency, HasAlias **/
-		if (AD_Client_ID > 0) {
-			if (MClientInfo.get(Env.getCtx(), AD_Client_ID).getC_AcctSchema1_ID() > 0) {
-				MAcctSchema primary = MAcctSchema.get(Env.getCtx(), MClientInfo.get(Env.getCtx(), AD_Client_ID).getC_AcctSchema1_ID());
-				Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", primary.getC_AcctSchema_ID());
-				Env.setContext(Env.getCtx(), "$C_Currency_ID", primary.getC_Currency_ID());
-				Env.setContext(Env.getCtx(), "$HasAlias", primary.isHasAlias());
-			}
-			
-			MAcctSchema[] ass = MAcctSchema.getClientAcctSchema(Env.getCtx(), AD_Client_ID);
-			if(ass != null && ass.length > 1) {
-				for(MAcctSchema as : ass) {
-					if (as.getAD_OrgOnly_ID() != 0) {
-						if (as.isSkipOrg(AD_Org_ID)) {
-							continue;
-						} else  {
-							Env.setContext(Env.getCtx(), "$C_AcctSchema_ID", as.getC_AcctSchema_ID());
-							Env.setContext(Env.getCtx(), "$C_Currency_ID", as.getC_Currency_ID());
-							Env.setContext(Env.getCtx(), "$HasAlias", as.isHasAlias());
-							break;
-						}
-					}
-				}
-			}
-		}
+		RestUtils.setSessionContextVariables(Env.getCtx());
 	}
+
 }
