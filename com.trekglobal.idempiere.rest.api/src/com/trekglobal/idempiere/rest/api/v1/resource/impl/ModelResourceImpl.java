@@ -299,7 +299,7 @@ public class ModelResourceImpl implements ModelResource {
 			String processError = runDocAction(po, jsonObject, processMsg);
 			if (!Util.isEmpty(processError, true)) {
 				trx.rollback();
-				log.severe("Encounter exception during execution of document action: " + processError);
+				log.warning("Encounter exception during execution of document action in REST: " + processError);
 				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, Msg.getMsg(po.getCtx(), "FailedProcessingDocument"), processError, "");
 			}
 			trx.commit(true);
@@ -475,7 +475,7 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				log.severe("Encounter exception during execution of document action: " + error);
+				log.warning("Encounter exception during execution of document action in REST: " + error);
 				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, Msg.getMsg(po.getCtx(), "FailedProcessingDocument"), error, "");
 			}
 			
