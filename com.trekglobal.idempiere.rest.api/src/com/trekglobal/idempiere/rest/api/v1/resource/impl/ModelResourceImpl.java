@@ -299,7 +299,8 @@ public class ModelResourceImpl implements ModelResource {
 			String processError = runDocAction(po, jsonObject, processMsg);
 			if (!Util.isEmpty(processError, true)) {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", processError);
+				log.severe("Encounter exception during execution of document action: " + processError);
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, Msg.getMsg(po.getCtx(), "FailedProcessingDocument"), processError, "");
 			}
 			trx.commit(true);
 			po.load(trx.getTrxName());
@@ -474,7 +475,8 @@ public class ModelResourceImpl implements ModelResource {
 				trx.commit(true);
 			} else {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Can't perform document action", "Encounter exception during execution of document action: ", error);
+				log.severe("Encounter exception during execution of document action: " + error);
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, Msg.getMsg(po.getCtx(), "FailedProcessingDocument"), error, "");
 			}
 			
 			po.load(trx.getTrxName());
@@ -853,7 +855,7 @@ public class ModelResourceImpl implements ModelResource {
 				if (!Util.isEmpty(docAction, true) && !DocAction.ACTION_None.equals(docAction)) {
 					ProcessInfo processInfo = MWorkflow.runDocumentActionWorkflow(po, docAction);
 					if (processInfo.isError()) {
-						return processInfo.getSummary();
+						return Msg.parseTranslation(po.getCtx(), processInfo.getSummary());
 					} else {
 						try {
 							po.saveEx();
