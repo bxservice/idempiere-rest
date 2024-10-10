@@ -60,6 +60,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.auth0.jwt.interfaces.Verification;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
@@ -71,7 +72,7 @@ import com.trekglobal.idempiere.rest.api.oidc.IOIDCProvider;
  */
 public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSupport {
 
-	private static final long serialVersionUID = 8307568192267187340L;
+	private static final long serialVersionUID = 3717089346846528233L;
 
 	private static ImmutablePOCache<String, MOIDCService> s_issuerCache = new ImmutablePOCache<>(Table_Name, 10);
 	
@@ -88,6 +89,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 
 	/** HTTP header for AD_Language */
 	public static final String LANGUAGE_HEADER = "X-ID-Language";
+	
+	/** HTTP header for AD_Org.Value. */ 
+	public static final String IDTOKEN_HEADER = "IdToken";
 	
 	/**
 	 * @param ctx
@@ -194,12 +198,18 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		Claim aud = decoded.getClaim("aud");
 		Claim azp = decoded.getClaim("azp");
 		
+		Claim client_id = decoded.getClaim("client_id");
+		
 		MOIDCService service = null;
 		if (isWithStringValue(alg) && isWithStringValue(typ) && "JWT".equals(typ.asString()) && isWithStringValue(kid) &&
 			isWithStringValue(iss) && isWithStringValue(aud) && isWithStringValue(azp)) {
 			service = fromIssuerAndAudience(iss.asString(), aud.asString());
 			if (service == null)
 				throw new JWTVerificationException("No matching OpenID Connect service configuration for access token");			
+		} else if (isWithStringValue(kid) && isWithStringValue(client_id)) {
+			service = fromIssuerAndAudience(iss.asString(), client_id.asString());
+			if (service == null)
+				throw new JWTVerificationException("No matching OpenID Connect service configuration for access token");
 		}
 		return service;
 	}
@@ -229,68 +239,26 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		if (service == null)
 			throw new JWTVerificationException("No provider service register for %s".formatted(oidcProvider.getName()));
 		
-		//get jwks from openid configuration endpoint
-		String jwksUrl = null;
-		String wellKnownUrl = getOIDC_ConfigurationURL();
-        HttpClient httpClient = HttpClient.newBuilder().build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(wellKnownUrl))
-                .GET()
-                .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            // Parse the JSON response
-            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
-
-            // Extract the JWKS URL
-            jwksUrl = json.get("jwks_uri").getAsString();
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);            
-        }
-        
-        if (jwksUrl != null) {
-        	DecodedJWT decodedJwt = JWT.decode(token);
-        	try {
-	        	//verify signature, audience and exp
-	        	JwkProvider provider = new UrlJwkProvider(new URL(jwksUrl));
-	            Jwk jwk = provider.get(decodedJwt.getKeyId());
+		DecodedJWT decodedJwt = getDecodedJWT(token);
+        	
+		if(isValidateScope_OIDC()) {
+			String path = requestContext.getUriInfo().getPath();
+			Claim scopeClaim = decodedJwt.getClaim("scope");
+			if (scopeClaim.isMissing() || scopeClaim.isNull())
+				throw new JWTVerificationException("Missing scope claim");
+			String scopeText = scopeClaim.asString();
+			String[] scopes = scopeText.split(" ");
+			boolean match = Arrays.stream(scopes).anyMatch(e -> e.equals(path));
+			if (!match)
+				throw new JWTVerificationException("API path not part of scope");
+		}
+		
+		//get user, role, tenant and org
+		authenticatedUser = service.getAuthenticatedUser(decodedJwt, requestContext, this);
+		s_authCache.put(token, authenticatedUser);
+		
+		processAuthenticatedUser(requestContext, authenticatedUser);
 	
-	            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-	            JWTVerifier verifier = JWT.require(algorithm)
-	            						  .acceptExpiresAt(0)
-	            						  .withIssuer(getOIDC_IssuerURL())
-	            						  .withAudience(getOIDC_Audience())
-	            						  .build();
-	            decodedJwt = verifier.verify(decodedJwt);
-            } catch (JWTVerificationException | JwkException | MalformedURLException e) {
-            	if (e instanceof JWTVerificationException)
-            		throw (JWTVerificationException)e;
-            	else
-            		throw new JWTVerificationException(e.getMessage(), e);
-            }
-        	
-        	if( isValidateScope_OIDC()) {
-        		String path = requestContext.getUriInfo().getPath();
-        		Claim scopeClaim = decodedJwt.getClaim("scope");
-        		if (scopeClaim.isMissing() || scopeClaim.isNull())
-        			throw new JWTVerificationException("Missing scope claim");
-        		String scopeText = scopeClaim.asString();
-        		String[] scopes = scopeText.split(" ");
-        		boolean match = Arrays.stream(scopes).anyMatch(e -> e.equals(path));
-        		if (!match)
-        			throw new JWTVerificationException("API path not part of scope");
-        	}
-        	
-        	//get user, role, tenant and org
-        	authenticatedUser = service.getAuthenticatedUser(decodedJwt, requestContext, this);
-        	s_authCache.put(token, authenticatedUser);
-        	
-        	processAuthenticatedUser(requestContext, authenticatedUser);
-        } else {
-        	throw new JWTVerificationException("Failed to retrieve jwks_uri from Configuration URL");
-        }
 	}
 
 	/**
@@ -306,11 +274,23 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			Env.setContext(Env.getCtx(), Env.AD_ORG_ID, authenticatedUser.getOrganizationId());
 		if (authenticatedUser.getsessionId() > 0)
 			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, authenticatedUser.getsessionId());
+		
+		DecodedJWT decodedIdToken = getDecodedIdToken(requestContext);
 
 		String AD_Language = requestContext.getHeaderString(LANGUAGE_HEADER);
+		if (Util.isEmpty(AD_Language) && decodedIdToken != null) {
+			Claim languageClaim = decodedIdToken.getClaim(MOIDCService.LANGUAGE_HEADER);
+	    	if (!languageClaim.isNull() && !languageClaim.isMissing())
+	    		AD_Language = languageClaim.asString();
+		} 
 		if (!Util.isEmpty(AD_Language))
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
 		String warehouseName = requestContext.getHeaderString(WAREHOUSE_HEADER);
+		if (Util.isEmpty(warehouseName) && decodedIdToken != null) {
+			Claim warehouseClaim = decodedIdToken.getClaim(MOIDCService.WAREHOUSE_HEADER);
+	    	if (!warehouseClaim.isNull() && !warehouseClaim.isMissing())
+	    		warehouseName = warehouseClaim.asString();
+		}
 		if (!Util.isEmpty(warehouseName)) {
 			Query warehouseQuery = new Query(Env.getCtx(), MWarehouse.Table_Name, "AD_Client_ID=? AND Name=?", null);
 			MWarehouse wh = warehouseQuery.setOnlyActiveRecords(true).setParameters(authenticatedUser.getTenantId(), warehouseName).first();
@@ -347,5 +327,68 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		}
 		return success;
 	}
-		
+	
+	private DecodedJWT getDecodedJWT(String token) {
+		//get jwks from openid configuration endpoint
+		String jwksUrl = null;
+		String wellKnownUrl = getOIDC_ConfigurationURL();
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(wellKnownUrl))
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Parse the JSON response
+            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
+
+            // Extract the JWKS URL
+            jwksUrl = json.get("jwks_uri").getAsString();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);            
+        }
+        
+        DecodedJWT decodedJwt = null;
+        if (jwksUrl != null) {
+        	decodedJwt = JWT.decode(token);
+        	try {
+	        	//verify signature, audience and exp
+	        	JwkProvider provider = new UrlJwkProvider(new URL(jwksUrl));
+	            Jwk jwk = provider.get(decodedJwt.getKeyId());
+	
+	            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+	            Verification verification = JWT.require(algorithm)
+						  .acceptExpiresAt(0)
+						  .withIssuer(getOIDC_IssuerURL());
+	            Claim aud = decodedJwt.getClaim("aud");
+	            if (isWithStringValue(aud)) {
+	            	verification.withAudience(getOIDC_Audience());
+	            } else {
+	            	Claim client_id = decodedJwt.getClaim("client_id");
+	            	 if (isWithStringValue(client_id))
+	            		 verification.withClaim("client_id", getOIDC_Audience());
+	            }
+	            JWTVerifier verifier = verification.build();
+	            decodedJwt = verifier.verify(decodedJwt);
+            } catch (JWTVerificationException | JwkException | MalformedURLException e) {
+            	if (e instanceof JWTVerificationException)
+            		throw (JWTVerificationException)e;
+            	else
+            		throw new JWTVerificationException(e.getMessage(), e);
+            }
+        } else {
+        	throw new JWTVerificationException("Failed to retrieve jwks_uri from Configuration URL");
+        }
+        
+        return decodedJwt;
+	}
+	
+	public DecodedJWT getDecodedIdToken(ContainerRequestContext requestContext) {
+		String idToken = requestContext.getHeaderString(MOIDCService.IDTOKEN_HEADER);
+		if (Util.isEmpty(idToken))
+			return null;
+		return getDecodedJWT(idToken);
+	}
 }
