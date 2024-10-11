@@ -137,7 +137,7 @@
 						"type": "text"
 					},
 					{
-						"key": "IdToken",
+						"key": "X-ID-IdToken",
 						"value": "{{IdToken}}",
 						"type": "text"
 					}
@@ -186,7 +186,7 @@
 						"type": "text"
 					},
 					{
-						"key": "IdToken",
+						"key": "X-ID-IdToken",
 						"value": "{{IdToken}}",
 						"type": "text"
 					}

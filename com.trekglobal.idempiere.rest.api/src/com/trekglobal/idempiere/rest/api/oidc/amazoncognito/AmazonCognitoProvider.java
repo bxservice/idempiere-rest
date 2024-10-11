@@ -80,67 +80,25 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
         	if (!roleClaim.isNull() && !roleClaim.isMissing())
         		roleHeader = roleClaim.asString();
         }
-		
-		String headerOrgValue = null;		
+			
 		if (oidcService.isAuthorization_OIDC()) {
-			//cognito roles mapping to iDempiere role (AD_Role.Name)
+			//cognito groups mapping to iDempiere role (AD_Role.Name) without space
 			List<String> roleNames = new ArrayList<>();
-			Claim rolesClaim = decodedJwt.getClaim("cognito:roles");
+			Claim rolesClaim = decodedJwt.getClaim("cognito:groups");
 			if (rolesClaim.isNull() || rolesClaim.isMissing()) {
 				if (decodedIdToken != null)
-					rolesClaim = decodedIdToken.getClaim("cognito:roles");
+					rolesClaim = decodedIdToken.getClaim("cognito:groups");
+				if (rolesClaim.isNull() || rolesClaim.isMissing())
+					throw new JWTVerificationException("Missing roles claim");
 			}
-			if (!rolesClaim.isNull() && !rolesClaim.isMissing()) {
-				String[] roles = rolesClaim.asArray(String.class);
-				for(String role : roles) {
-					String roleName = role;
-					int lastIndex = role.lastIndexOf("/");
-					if (lastIndex != -1)
-						roleName = role.substring(lastIndex + 1);
-					Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND REPLACE(Name,' ','')=?", null);
-					MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleName).first();
-					if (mRole != null) {
-						roleNames.add(mRole.getName());
-					}
+			String[] roles = rolesClaim.asArray(String.class);
+			for(String role : roles) {
+				String roleName = role;
+				Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND REPLACE(Name,' ','')=?", null);
+				MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleName).first();
+				if (mRole != null) {
+					roleNames.add(mRole.getName());
 				}
-			}
-			
-			//cognito groups mapping to iDempiere org (AD_Org.Value)
-			Claim groupsClaim = decodedJwt.getClaim("cognito:groups");
-			if (groupsClaim.isNull() || groupsClaim.isMissing()) {
-				throw new JWTVerificationException("Missing organization claim");
-			}
-			String[] groupNames = groupsClaim.asArray(String.class);
-			List<MOrg> orgList = new ArrayList<>();
-			for(String groupName : groupNames) {				
-				Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-				MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, groupName).first();
-				if (org != null) {
-					orgList.add(org);
-				}				
-			}
-			if (orgList.size() == 0) {
-				throw new JWTVerificationException("Missing organization claim");
-			}
-			
-			if (orgList.size() == 1) {
-				if (Util.isEmpty(orgHeader) || orgHeader.equals(orgList.get(0).getValue())) {
-					AD_Org_ID = orgList.get(0).get_ID();
-				} else {
-					throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
-				}
-			} else {			
-				if (!Util.isEmpty(orgHeader)) {
-					for(int i = 0; i < orgList.size(); i++) {
-						if (orgHeader.equals(orgList.get(i).getValue())) {
-							AD_Org_ID = orgList.get(i).get_ID();
-							break;
-						}
-					}
-					if (AD_Org_ID == -1) {
-						throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
-					}
-				} 
 			}
 			
 			//cognito roles mapping to iDempiere role
@@ -149,17 +107,6 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 				roleName = roleNames.get(0);
 				if (!Util.isEmpty(roleHeader) && !roleHeader.equals(roleName)) {
 					throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ROLE_HEADER));
-				}
-			} else if (roleNames.size() == 0) {
-				if (!Util.isEmpty(roleHeader)) {
-					Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND Name=?", null);
-					MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleHeader).first();
-					if (mRole != null) {
-						AD_Role_ID = mRole.getAD_Role_ID();
-						roleName = mRole.getName();
-					} else {
-						throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ROLE_HEADER));
-					}
 				}
 			} else {
 				if (!Util.isEmpty(roleHeader)) {
@@ -192,7 +139,7 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 			
 			if (AD_Role_ID == -1) {
 				throw new JWTVerificationException("Invalid Role claim");
-			}			
+			}
 		} else {
 			//not resolving authorization details from access token, try id token
 			if (!Util.isEmpty(orgHeader)) {
@@ -249,9 +196,9 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		//get org from id token or if role has access to single org only
 		if (AD_Role_ID >= 0) {
 			if (AD_Org_ID == -1) {
-				if (!Util.isEmpty(headerOrgValue)) {
+				if (!Util.isEmpty(orgHeader)) {
 					query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, headerOrgValue).first();
+					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
 					if (org != null) {
 						AD_Org_ID = org.getAD_Org_ID();
 					} else {

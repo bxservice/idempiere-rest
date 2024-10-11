@@ -91,7 +91,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	public static final String LANGUAGE_HEADER = "X-ID-Language";
 	
 	/** HTTP header for AD_Org.Value. */ 
-	public static final String IDTOKEN_HEADER = "IdToken";
+	public static final String IDTOKEN_HEADER = "X-ID-IdToken";
 	
 	/**
 	 * @param ctx
