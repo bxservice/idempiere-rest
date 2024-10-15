@@ -154,7 +154,7 @@ public class ModelResourceImpl implements ModelResource {
 				return poParser.getResponseError();
 			}
 		} catch(Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get PO with exception: ");
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
 		}
 	}
 	
@@ -205,7 +205,7 @@ public class ModelResourceImpl implements ModelResource {
 			json.add("models", array);
 			return Response.ok(json.toString()).build();			
 		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get models with exception: ");
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
 		}
 
 	}
@@ -256,7 +256,7 @@ public class ModelResourceImpl implements ModelResource {
 				return Response.ok(json.toString()).build();
 			}
 		} catch (Exception ex) {
-			return ResponseUtils.getResponseErrorFromException(ex, "GET Error", "Get POs with exception: ");
+			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
 		}
 	}
 	
@@ -285,7 +285,7 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (Exception ex) {
 				trx.rollback();
-				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 			}
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
@@ -316,7 +316,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.CREATED).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return ResponseUtils.getResponseErrorFromException(ex, "Server error", "Server error with exception: ");
+			return ResponseUtils.getResponseErrorFromException(ex, "Server error");
 		} finally {
 			trx.close();
 		}
@@ -421,7 +421,7 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (Exception ex) {
 				trx.rollback();
-				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 			}
 			
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
@@ -463,7 +463,7 @@ public class ModelResourceImpl implements ModelResource {
 								detailMap.put(field, savedArray);
 						} catch (Exception ex) {
 							trx.rollback();
-							return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
+							return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 						}
 					}
 				}
@@ -492,7 +492,7 @@ public class ModelResourceImpl implements ModelResource {
 			return Response.status(Status.OK).entity(jsonObject.toString()).build();
 		} catch (Exception ex) {
 			trx.rollback();
-			return ResponseUtils.getResponseErrorFromException(ex, "Update error", "Update error with exception: ");
+			return ResponseUtils.getResponseErrorFromException(ex, "Update error");
 		} finally {
 			trx.close();
 		}
@@ -529,7 +529,7 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
-				return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 			}
 		} else {
 			return poParser.getResponseError();
@@ -635,7 +635,7 @@ public class ModelResourceImpl implements ModelResource {
 	            }
 	            attachment.saveEx();
 	        } catch (Exception ex) {
-				return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error", "Create attachment error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error");
 			}
 															
 			return Response.status(Status.CREATED).build();
@@ -662,7 +662,7 @@ public class ModelResourceImpl implements ModelResource {
 							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
 							return Response.ok(fso).build();
 						} catch (IOException ex) {
-							return ResponseUtils.getResponseErrorFromException(ex, "IO error", "IO error with exception: ");
+							return ResponseUtils.getResponseErrorFromException(ex, "IO error");
 						}
 					}
 				}
@@ -726,7 +726,7 @@ public class ModelResourceImpl implements ModelResource {
 				attachment.addEntry(fileName, data);
 				attachment.saveEx();
 			} catch (Exception ex) {
-				return ResponseUtils.getResponseErrorFromException(ex, "Save error", "Save error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 			}
 			return Response.status(Status.CREATED).build();
 		} else {
@@ -745,7 +745,7 @@ public class ModelResourceImpl implements ModelResource {
 				try {
 					attachment.deleteEx(true);
 				} catch (Exception ex) {
-					return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
+					return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 				}
 				JsonObject json = new JsonObject();
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
@@ -773,7 +773,7 @@ public class ModelResourceImpl implements ModelResource {
 							try {
 								attachment.saveEx();
 							} catch (Exception ex) {
-								return ResponseUtils.getResponseErrorFromException(ex, "Delete error", "Delete error with exception: ");
+								return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 							}
 							JsonObject json = new JsonObject();
 							json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
@@ -810,7 +810,7 @@ public class ModelResourceImpl implements ModelResource {
 				WindowResource windowResource = new WindowResourceImpl();
 				return windowResource.printWindowRecord(windowSlug, po.get_ID(), reportType);
 			} catch (Exception ex) {
-				return ResponseUtils.getResponseErrorFromException(ex, "Print model error", "Print model error with exception: ");
+				return ResponseUtils.getResponseErrorFromException(ex, "Print model error");
 			}
 		} else {
 			return poParser.getResponseError();
