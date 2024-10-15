@@ -62,7 +62,7 @@ public class POParser {
 			//Call to check if user has access to the table
 			RestUtils.getTableAndCheckAccess(tableName, isReadWrite);
 		} catch (Exception ex) {
-			responseError = ResponseUtils.getResponseErrorFromException(ex, "", "");
+			responseError = ResponseUtils.getResponseErrorFromException(ex, "");
 			return false;
 		}
 		return true;
@@ -83,7 +83,7 @@ public class POParser {
 		try {
 			po = RestUtils.getPO(tableName, recordID, false, false);
 		} catch (Exception e) {
-			return ResponseUtils.getResponseErrorFromException(e, "Exception reading " + recordID, "");
+			return ResponseUtils.getResponseErrorFromException(e, "Exception reading " + recordID);
 		}
 
 		if (po != null) {

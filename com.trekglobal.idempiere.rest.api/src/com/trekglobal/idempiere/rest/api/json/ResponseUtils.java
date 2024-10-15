@@ -38,6 +38,10 @@ public class ResponseUtils {
 
 	private final static CLogger log = CLogger.getCLogger(ResponseUtils.class);
 
+	public static Response getResponseErrorFromException(Exception ex, String title) {
+		return getResponseErrorFromException(ex, title, "");
+	}
+	
 	public static Response getResponseErrorFromException(Exception ex, String title, String detailText) {
 		Status status = Status.INTERNAL_SERVER_ERROR;
 		if (ex instanceof IDempiereRestException) {
