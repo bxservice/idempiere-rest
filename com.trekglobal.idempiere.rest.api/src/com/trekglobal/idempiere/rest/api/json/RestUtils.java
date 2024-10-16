@@ -375,8 +375,10 @@ public class RestUtils {
 		Env.setContext(ctx, Env.SHOW_TRANSLATION, Ini.getProperty(Ini.P_SHOW_TRL));
 		Env.setContext(ctx, Env.DEVELOPER_MODE, Util.isDeveloperMode() ? "Y" : "N");
 
-		MUserPreference userPreference = MUserPreference.getUserPreference(Env.getAD_User_ID(ctx), Env.getAD_Client_ID(ctx));
-		userPreference.fillPreferences();
+		if (Env.getAD_User_ID(ctx) > 0) {
+			MUserPreference userPreference = MUserPreference.getUserPreference(Env.getAD_User_ID(ctx), Env.getAD_Client_ID(ctx));
+			userPreference.fillPreferences();
+		}
 
 		Env.setContext(ctx, Env.C_COUNTRY_ID, MCountry.getDefault().getC_Country_ID());
 
