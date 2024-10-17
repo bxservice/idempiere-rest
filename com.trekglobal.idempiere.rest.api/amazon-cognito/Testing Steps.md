@@ -158,6 +158,10 @@ Audience \- User pool: GardenWorld \> App integration \> App client: iDempiere W
 
 There are two authentication flows used to get token and refresh token: Authorization Code Grant and Resource Owner Password Credentials (ROPC).
 
+For ROPC flow, the access token is not openid scope, therefore cannot be used to access the endpoints return from well known configuration url.
+
+#### 
+
 #### Step 1.1: Authorization Code Grant
 
 ##### Step 1.2.1: Get Code {#step-1.2.1:-get-code}
