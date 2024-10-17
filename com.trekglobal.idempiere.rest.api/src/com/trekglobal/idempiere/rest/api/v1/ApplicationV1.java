@@ -36,6 +36,7 @@ import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.ResponseFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.CacheResourceImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ChartResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FileResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FormResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.InfoResourceImpl;
@@ -81,6 +82,7 @@ public class ApplicationV1 extends Application {
         classes.add(InfoResourceImpl.class);
         classes.add(WorkflowResourceImpl.class);
         classes.add(StatusLineResourceImpl.class);
+        classes.add(ChartResourceImpl.class);
         classes.add(MenuTreeResourceImpl.class);
         
         return classes;
