@@ -25,11 +25,21 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.oidc.amazoncognito;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.core.HttpHeaders;
 
 import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
@@ -44,6 +54,8 @@ import org.osgi.service.component.annotations.Component;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.oidc.AbstractOIDCProvider;
 import com.trekglobal.idempiere.rest.api.oidc.AuthenticatedUser;
@@ -157,6 +169,13 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		if (Util.isEmpty(userId) && decodedIdToken != null)
 			userId = decodedIdToken.getClaim(useEmail ? "email" : "cognito:username").asString();
 		if (Util.isEmpty(userId)) {
+			String userInfo = getUserInfo(decodedJwt, requestContext, oidcService);
+			if (!Util.isEmpty(userInfo)) {
+				JsonObject json = new Gson().fromJson(userInfo, JsonObject.class);
+				userId = json.get(useEmail ? "email" : "username").getAsString();
+			}
+		}
+		if (Util.isEmpty(userId)) {
 			throw new JWTVerificationException("Missing user claim");
 		}
 		Query query = new Query(Env.getCtx(), MUser.Table_Name, "AD_Client_ID IN (0,?) AND %s=?".formatted((useEmail ? "Email" : "Name")), null);
@@ -225,5 +244,68 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		}
 		
 		return new AuthenticatedUser(AD_Client_ID, AD_Org_ID, AD_Role_ID, AD_User_ID, session.getAD_Session_ID());
+	}
+	
+	private String getUserInfo(DecodedJWT decodedJwt, ContainerRequestContext requestContext, 
+			MOIDCService oidcService) {		
+		String scope = decodedJwt.getClaim("scope").asString();
+		if (Util.isEmpty(scope) || !scope.contains("openid"))
+			return null;
+		
+		String endpoint = null;
+		String wellKnownUrl = oidcService.getOIDC_ConfigurationURL();
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(wellKnownUrl))
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Parse the JSON response
+            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
+
+            // Extract the UserInfo endpoint 
+            endpoint = json.get("userinfo_endpoint").getAsString();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        
+		try {	        
+            String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+
+            // Create the URL object
+            URL url = new URL(endpoint);
+
+            // Open a connection
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            
+            // Set the request method and headers
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", authorizationHeader);
+
+            // Get the response code
+            int responseCode = connection.getResponseCode();
+
+            // If the response code is 200, read and print the response
+             if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // Print the response (contains user attributes)
+                return response.toString();
+            } else {
+            	// Failed to get user information
+            }
+        } catch (Exception e) {
+        	throw new RuntimeException(e);
+        }
+		
+		return null;
 	}
 }
