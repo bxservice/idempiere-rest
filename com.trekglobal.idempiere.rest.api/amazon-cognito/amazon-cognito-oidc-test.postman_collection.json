@@ -140,6 +140,11 @@
 						"key": "X-ID-IdToken",
 						"value": "{{IdToken}}",
 						"type": "text"
+					},
+					{
+						"key": "X-ID-Organization",
+						"value": "HQ",
+						"type": "text"
 					}
 				],
 				"url": {
@@ -188,6 +193,11 @@
 					{
 						"key": "X-ID-IdToken",
 						"value": "{{IdToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-ID-Organization",
+						"value": "HQ",
 						"type": "text"
 					}
 				],

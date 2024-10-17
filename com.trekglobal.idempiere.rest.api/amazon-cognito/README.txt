@@ -18,7 +18,7 @@
 - User > Email address = iDempiere tenant user (AD_User.Email)
 
 4. HTTP header
-- X-ID-Token is required to get custom attributes (X-ID-Organization, X-ID-Role, X-ID-Warehouse, X-ID-Language) and role mapping from Amazon Cognito
+- X-ID-IdToken is required if iDempiere is configured to use email to login and email information is not included in the Access Token
 - Role mapping is not use if "Authorization" is turn off at "Rest OpenID Connect Service". Use http header as replacement.
 - When user has access to > 1 role and/or organization, use http header to set selected role/organization.
 - X-ID-Organization = AD_Org.Value
@@ -26,4 +26,4 @@
 - X-ID-Language = AD_Language
 - X-ID-Warehouse = M_Warehouse.Name
 
-5. Mapping or HTTP header for Role is not needed if user has access to only 1 tenant role.
+5. Mapping or HTTP header for Role and Organization is not needed if user has access to only 1 organization and 1 tenant role.

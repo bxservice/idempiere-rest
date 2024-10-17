@@ -275,22 +275,10 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		if (authenticatedUser.getsessionId() > 0)
 			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, authenticatedUser.getsessionId());
 		
-		DecodedJWT decodedIdToken = getDecodedIdToken(requestContext);
-
 		String AD_Language = requestContext.getHeaderString(LANGUAGE_HEADER);
-		if (Util.isEmpty(AD_Language) && decodedIdToken != null) {
-			Claim languageClaim = decodedIdToken.getClaim(MOIDCService.LANGUAGE_HEADER);
-	    	if (!languageClaim.isNull() && !languageClaim.isMissing())
-	    		AD_Language = languageClaim.asString();
-		} 
 		if (!Util.isEmpty(AD_Language))
 			Env.setContext(Env.getCtx(), Env.LANGUAGE, AD_Language);
 		String warehouseName = requestContext.getHeaderString(WAREHOUSE_HEADER);
-		if (Util.isEmpty(warehouseName) && decodedIdToken != null) {
-			Claim warehouseClaim = decodedIdToken.getClaim(MOIDCService.WAREHOUSE_HEADER);
-	    	if (!warehouseClaim.isNull() && !warehouseClaim.isMissing())
-	    		warehouseName = warehouseClaim.asString();
-		}
 		if (!Util.isEmpty(warehouseName)) {
 			Query warehouseQuery = new Query(Env.getCtx(), MWarehouse.Table_Name, "AD_Client_ID=? AND Name=?", null);
 			MWarehouse wh = warehouseQuery.setOnlyActiveRecords(true).setParameters(authenticatedUser.getTenantId(), warehouseName).first();

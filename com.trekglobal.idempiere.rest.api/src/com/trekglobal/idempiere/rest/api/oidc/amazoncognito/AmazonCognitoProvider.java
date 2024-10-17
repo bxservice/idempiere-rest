@@ -66,22 +66,11 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		int AD_User_ID = -1;
 		int AD_Role_ID = -1;
         
-        DecodedJWT decodedIdToken = oidcService.getDecodedIdToken(requestContext);        
         String orgHeader = requestContext.getHeaderString(MOIDCService.ORG_HEADER);
-        if (Util.isEmpty(orgHeader) && decodedIdToken != null) {
-	    	Claim orgClaim = decodedIdToken.getClaim(MOIDCService.ORG_HEADER);
-	    	if (!orgClaim.isNull() && !orgClaim.isMissing())
-	    		orgHeader = orgClaim.asString();
-        }
-    	
         String roleHeader = requestContext.getHeaderString(MOIDCService.ROLE_HEADER);
-        if (Util.isEmpty(roleHeader) && decodedIdToken != null) {
-        	Claim roleClaim = decodedIdToken.getClaim(MOIDCService.ROLE_HEADER);
-        	if (!roleClaim.isNull() && !roleClaim.isMissing())
-        		roleHeader = roleClaim.asString();
-        }
-			
-		if (oidcService.isAuthorization_OIDC()) {
+        
+        DecodedJWT decodedIdToken = oidcService.getDecodedIdToken(requestContext);
+		if (oidcService.isAuthorization_OIDC()) {			
 			//cognito groups mapping to iDempiere role (AD_Role.Name) without space
 			List<String> roleNames = new ArrayList<>();
 			Claim rolesClaim = decodedJwt.getClaim("cognito:groups");
@@ -141,7 +130,7 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 				throw new JWTVerificationException("Invalid Role claim");
 			}
 		} else {
-			//not resolving authorization details from access token, try id token
+			//not resolving authorization details from access token, try http header
 			if (!Util.isEmpty(orgHeader)) {
 				Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
 				MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
@@ -164,7 +153,7 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		
 		//resolve user using ad_user.email or ad_user.name
 		boolean useEmail = MSysConfig.getBooleanValue(MSysConfig.USE_EMAIL_FOR_LOGIN, false);
-		String userId = decodedJwt.getClaim(useEmail ? "email" : "cognito:username").asString();
+		String userId = decodedJwt.getClaim(useEmail ? "email" : "username").asString();
 		if (Util.isEmpty(userId) && decodedIdToken != null)
 			userId = decodedIdToken.getClaim(useEmail ? "email" : "cognito:username").asString();
 		if (Util.isEmpty(userId)) {
