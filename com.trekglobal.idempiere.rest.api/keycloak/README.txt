@@ -2,7 +2,7 @@
 - System level table
 - "Rest OpenID Connect Provider" window and menu
 - With record for Azure, Amazon Cognito, Google and Keycloak
-- Only Keycloak implemented for now
+- Only Keycloak and Amazon Cognito implemented for now
 
 2. REST_OIDCService
 - System and Tenant level table
