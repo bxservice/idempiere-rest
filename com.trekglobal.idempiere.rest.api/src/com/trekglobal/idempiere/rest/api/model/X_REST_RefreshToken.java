@@ -24,7 +24,7 @@ import org.compiere.model.*;
 
 /** Generated Model for REST_RefreshToken
  *  @author iDempiere (generated)
- *  @version Release 11 - $Id$ */
+ *  @version Release 12 - $Id$ */
 @org.adempiere.base.Model(table="REST_RefreshToken")
 public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Persistent
 {
@@ -32,7 +32,7 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20230914L;
+	private static final long serialVersionUID = 20241022L;
 
     /** Standard Constructor */
     public X_REST_RefreshToken (Properties ctx, String REST_RefreshToken_UU, String trxName)
@@ -59,7 +59,7 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
     }
 
     /** AccessLevel
-      * @return 4 - System
+      * @return 6 - System - Client
       */
     protected int get_AccessLevel()
     {
@@ -76,9 +76,24 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
     public String toString()
     {
       StringBuilder sb = new StringBuilder ("X_REST_RefreshToken[")
-        .append(get_ID()).append("]");
+        .append(get_UUID()).append("]");
       return sb.toString();
     }
+
+	/** Set Absolute Expires At.
+		@param AbsoluteExpiresAt Absolute Expires At
+	*/
+	public void setAbsoluteExpiresAt (Timestamp AbsoluteExpiresAt)
+	{
+		set_Value (COLUMNNAME_AbsoluteExpiresAt, AbsoluteExpiresAt);
+	}
+
+	/** Get Absolute Expires At.
+		@return Absolute Expires At	  */
+	public Timestamp getAbsoluteExpiresAt()
+	{
+		return (Timestamp)get_Value(COLUMNNAME_AbsoluteExpiresAt);
+	}
 
 	/** Set Expires At.
 		@param ExpiresAt Expires At
@@ -95,6 +110,62 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
 		return (Timestamp)get_Value(COLUMNNAME_ExpiresAt);
 	}
 
+	/** Set Parent Token.
+		@param ParentToken Parent Token
+	*/
+	public void setParentToken (String ParentToken)
+	{
+		set_ValueNoCheck (COLUMNNAME_ParentToken, ParentToken);
+	}
+
+	/** Get Parent Token.
+		@return Parent Token	  */
+	public String getParentToken()
+	{
+		return (String)get_Value(COLUMNNAME_ParentToken);
+	}
+
+	/** Set REST_RefreshToken_UU.
+		@param REST_RefreshToken_UU REST_RefreshToken_UU
+	*/
+	public void setREST_RefreshToken_UU (String REST_RefreshToken_UU)
+	{
+		set_Value (COLUMNNAME_REST_RefreshToken_UU, REST_RefreshToken_UU);
+	}
+
+	/** Get REST_RefreshToken_UU.
+		@return REST_RefreshToken_UU	  */
+	public String getREST_RefreshToken_UU()
+	{
+		return (String)get_Value(COLUMNNAME_REST_RefreshToken_UU);
+	}
+
+	/** Breach = B */
+	public static final String REST_REVOKECAUSE_Breach = "B";
+	/** Breach Chain = C */
+	public static final String REST_REVOKECAUSE_BreachChain = "C";
+	/** Logout = L */
+	public static final String REST_REVOKECAUSE_Logout = "L";
+	/** Manual Expire = M */
+	public static final String REST_REVOKECAUSE_ManualExpire = "M";
+	/** Password Change = P */
+	public static final String REST_REVOKECAUSE_PasswordChange = "P";
+	/** Set Revocation Cause.
+		@param REST_RevokeCause Revocation Cause
+	*/
+	public void setREST_RevokeCause (String REST_RevokeCause)
+	{
+
+		set_Value (COLUMNNAME_REST_RevokeCause, REST_RevokeCause);
+	}
+
+	/** Get Revocation Cause.
+		@return Revocation Cause	  */
+	public String getREST_RevokeCause()
+	{
+		return (String)get_Value(COLUMNNAME_REST_RevokeCause);
+	}
+
 	/** Set Refresh Token.
 		@param RefreshToken Refresh Token
 	*/
@@ -108,6 +179,21 @@ public class X_REST_RefreshToken extends PO implements I_REST_RefreshToken, I_Pe
 	public String getRefreshToken()
 	{
 		return (String)get_Value(COLUMNNAME_RefreshToken);
+	}
+
+	/** Set Revoked At.
+		@param RevokedAt Revoked At
+	*/
+	public void setRevokedAt (Timestamp RevokedAt)
+	{
+		set_Value (COLUMNNAME_RevokedAt, RevokedAt);
+	}
+
+	/** Get Revoked At.
+		@return Revoked At	  */
+	public Timestamp getRevokedAt()
+	{
+		return (Timestamp)get_Value(COLUMNNAME_RevokedAt);
 	}
 
 	/** Set Token.

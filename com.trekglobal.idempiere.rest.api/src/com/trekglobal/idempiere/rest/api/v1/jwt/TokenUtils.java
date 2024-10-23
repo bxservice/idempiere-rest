@@ -87,10 +87,23 @@ public class TokenUtils {
 	 * @return token expire time stamp
 	 */
 	public static Timestamp getTokenExpiresAt() {
-		Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
+		// default 1 hour - expiration of the auth token
 		int expMinutes = MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx()));
-		expiresAt = TimeUtil.addMinutess(expiresAt, expMinutes);
-		return expiresAt;
+		if (expMinutes == 0)
+			return null;
+		return TimeUtil.addMinutess(new Timestamp(System.currentTimeMillis()), expMinutes);
+	}
+
+	/**
+	 * 
+	 * @return token absolute expire time stamp
+	 */
+	public static Timestamp getTokenAbsoluteExpiresAt() {
+		// default 1 week - expiration of the session
+		int expMinutes = MSysConfig.getIntValue("REST_TOKEN_ABSOLUTE_EXPIRE_IN_MINUTES", 10080, Env.getAD_Client_ID(Env.getCtx()));
+		if (expMinutes == 0)
+			return null;
+		return TimeUtil.addMinutess(new Timestamp(System.currentTimeMillis()), expMinutes);
 	}
 
 	/**
@@ -98,10 +111,11 @@ public class TokenUtils {
 	 * @return refresh token expire time stamp
 	 */
 	public static Timestamp getRefreshTokenExpiresAt() {
-		Timestamp expiresAt = new Timestamp(System.currentTimeMillis());
+		// default 1 day - expiration of the refresh token (inactivity)
 		int expMinutes = MSysConfig.getIntValue("REST_REFRESH_TOKEN_EXPIRE_IN_MINUTES", 1440, Env.getAD_Client_ID(Env.getCtx()));
-		expiresAt = TimeUtil.addMinutess(expiresAt, expMinutes);
-		return expiresAt;
+		if (expMinutes == 0)
+			return null;
+		return TimeUtil.addMinutess(new Timestamp(System.currentTimeMillis()), expMinutes);
 	}
 
 }

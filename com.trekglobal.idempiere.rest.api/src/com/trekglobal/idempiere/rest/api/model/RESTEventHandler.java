@@ -20,69 +20,65 @@
  * MA 02110-1301, USA.                                                 *
  *                                                                     *
  * Contributors:                                                       *
- * - Carlos Ruiz - globalqss - bxservice                               *
+ * - Carlos Ruiz - globalqss - BX Service                              *
  **********************************************************************/
 
-/**
- *
- * @author Carlos Ruiz - globalqss - bxservice
- *
- */
-package com.trekglobal.idempiere.rest.api.process;
+package com.trekglobal.idempiere.rest.api.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
-import org.compiere.model.MProcessPara;
-import org.compiere.process.ProcessInfoParameter;
-import org.compiere.process.SvrProcess;
+import org.adempiere.base.event.AbstractEventHandler;
+import org.adempiere.base.event.IEventTopics;
+import org.compiere.model.MUser;
+import org.compiere.model.PO;
+import org.compiere.util.CLogger;
+import org.osgi.service.event.Event;
 
-import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
+/**
+ * This event handler for Hibiscus integration
+ * 
+ * @author Carlos Ruiz - globalqss - BX Service
+ */
+public class RESTEventHandler extends AbstractEventHandler {
+	/** Logger */
+	private static CLogger log = CLogger.getCLogger(RESTEventHandler.class);
 
-@org.adempiere.base.annotation.Process
-public class ExpireRefreshTokens extends SvrProcess {
-
-	/* All Tokens */
-	private Boolean p_REST_AllTokens = null;
-	/* User/Contact */
-	private int p_AD_User_ID = 0;
-
+	/**
+	 * Initialize Validation
+	 */
 	@Override
-	protected void prepare() {
-		for (ProcessInfoParameter para : getParameter()) {
-			String name = para.getParameterName();
-			switch (name) {
-			case "REST_AllTokens":
-				p_REST_AllTokens = para.getParameterAsBoolean();
-				break;
-			case "AD_User_ID":
-				p_AD_User_ID = para.getParameterAsInt();
-				break;
-			default:
-				MProcessPara.validateUnknownParameter(getProcessInfo().getAD_Process_ID(), para);
+	protected void initialize() {
+		log.info("");
+
+		registerTableEvent(IEventTopics.PO_AFTER_CHANGE, MUser.Table_Name);
+	} // initialize
+
+	/**
+	 * Model Change of a monitored Table.
+	 * 
+	 * @param event
+	 * @exception Exception if the recipient wishes the change to be not accept.
+	 */
+	@Override
+	protected void doHandleEvent(Event event) {
+		String type = event.getTopic();
+
+		PO po = getPO(event);
+		log.info(po + " Type: " + type);
+
+		if (po instanceof MUser && type.equals(IEventTopics.PO_AFTER_CHANGE)) {
+			if (po.is_ValueChanged(MUser.COLUMNNAME_Password)) {
+				MUser user = (MUser) po;
+				expireTokens(user);
 			}
 		}
-	}
 
-	@Override
-	protected String doIt() throws Exception {
-		ArrayList<Object> params = new ArrayList<Object>();
-		StringBuilder where = new StringBuilder("");
+	} // doHandleEvent
 
-		if (p_REST_AllTokens && getAD_Client_ID() > 0) {
-			where.append("AD_Client_ID=?");
-			params.add(getAD_Client_ID());
-		}
-
-		if (p_AD_User_ID > 0) {
-			if (where.length() > 0)
-				where.append(" AND ");
-			where.append("CreatedBy=?");
-			params.add(p_AD_User_ID);
-		}
-
-		int cnt = MRefreshToken.expireTokens(where.toString(), MRefreshToken.REST_REVOKECAUSE_ManualExpire, params);
-
-		return "@Updated@ " + cnt;
-	}
+	public void expireTokens(MUser user) {
+		log.info("");
+		MRefreshToken.expireTokens("CreatedBy=?", MRefreshToken.REST_REVOKECAUSE_PasswordChange, new ArrayList<>(Arrays.asList(user.getAD_User_ID())));
+	} // expireTokens
 
 }

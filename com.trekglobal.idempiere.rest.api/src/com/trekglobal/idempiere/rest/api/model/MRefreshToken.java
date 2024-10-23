@@ -25,116 +25,102 @@
 
 package com.trekglobal.idempiere.rest.api.model;
 
+import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
-import org.compiere.util.DB;
+import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.PO;
+import org.compiere.model.Query;
+import org.compiere.util.Env;
+import org.compiere.util.Util;
+import org.idempiere.cache.ImmutablePOCache;
+import org.idempiere.cache.ImmutablePOSupport;
+
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
+import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
 /**
  * Model class for REST_RefreshToken - temporary table to persist refresh tokens vs auth tokens
  * @author Carlos Ruiz
  */
-public class MRefreshToken {
-
-	public MRefreshToken(String token, String refreshToken, Timestamp expiryDate) {
-		setToken(token);
-		setRefreshToken(refreshToken);
-		setExpiresAt(expiryDate);
-	}
-
-	private final static String insertSql = "INSERT INTO REST_RefreshToken (Token, RefreshToken, ExpiresAt) VALUES (?,?,?)";
-	private final static String selectSql = "SELECT Token FROM REST_RefreshToken WHERE RefreshToken = ?";
-	private final static String deleteSql = "DELETE FROM REST_RefreshToken WHERE ExpiresAt<getdate()";
-	private final static String deleteRefreshTokenSql = "DELETE FROM REST_RefreshToken WHERE RefreshToken = ?";
-	private final static String deleteTokenSql = "DELETE FROM REST_RefreshToken WHERE Token = ?";
-	private final static String selectWithTokenSql = "SELECT 1 FROM REST_RefreshToken WHERE Token = ?";
-
+public class MRefreshToken extends X_REST_RefreshToken implements ImmutablePOSupport {
 	/**
-	 * Get an auth token based on a refresh token
-	 * @param refresh_token
-	 * @return
-	 */
-	public static String getAuthToken(String refresh_token) {
-		deleteExpired();
-		return DB.getSQLValueStringEx(null, selectSql, refresh_token);
-	}
-
-	/**
-	 * Delete all expired refresh tokens
-	 */
-	private static void deleteExpired() {
-		deleteExpired(null);
-	}
-
-	/**
-	 * Delete all expired refresh tokens using transaction
-	 */
-	public static void deleteExpired(String trxName) {
-		DB.executeUpdateEx(deleteSql, trxName);
-	}
-
-	/**
-	 * Delete refresh token based on a previous refresh token
-	 * @param RefreshToken
-	 */
-	public static void deleteRefreshToken(String refreshToken) {
-		DB.executeUpdateEx(deleteRefreshTokenSql, new Object[] {refreshToken},  null);
-	}
-
-	/**
-	 * Delete refresh token based on a token
-	 * @param RefreshToken
-	 */
-	public static void deleteToken(String token) {
-		DB.executeUpdateEx(deleteTokenSql, new Object[] {token},  null);
-	}
-
-	/**
-	 * Persist record in the database
-	 * @return
-	 */
-	public boolean save() {
-		int no = DB.executeUpdateEx(insertSql, new Object[] {m_Token, m_RefreshToken, m_ExpiresAt}, null);
-		return no == 1;
-	}
-
-	private Timestamp m_ExpiresAt;
-	private String m_Token;
-	private String m_RefreshToken;
-
-	/**
-	 * Set Expires At.
 	 * 
-	 * @param ExpiresAt Expires At
 	 */
-	public void setExpiresAt(Timestamp ExpiresAt) {
-		m_ExpiresAt = ExpiresAt;
+	private static final long serialVersionUID = 728068698206813303L;
+
+	private static ImmutablePOCache<String, MRefreshToken> s_refreshtoken_cache_from_authtoken = new ImmutablePOCache<String, MRefreshToken>(Table_Name, 40);
+	
+	public MRefreshToken(Properties ctx, String REST_RefreshToken_UUID, String trxName) {
+		super(ctx, REST_RefreshToken_UUID, trxName);
+	}
+
+	public MRefreshToken(Properties ctx, ResultSet rs, String trxName) {
+		super(ctx, rs, trxName);
 	}
 
 	/**
-	 * Get Expires At.
 	 * 
-	 * @return Expires At
+	 * @param copy
 	 */
-	public Timestamp getExpiresAt() {
-		return m_ExpiresAt;
+	public MRefreshToken(MRefreshToken copy) {
+		this(Env.getCtx(), copy);
 	}
 
 	/**
-	 * Set Refresh Token.
 	 * 
-	 * @param RefreshToken Refresh Token
+	 * @param ctx
+	 * @param copy
 	 */
-	public void setRefreshToken(String RefreshToken) {
-		m_RefreshToken = RefreshToken;
+	public MRefreshToken(Properties ctx, MRefreshToken copy) {
+		this(ctx, copy, (String) null);
 	}
 
 	/**
-	 * Get Refresh Token.
 	 * 
-	 * @return Refresh Token
+	 * @param ctx
+	 * @param copy
+	 * @param trxName
 	 */
-	public String getRefreshToken() {
-		return m_RefreshToken;
+	public MRefreshToken(Properties ctx, MRefreshToken copy, String trxName) {
+		this(ctx, PO.UUID_NEW_RECORD, trxName);
+		copyPO(copy);
+	}
+
+	public static MRefreshToken get(String refreshToken) {
+		return new Query(Env.getCtx(), Table_Name, "RefreshToken=?", null).setParameters(refreshToken).first();
+	}
+
+	public static MRefreshToken getFromToken(String authToken) {
+		Properties ctx = Env.getCtx();
+		MRefreshToken retValue = null;
+		if (s_refreshtoken_cache_from_authtoken.containsKey(authToken)) {
+			retValue = s_refreshtoken_cache_from_authtoken.get(ctx, authToken.toString(), e -> new MRefreshToken(ctx, e));
+			return retValue;
+		}
+		retValue = new Query(Env.getCtx(), Table_Name, "Token=?", null).setParameters(authToken).first();
+		s_refreshtoken_cache_from_authtoken.put(authToken, retValue, e -> new MRefreshToken(ctx, e));
+		return retValue;
+	}
+
+	public static MRefreshToken getFromParent(String parentToken) {
+		return new Query(Env.getCtx(), Table_Name, "ParentToken=?", null).setParameters(parentToken).first();
+	}
+
+	public static MRefreshToken getValidForRefresh(String refreshToken) {
+		return new Query(Env.getCtx(), Table_Name, "RefreshToken=? AND RevokedAt IS NULL AND (ExpiresAt IS NULL OR ExpiresAt>=getDate()) AND (AbsoluteExpiresAt IS NULL OR AbsoluteExpiresAt>=getDate())", null)
+				.setOnlyActiveRecords(true)
+				.setParameters(refreshToken)
+				.first();
 	}
 
 	/**
@@ -142,27 +128,143 @@ public class MRefreshToken {
 	 * 
 	 * @param Token Token
 	 */
+	@Override
 	public void setToken(String Token) {
-		m_Token = Token;
+		// get the clientId, orgId and UserId from the token
+		try {
+			Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
+			JWTVerifier verifier = JWT.require(algorithm)
+					.withIssuer(TokenUtils.getTokenIssuer())
+					.acceptExpiresAt(Instant.MAX.getEpochSecond()) // do not validate expiration of token
+					.build();
+			DecodedJWT jwt = verifier.verify(Token);
+			int clientId = -1;
+			int userId = -1;
+			int orgId = -1;
+			Claim claim = jwt.getClaim(LoginClaims.AD_Client_ID.name());
+			if (!claim.isNull() && !claim.isMissing()) {
+				clientId = claim.asInt();
+			} else {
+				throw new AdempiereException("Invalid token - no clientId");
+			}
+			setAD_Client_ID(clientId);
+			claim = jwt.getClaim(LoginClaims.AD_User_ID.name());
+			if (!claim.isNull() && !claim.isMissing()) {
+				userId = claim.asInt();
+			} else {
+				throw new AdempiereException("Invalid token - no userId");
+			}
+			set_ValueNoCheck(COLUMNNAME_CreatedBy, userId);
+			claim = jwt.getClaim(LoginClaims.AD_Org_ID.name());
+			if (!claim.isNull() && !claim.isMissing()) {
+				orgId = claim.asInt();
+			} else {
+				throw new AdempiereException("Invalid token - no orgId");
+			}
+			setAD_Org_ID(orgId);
+		} catch (Exception e) {
+			throw new AdempiereException("Invalid token -> " + e.getMessage(), e);
+		}
+		super.setToken(Token);
 	}
 
-	/**
-	 * Get Token.
-	 * 
-	 * @return Token
-	 */
-	public String getToken() {
-		return m_Token;
+	public static boolean existsAuthToken(String authToken) {
+		return new Query(Env.getCtx(), Table_Name, "Token=?", null).setParameters(authToken).match();
 	}
 
-	/**
-	 * Verify if there is a refresh token for a token
-	 * @param token
-	 * @return true if there is a refresh token
-	 */
-	public static boolean exists(String token) {
-		int one = DB.getSQLValueEx(null, selectWithTokenSql, token);
-		return one == 1;
+	public static boolean isParent(String refreshToken) {
+		return new Query(Env.getCtx(), Table_Name, "ParentToken=?", null).setParameters(refreshToken).match();
+	}
+
+	public static void logout(String authToken) {
+		MRefreshToken rtc = MRefreshToken.getFromToken(authToken);
+		MRefreshToken rt = new MRefreshToken(rtc);
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		rt.revoke(now, REST_REVOKECAUSE_Logout);
+		rt.saveEx();
+		String refreshToken = rt.getRefreshToken();
+		// revoke chain of parents
+		MRefreshToken childrt = getFromParent(refreshToken);
+		while (childrt != null) {
+			if (childrt.getRevokedAt() == null) {
+				childrt.revoke(now, REST_REVOKECAUSE_Logout);
+				childrt.saveEx();
+			}
+			childrt = getFromParent(childrt.getRefreshToken());
+		}
+		// revoke chain of children
+		MRefreshToken parentrt = get(rt.getParentToken());
+		while (parentrt != null) {
+			if (parentrt.getRevokedAt() == null) {
+				parentrt.revoke(now, REST_REVOKECAUSE_Logout);
+				parentrt.saveEx();
+			}
+			parentrt = get(parentrt.getParentToken());
+		}
+	}
+
+	public static void breachDetected(String refreshToken) {
+		// Attempt to refresh a token that it was already refreshed, the whole token chain must be revoked
+		MRefreshToken rt = MRefreshToken.get(refreshToken);
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		rt.revoke(now, REST_REVOKECAUSE_Breach);
+		rt.saveEx();
+		// revoke chain of parents
+		MRefreshToken childrt = getFromParent(refreshToken);
+		while (childrt != null) {
+			childrt.revoke(now, REST_REVOKECAUSE_BreachChain);
+			childrt.saveEx();
+			childrt = getFromParent(childrt.getRefreshToken());
+		}
+		// revoke chain of children
+		MRefreshToken parentrt = get(rt.getParentToken());
+		while (parentrt != null) {
+			parentrt.revoke(now, REST_REVOKECAUSE_BreachChain);
+			parentrt.saveEx();
+			parentrt = get(parentrt.getParentToken());
+		}
+	}
+
+	public static int expireTokens(String where, String revokeCause, ArrayList<Object> params) {
+		StringBuilder whereClause = new StringBuilder("(ExpiresAt IS NULL OR ExpiresAt>=?) AND (AbsoluteExpiresAt IS NULL OR AbsoluteExpiresAt>=?) AND RevokedAt IS NULL");
+		if (!Util.isEmpty(where))
+			whereClause.append(" AND ").append(where);
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		params.add(0, now);
+		params.add(0, now);
+		List<MRefreshToken> rts = new Query(Env.getCtx(), Table_Name, whereClause.toString(), null)
+				.setParameters(params)
+				.list();
+		int cnt = 0;
+		for (MRefreshToken rt : rts) {
+			rt.revoke(now, revokeCause);
+			rt.saveEx();
+			cnt++;
+		}
+		return cnt;
+	}
+
+	public void revoke(Timestamp revokedAt, String revokeCause) {
+		setRevokedAt(revokedAt);
+		setREST_RevokeCause(revokeCause);
+		setIsActive(false);
+	}
+
+	public static boolean isRevoked(String token) {
+		MRefreshToken rt = getFromToken(token);
+		return (   rt != null
+				&& (rt.getRevokedAt() != null
+				    || (   rt.getAbsoluteExpiresAt() != null
+				        && rt.getAbsoluteExpiresAt().before(new Timestamp(System.currentTimeMillis())))));
+	}
+
+	@Override
+	public PO markImmutable() {
+		if (is_Immutable())
+			return this;
+
+		super.makeImmutable();
+		return this;
 	}
 
 }

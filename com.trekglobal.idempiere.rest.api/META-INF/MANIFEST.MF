@@ -86,8 +86,4 @@ Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.v1.resource,
  com.trekglobal.idempiere.rest.api.v1.resource.file,
  com.trekglobal.idempiere.rest.api.v1.resource.impl
-Service-Component: OSGI-INF/com.trekglobal.idempiere.rest.api.json.DefaultGridTabSerializer.xml,
- OSGI-INF/com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer.xml,
- OSGI-INF/com.trekglobal.idempiere.rest.api.json.DefaultQueryConverter.xml,
- OSGI-INF/com.trekglobal.idempiere.rest.api.oidc.keycloak.KeycloakProvider.xml,
- OSGI-INF/com.trekglobal.idempiere.rest.api.oidc.amazoncognito.AmazonCognitoProvider.xml
+Service-Component: OSGI-INF/*.xml
