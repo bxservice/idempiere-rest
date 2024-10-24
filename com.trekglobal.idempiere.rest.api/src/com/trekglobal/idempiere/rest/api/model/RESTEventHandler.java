@@ -46,6 +46,7 @@ public class RESTEventHandler extends AbstractEventHandler {
 
 	/**
 	 * Initialize Validation
+	 * Validate password change on AD_User
 	 */
 	@Override
 	protected void initialize() {
@@ -76,6 +77,10 @@ public class RESTEventHandler extends AbstractEventHandler {
 
 	} // doHandleEvent
 
+	/**
+	 * Expire all user tokens because of password change
+	 * @param user
+	 */
 	public void expireTokens(MUser user) {
 		log.info("");
 		MRefreshToken.expireTokens("CreatedBy=?", MRefreshToken.REST_REVOKECAUSE_PasswordChange, new ArrayList<>(Arrays.asList(user.getAD_User_ID())));

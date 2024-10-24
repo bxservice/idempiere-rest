@@ -83,11 +83,10 @@ public class TokenUtils {
 	}
 
 	/**
-	 * 
+	 * Get the expiration of auth token based on SysConfig REST_TOKEN_EXPIRE_IN_MINUTES, defaults to 1 hour
 	 * @return token expire time stamp
 	 */
 	public static Timestamp getTokenExpiresAt() {
-		// default 1 hour - expiration of the auth token
 		int expMinutes = MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx()));
 		if (expMinutes == 0)
 			return null;
@@ -95,11 +94,10 @@ public class TokenUtils {
 	}
 
 	/**
-	 * 
+	 * Get the absolute expiration of auth token based (session timeout) on SysConfig REST_TOKEN_ABSOLUTE_EXPIRE_IN_MINUTES, defaults to 1 week
 	 * @return token absolute expire time stamp
 	 */
 	public static Timestamp getTokenAbsoluteExpiresAt() {
-		// default 1 week - expiration of the session
 		int expMinutes = MSysConfig.getIntValue("REST_TOKEN_ABSOLUTE_EXPIRE_IN_MINUTES", 10080, Env.getAD_Client_ID(Env.getCtx()));
 		if (expMinutes == 0)
 			return null;
@@ -107,11 +105,10 @@ public class TokenUtils {
 	}
 
 	/**
-	 * 
+	 * Get the expiration of refresh token (inactivity timeout) based on SysConfig REST_REFRESH_TOKEN_EXPIRE_IN_MINUTES, defaults to 1 day
 	 * @return refresh token expire time stamp
 	 */
 	public static Timestamp getRefreshTokenExpiresAt() {
-		// default 1 day - expiration of the refresh token (inactivity)
 		int expMinutes = MSysConfig.getIntValue("REST_REFRESH_TOKEN_EXPIRE_IN_MINUTES", 1440, Env.getAD_Client_ID(Env.getCtx()));
 		if (expMinutes == 0)
 			return null;
