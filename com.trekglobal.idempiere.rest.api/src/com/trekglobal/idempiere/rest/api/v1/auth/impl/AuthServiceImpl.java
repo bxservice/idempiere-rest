@@ -514,6 +514,18 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public Response tokenRefresh(RefreshParameters refresh) {
 		String refreshToken = refresh.getRefresh_token();
+		Integer refreshClientId = refresh.getClientId();
+		if (refreshClientId == null && MSysConfig.getBooleanValue("REST_MANDATORY_CLIENT_ID_ON_REFRESH", true)) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("No clientId provided").build().toString())
+					.build();
+		}
+		Integer refreshUserId = refresh.getUserId();
+		if (refreshUserId == null && MSysConfig.getBooleanValue("REST_MANDATORY_USER_ID_ON_REFRESH", true)) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("No userId provided").build().toString())
+					.build();
+		}
 
 		if (MRefreshToken.isParent(refreshToken)) {
 			Env.setContext(Env.getCtx(), Env.AD_CLIENT_ID, 0);
@@ -544,6 +556,17 @@ public class AuthServiceImpl implements AuthService {
 					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("Invalid refresh token").build().toString())
 					.build();
 		}
+		if (refreshClientId != null && refreshTokenInDB.getAD_Client_ID() != refreshClientId) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("Invalid refresh token").build().toString())
+					.build();
+		}
+		if (refreshUserId != null && refreshTokenInDB.getCreatedBy() != refreshUserId) {
+			return Response.status(Status.UNAUTHORIZED)
+					.entity(new ErrorBuilder().status(Status.UNAUTHORIZED).title("Authenticate error").append("Invalid refresh token").build().toString())
+					.build();
+		}
+
 		String authToken = refreshTokenInDB.getToken();
 
 		JWTVerifier decoder = JWT.require(algorithm)

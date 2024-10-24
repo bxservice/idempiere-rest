@@ -187,7 +187,8 @@
 							"pm.environment.set(\"authToken\", jsonData.token);",
 							"pm.environment.set(\"refreshToken\", jsonData.refresh_token);"
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {}
 					}
 				}
 			],
@@ -207,7 +208,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"refresh_token\": \"{{refreshToken}}\"\n}"
+					"raw": "{\n    \"refresh_token\": \"{{refreshToken}}\",\n    \"clientId\": {{clientId}},\n    \"userId\": 101\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/refresh",
