@@ -96,7 +96,7 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 			for(String role : roles) {
 				String roleName = role;
 				Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND REPLACE(Name,' ','')=?", null);
-				MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleName).first();
+				MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleName).firstOnly();
 				if (mRole != null) {
 					roleNames.add(mRole.getName());
 				}
