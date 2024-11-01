@@ -21,15 +21,25 @@
 *                                                                     *
 * Contributors:                                                       *
 * - Trek Global Corporation                                           *
-* - Heng Sin Low                                                      *
+* - Elaine Tan	                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.oidc.keycloak;
+package com.trekglobal.idempiere.rest.api.oidc.amazoncognito;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.core.HttpHeaders;
 
 import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
@@ -45,8 +55,6 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.oidc.AbstractOIDCProvider;
@@ -54,97 +62,57 @@ import com.trekglobal.idempiere.rest.api.oidc.AuthenticatedUser;
 import com.trekglobal.idempiere.rest.api.oidc.IOIDCProvider;
 
 /**
- * @author hengsin
+ * @author etantg
  */
-@Component(immediate = true, service = IOIDCProvider.class, property = "name=Keycloak")
-public class KeycloakProvider extends AbstractOIDCProvider {
-	/**
-	 * Default constructor
-	 */
-	public KeycloakProvider() {
+@Component(immediate = true, service = IOIDCProvider.class, property = "name=Amazon Cognito")
+public class AmazonCognitoProvider extends AbstractOIDCProvider {
+	
+	public AmazonCognitoProvider() {
 	}
 
 	@Override
-	public AuthenticatedUser getAuthenticatedUser(DecodedJWT decodedJwt, ContainerRequestContext requestContext, MOIDCService oidcService) {		
+	public AuthenticatedUser getAuthenticatedUser(DecodedJWT decodedJwt, ContainerRequestContext requestContext,
+			MOIDCService oidcService) {
 		int AD_Client_ID = oidcService.getAD_Client_ID();
 		int AD_Org_ID = -1;
 		int AD_User_ID = -1;
 		int AD_Role_ID = -1;
-		
-		String orgHeader = requestContext.getHeaderString(MOIDCService.ORG_HEADER);
-		String roleHeader = requestContext.getHeaderString(MOIDCService.ROLE_HEADER);
-		String headerOrgValue = null;
-		
-		if (oidcService.isAuthorization_OIDC()) {
-			//resource_access.${keycloak_client_id}.roles
+        
+        String orgHeader = requestContext.getHeaderString(MOIDCService.ORG_HEADER);
+        String roleHeader = requestContext.getHeaderString(MOIDCService.ROLE_HEADER);
+        
+        DecodedJWT decodedIdToken = oidcService.getDecodedIdToken(requestContext);
+		if (oidcService.isAuthorization_OIDC()) {			
+			//cognito groups mapping to iDempiere role (AD_Role.Name) without space
 			List<String> roleNames = new ArrayList<>();
-			Claim azpClaim = decodedJwt.getClaim("azp");
-			String keycloakClientId = azpClaim.asString();
-			Claim resourceAccessClaim = decodedJwt.getClaim("resource_access");
-			if (resourceAccessClaim.isNull() || resourceAccessClaim.isMissing()) {
-				throw new JWTVerificationException("Missing roles claim");
+			Claim rolesClaim = decodedJwt.getClaim("cognito:groups");
+			if (rolesClaim.isNull() || rolesClaim.isMissing()) {
+				if (decodedIdToken != null)
+					rolesClaim = decodedIdToken.getClaim("cognito:groups");
+				if (rolesClaim.isNull() || rolesClaim.isMissing())
+					throw new JWTVerificationException("Missing roles claim");
 			}
-			String resourceAccessText = resourceAccessClaim.toString();
-			Gson gson = new Gson();
-			JsonObject resourceAccessJson = gson.fromJson(resourceAccessText, JsonObject.class);
-			JsonObject resourceClientJson = resourceAccessJson.getAsJsonObject(keycloakClientId);
-			JsonElement rolesElement = resourceClientJson.get("roles");
-			JsonArray rolesArray = rolesElement.getAsJsonArray();
-			rolesArray.forEach(e -> roleNames.add(e.getAsString()));
-			if (roleNames.size() == 0) {
-				throw new JWTVerificationException("Missing roles claim");
-			}
-			
-			//keycloak groups mapping to iDempiere org (AD_Org.Value)
-			Claim groupsClaim = decodedJwt.getClaim("groups");
-			if (groupsClaim.isNull() || groupsClaim.isMissing()) {
-				throw new JWTVerificationException("Missing organization claim");
-			}
-			String[] groupNames = groupsClaim.asArray(String.class);
-			List<MOrg> orgList = new ArrayList<>();
-			for(String groupName : groupNames) {				
-				if (groupName.startsWith("/")) 
-					groupName = groupName.substring(1);
-				Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-				MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, groupName).first();
-				if (org != null) {
-					orgList.add(org);
-				}				
-			}
-			if (orgList.size() == 0) {
-				throw new JWTVerificationException("Missing organization claim");
-			}
-			
-			if (orgList.size() == 1) {
-				if (Util.isEmpty(orgHeader) || orgHeader.equals(orgList.get(0).getValue())) {
-					AD_Org_ID = orgList.get(0).get_ID();
-				} else {
-					throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
+			String[] roles = rolesClaim.asArray(String.class);
+			for(String role : roles) {
+				String roleName = role;
+				Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND REPLACE(Name,' ','')=?", null);
+				MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleName).firstOnly();
+				if (mRole != null) {
+					roleNames.add(mRole.getName());
 				}
-			} else {			
-				if (!Util.isEmpty(orgHeader)) {
-					for(int i = 0; i < orgList.size(); i++) {
-						if (orgHeader.equals(orgList.get(i).getValue())) {
-							AD_Org_ID = orgList.get(i).get_ID();
-							break;
-						}
-					}
-					if (AD_Org_ID == -1) {
-						throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
-					}
-				} 
 			}
 			
-			//keycloaks roles mapping to iDempiere role
+			//cognito roles mapping to iDempiere role
 			String roleName = null;
 			if (roleNames.size() == 1) {
 				roleName = roleNames.get(0);
 				if (!Util.isEmpty(roleHeader) && !roleHeader.equals(roleName)) {
 					throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ROLE_HEADER));
 				}
-			} else {			
+			} else {
 				if (!Util.isEmpty(roleHeader)) {
-					Optional<String> optional = roleNames.stream().filter(e -> roleHeader.equals(e)).findFirst();
+					final String finalRoleHeader = roleHeader;
+					Optional<String> optional = roleNames.stream().filter(e -> finalRoleHeader.equals(e)).findFirst();
 					if (optional.isPresent())
 						roleName = optional.get();
 					else
@@ -172,7 +140,7 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 			
 			if (AD_Role_ID == -1) {
 				throw new JWTVerificationException("Invalid Role claim");
-			}			
+			}
 		} else {
 			//not resolving authorization details from access token, try http header
 			if (!Util.isEmpty(orgHeader)) {
@@ -197,12 +165,21 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 		
 		//resolve user using ad_user.email or ad_user.name
 		boolean useEmail = MSysConfig.getBooleanValue(MSysConfig.USE_EMAIL_FOR_LOGIN, false);
-		String userId = decodedJwt.getClaim(useEmail ? "email" : "name").asString();
+		String userId = decodedJwt.getClaim(useEmail ? "email" : "username").asString();
+		if (Util.isEmpty(userId) && decodedIdToken != null)
+			userId = decodedIdToken.getClaim(useEmail ? "email" : "cognito:username").asString();
+		if (Util.isEmpty(userId)) {
+			String userInfo = getUserInfo(decodedJwt, requestContext, oidcService);
+			if (!Util.isEmpty(userInfo)) {
+				JsonObject json = new Gson().fromJson(userInfo, JsonObject.class);
+				userId = json.get(useEmail ? "email" : "username").getAsString();
+			}
+		}
 		if (Util.isEmpty(userId)) {
 			throw new JWTVerificationException("Missing user claim");
-		}				
+		}
 		Query query = new Query(Env.getCtx(), MUser.Table_Name, "AD_Client_ID IN (0,?) AND %s=?".formatted((useEmail ? "Email" : "Name")), null);
-		MUser user = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, userId).setOrderBy("AD_Client_ID DESC").first();		
+		MUser user = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, userId).setOrderBy("AD_Client_ID DESC").first();
 		if (user == null) {
 			throw new JWTVerificationException("Invalid user claim");
 		}
@@ -210,7 +187,7 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 		
 		boolean orgAccessValidated = false;
 		if (AD_Role_ID == -1) {
-			//get role from http header or if no http header but user has single role only 
+			//get role from id token or if no id token but user has single role only 
 			if (!Util.isEmpty(roleHeader)) {
 				query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND Name=?", null);
 				MRole mRole = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, roleHeader).first();
@@ -224,12 +201,12 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 			}
 		}
 		
-		//get org from http header or if role has access to single org only
+		//get org from id token or if role has access to single org only
 		if (AD_Role_ID >= 0) {
 			if (AD_Org_ID == -1) {
-				if (!Util.isEmpty(headerOrgValue)) {
+				if (!Util.isEmpty(orgHeader)) {
 					query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, headerOrgValue).first();
+					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
 					if (org != null) {
 						AD_Org_ID = org.getAD_Org_ID();
 					} else {
@@ -258,14 +235,77 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 				throw new JWTVerificationException("Invalid user and organization combination");
 			}
 		}
-
+		
 		MSession session = MSession.get(Env.getCtx());
 		if (session == null){
 			session = MSession.create(Env.getCtx());
 			session.setWebSession("idempiere-rest-oidc");
 			session.saveEx();
 		}
-
+		
 		return new AuthenticatedUser(AD_Client_ID, AD_Org_ID, AD_Role_ID, AD_User_ID, session.getAD_Session_ID());
+	}
+	
+	private String getUserInfo(DecodedJWT decodedJwt, ContainerRequestContext requestContext, 
+			MOIDCService oidcService) {		
+		String scope = decodedJwt.getClaim("scope").asString();
+		if (Util.isEmpty(scope) || !scope.contains("openid"))
+			return null;
+		
+		String endpoint = null;
+		String wellKnownUrl = oidcService.getOIDC_ConfigurationURL();
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(wellKnownUrl))
+                .GET()
+                .build();
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // Parse the JSON response
+            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
+
+            // Extract the UserInfo endpoint 
+            endpoint = json.get("userinfo_endpoint").getAsString();
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        
+		try {	        
+            String authorizationHeader = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
+
+            // Create the URL object
+            URL url = new URL(endpoint);
+
+            // Open a connection
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            
+            // Set the request method and headers
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("Authorization", authorizationHeader);
+
+            // Get the response code
+            int responseCode = connection.getResponseCode();
+
+            // If the response code is 200, read and print the response
+             if (responseCode == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // Print the response (contains user attributes)
+                return response.toString();
+            } else {
+            	// Failed to get user information
+            }
+        } catch (Exception e) {
+        	throw new RuntimeException(e);
+        }
+		
+		return null;
 	}
 }
