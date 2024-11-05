@@ -23,7 +23,7 @@ import org.compiere.util.KeyNamePair;
 
 /** Generated Interface for REST_RefreshToken
  *  @author iDempiere (generated) 
- *  @version Release 11
+ *  @version Release 12
  */
 @SuppressWarnings("all")
 public interface I_REST_RefreshToken 
@@ -37,11 +37,57 @@ public interface I_REST_RefreshToken
 
     KeyNamePair Model = new KeyNamePair(Table_ID, Table_Name);
 
-    /** AccessLevel = 4 - System 
+    /** AccessLevel = 6 - System - Client 
      */
-    BigDecimal accessLevel = BigDecimal.valueOf(4);
+    BigDecimal accessLevel = BigDecimal.valueOf(6);
 
     /** Load Meta Data */
+
+    /** Column name AD_Client_ID */
+    public static final String COLUMNNAME_AD_Client_ID = "AD_Client_ID";
+
+	/** Get Tenant.
+	  * Tenant for this installation.
+	  */
+	public int getAD_Client_ID();
+
+    /** Column name AD_Org_ID */
+    public static final String COLUMNNAME_AD_Org_ID = "AD_Org_ID";
+
+	/** Set Organization.
+	  * Organizational entity within tenant
+	  */
+	public void setAD_Org_ID (int AD_Org_ID);
+
+	/** Get Organization.
+	  * Organizational entity within tenant
+	  */
+	public int getAD_Org_ID();
+
+    /** Column name AbsoluteExpiresAt */
+    public static final String COLUMNNAME_AbsoluteExpiresAt = "AbsoluteExpiresAt";
+
+	/** Set Absolute Expires At	  */
+	public void setAbsoluteExpiresAt (Timestamp AbsoluteExpiresAt);
+
+	/** Get Absolute Expires At	  */
+	public Timestamp getAbsoluteExpiresAt();
+
+    /** Column name Created */
+    public static final String COLUMNNAME_Created = "Created";
+
+	/** Get Created.
+	  * Date this record was created
+	  */
+	public Timestamp getCreated();
+
+    /** Column name CreatedBy */
+    public static final String COLUMNNAME_CreatedBy = "CreatedBy";
+
+	/** Get Created By.
+	  * User who created this records
+	  */
+	public int getCreatedBy();
 
     /** Column name ExpiresAt */
     public static final String COLUMNNAME_ExpiresAt = "ExpiresAt";
@@ -52,6 +98,46 @@ public interface I_REST_RefreshToken
 	/** Get Expires At	  */
 	public Timestamp getExpiresAt();
 
+    /** Column name IsActive */
+    public static final String COLUMNNAME_IsActive = "IsActive";
+
+	/** Set Active.
+	  * The record is active in the system
+	  */
+	public void setIsActive (boolean IsActive);
+
+	/** Get Active.
+	  * The record is active in the system
+	  */
+	public boolean isActive();
+
+    /** Column name ParentToken */
+    public static final String COLUMNNAME_ParentToken = "ParentToken";
+
+	/** Set Parent Token	  */
+	public void setParentToken (String ParentToken);
+
+	/** Get Parent Token	  */
+	public String getParentToken();
+
+    /** Column name REST_RefreshToken_UU */
+    public static final String COLUMNNAME_REST_RefreshToken_UU = "REST_RefreshToken_UU";
+
+	/** Set REST_RefreshToken_UU	  */
+	public void setREST_RefreshToken_UU (String REST_RefreshToken_UU);
+
+	/** Get REST_RefreshToken_UU	  */
+	public String getREST_RefreshToken_UU();
+
+    /** Column name REST_RevokeCause */
+    public static final String COLUMNNAME_REST_RevokeCause = "REST_RevokeCause";
+
+	/** Set Revocation Cause	  */
+	public void setREST_RevokeCause (String REST_RevokeCause);
+
+	/** Get Revocation Cause	  */
+	public String getREST_RevokeCause();
+
     /** Column name RefreshToken */
     public static final String COLUMNNAME_RefreshToken = "RefreshToken";
 
@@ -61,6 +147,15 @@ public interface I_REST_RefreshToken
 	/** Get Refresh Token	  */
 	public String getRefreshToken();
 
+    /** Column name RevokedAt */
+    public static final String COLUMNNAME_RevokedAt = "RevokedAt";
+
+	/** Set Revoked At	  */
+	public void setRevokedAt (Timestamp RevokedAt);
+
+	/** Get Revoked At	  */
+	public Timestamp getRevokedAt();
+
     /** Column name Token */
     public static final String COLUMNNAME_Token = "Token";
 
@@ -69,4 +164,20 @@ public interface I_REST_RefreshToken
 
 	/** Get Token	  */
 	public String getToken();
+
+    /** Column name Updated */
+    public static final String COLUMNNAME_Updated = "Updated";
+
+	/** Get Updated.
+	  * Date this record was updated
+	  */
+	public Timestamp getUpdated();
+
+    /** Column name UpdatedBy */
+    public static final String COLUMNNAME_UpdatedBy = "UpdatedBy";
+
+	/** Get Updated By.
+	  * User who updated this records
+	  */
+	public int getUpdatedBy();
 }
