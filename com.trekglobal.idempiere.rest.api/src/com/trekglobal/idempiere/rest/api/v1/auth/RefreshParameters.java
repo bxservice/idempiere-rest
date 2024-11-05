@@ -32,6 +32,8 @@ package com.trekglobal.idempiere.rest.api.v1.auth;
 public class RefreshParameters {
 
 	private String refreshToken;
+	private Integer clientId;
+	private Integer userId;
 
 	public RefreshParameters() {
 	}
@@ -42,6 +44,22 @@ public class RefreshParameters {
 
 	public void setRefresh_token(String refreshToken) {
 		this.refreshToken = refreshToken;
+	}
+
+	public Integer getClientId() {
+		return clientId;
+	}
+
+	public void setClientId(Integer clientId) {
+		this.clientId = clientId;
+	}
+
+	public Integer getUserId() {
+		return userId;
+	}
+
+	public void setUserId(Integer userId) {
+		this.userId = userId;
 	}
 
 }

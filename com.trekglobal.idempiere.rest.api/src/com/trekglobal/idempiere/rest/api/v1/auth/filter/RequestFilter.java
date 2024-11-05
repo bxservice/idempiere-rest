@@ -119,6 +119,9 @@ public class RequestFilter implements ContainerRequestFilter {
 		if(MAuthToken.isBlocked(token)) {
 			throw new JWTVerificationException("Token is blocked");
 		}
+		if(MRefreshToken.isRevoked(token)) {
+			throw new JWTVerificationException("Token is revoked");
+		}
 		
 		MOIDCService service = MOIDCService.findMatchingOIDCService(token);
 		if (service != null) {
@@ -180,7 +183,7 @@ public class RequestFilter implements ContainerRequestFilter {
 				// is possible that the session was finished in a reboot instead of a logout
 				// if there is a REST_AuthToken or a REST_RefreshToken, then the user has not logged out
 				MAuthToken authToken = MAuthToken.get(Env.getCtx(), token);
-				if (authToken != null || MRefreshToken.exists(token)) {
+				if (authToken != null  || MRefreshToken.existsAuthToken(token)) {
 					DB.executeUpdateEx("UPDATE AD_Session SET Processed='N', UpdatedBy=CreatedBy, Updated=getDate() WHERE AD_Session_ID=?", new Object[] {AD_Session_ID}, null);
 					session.load(session.get_TrxName());
 				} else {
