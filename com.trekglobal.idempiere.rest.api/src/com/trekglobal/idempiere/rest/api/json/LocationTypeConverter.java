@@ -196,7 +196,15 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 			}
 			po.saveEx();
 			return po.get_ID();
-		} 
+		}
+
+		if (element instanceof JsonPrimitive)
+		{
+			JsonPrimitive primitive = (JsonPrimitive) element;
+
+			if (primitive.isNumber())
+				return primitive.getAsInt();
+		}
 		
 		return null;
 	}
