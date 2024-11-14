@@ -4234,6 +4234,51 @@
 				"description": "Get menu tree for an Id."
 			},
 			"response": []
+		},
+		{
+			"name": "api/v1/models/{tableName}?locale={locale}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"type": "text",
+						"value": "Bearer {{authToken}}"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/{{tableName}}?locale={{locale}}",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"{{tableName}}"
+					],
+					"query": [
+						{
+							"key": "locale",
+							"value": "{{locale}}"
+						}
+					]
+				},
+				"description": "Get models with locale query parameter."
+			},
+			"response": []
 		}
 	],
 	"event": [
