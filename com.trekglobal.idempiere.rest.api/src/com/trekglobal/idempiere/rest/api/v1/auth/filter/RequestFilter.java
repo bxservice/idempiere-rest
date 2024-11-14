@@ -29,7 +29,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
+import javax.annotation.Priority;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.HttpHeaders;
@@ -56,6 +58,7 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
 @Provider
+@Priority(Priorities.AUTHORIZATION)
 /**
  * Validate JWT token and set environment context(client,org,user,role and warehouse)
  * @author hengsin
