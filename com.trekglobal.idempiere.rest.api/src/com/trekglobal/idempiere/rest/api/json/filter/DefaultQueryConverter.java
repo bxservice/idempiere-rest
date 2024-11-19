@@ -189,6 +189,9 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 			} else {
 				throw new IDempiereRestException("Wrong right parameter for IN operator", Status.BAD_REQUEST);
 			}
+		} else if (right.startsWith("'") && right.endsWith("'")) {
+			convertedQuery.addParameter(column, right);
+			rightParameter = " ?";
 		} else {
 			// Get Right Value
 			if (right.contains("(")) {
