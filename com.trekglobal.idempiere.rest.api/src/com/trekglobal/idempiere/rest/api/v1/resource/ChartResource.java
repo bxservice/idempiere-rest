@@ -34,6 +34,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+
 /**
  * 
  * @author Carlos Ruiz
@@ -48,8 +50,9 @@ public interface ChartResource {
 	/**
 	 * Get the resulting image of the chart by id
 	 * @param chartId
-	 * @return JSON representation of chart image
+	 * @return image file, or JSON representation of chart image when the "json" parameter is present
 	 */
-	public Response getChartImage(@PathParam("chartId") String id, @QueryParam("width") @DefaultValue("-1") int width, @QueryParam("height") @DefaultValue("-1") int height);
+	public Response getChartImage(@PathParam("chartId") String id, @QueryParam("width") @DefaultValue("-1") int width, @QueryParam("height") @DefaultValue("-1") int height,
+			@QueryParam(QueryOperators.AS_JSON) String asJson);
 
 }

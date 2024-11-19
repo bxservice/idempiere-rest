@@ -35,11 +35,12 @@ public interface QueryOperators {
 	public static final String TOP     = "$top";
 	public static final String SKIP    = "$skip";
 	
-	//Custom iDempeire query operators
-	public static final String SHOW_SQL   = "showsql";
-	public static final String VALRULE    = "$valrule";
-	public static final String CONTEXT    = "$context";
-	public static final String REPORTTYPE = "$report_type";
+	//Custom iDempiere query operators
+	public static final String SHOW_SQL    = "showsql";
+	public static final String VALRULE     = "$valrule";
+	public static final String CONTEXT     = "$context";
+	public static final String REPORTTYPE  = "$report_type";
 	public static final String INCLUDE_MSG = "with_messages";
+	public static final String AS_JSON     = "json";
 
 }

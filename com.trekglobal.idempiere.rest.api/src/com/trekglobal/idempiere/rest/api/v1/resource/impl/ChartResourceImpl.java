@@ -27,6 +27,8 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.logging.Level;
 
 import javax.imageio.ImageIO;
@@ -40,6 +42,7 @@ import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
+import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.ChartResource;
@@ -58,7 +61,7 @@ public class ChartResourceImpl implements ChartResource {
 	}
 
 	@Override
-	public Response getChartImage(String id, int width, int height) {
+	public Response getChartImage(String id, int width, int height, String asJson) {
 		try {
 			boolean isUUID = Util.isUUID(id);
 			int chartId = isUUID ? getChartID(id) : Integer.valueOf(id);
@@ -70,8 +73,16 @@ public class ChartResourceImpl implements ChartResource {
 			if (img != null) {
 				File file = FileUtil.createTempFile("chart" + chartId, ".png");
 		        ImageIO.write(img, "png", file);
-				FileStreamingOutput fso = new FileStreamingOutput(file);
-				return Response.ok(fso).build();
+				if (asJson == null) {
+					FileStreamingOutput fso = new FileStreamingOutput(file);
+					return Response.ok(fso).build();
+				} else {
+					JsonObject json = new JsonObject();
+					byte[] binaryData = Files.readAllBytes(file.toPath());
+					String data = Base64.getEncoder().encodeToString(binaryData);
+					json.addProperty("data", data);
+					return Response.ok(json.toString()).build();
+				}
 			}
 			return Response.status(Status.NO_CONTENT).build();
 		} catch (Exception ex) {
