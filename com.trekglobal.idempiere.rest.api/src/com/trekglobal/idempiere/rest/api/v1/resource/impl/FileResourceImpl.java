@@ -25,7 +25,11 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
 import java.util.logging.Level;
 
 import javax.activation.MimetypesFileTypeMap;
@@ -40,6 +44,8 @@ import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
 
+import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.util.ClusterUtil;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.resource.FileResource;
@@ -63,7 +69,7 @@ public class FileResourceImpl implements FileResource {
 	}
 
 	@Override
-	public Response getFile(String fileName, long length, String nodeId) {
+	public Response getFile(String fileName, long length, String nodeId, String asJson) {
 		MUser user = MUser.get(Env.getCtx());
 		if (!user.isAdministrator())
 			return forbidden("Access denied", "Access denied for get file request");
@@ -73,17 +79,17 @@ public class FileResourceImpl implements FileResource {
 		 */
 
 		if (Util.isEmpty(nodeId)) {
-			return getLocalFile(fileName, true, length);
+			return getLocalFile(fileName, true, length, asJson);
 		} else {
 			IClusterService service = ClusterUtil.getClusterService();
 			if (service == null) 
-				return getLocalFile(fileName, true, length);
+				return getLocalFile(fileName, true, length, asJson);
 			
 			IClusterMember local = service.getLocalMember();
 			if (local != null && local.getId().equals(nodeId))
-				return getLocalFile(fileName, true, length);
+				return getLocalFile(fileName, true, length, asJson);
 			
-			return getRemoteFile(fileName, true, length, nodeId);
+			return getRemoteFile(fileName, true, length, nodeId, asJson);
 		}
 	}
 
@@ -93,23 +99,23 @@ public class FileResourceImpl implements FileResource {
 	 * @param nodeId
 	 * @return response
 	 */
-	public Response getFile(String fileName, String nodeId) {
+	public Response getFile(String fileName, String nodeId, String asJson) {
 		if (Util.isEmpty(nodeId)) {
-			return getLocalFile(fileName, false, 0);
+			return getLocalFile(fileName, false, 0, asJson);
 		} else {
 			IClusterService service = ClusterUtil.getClusterService();
 			if (service == null) 
-				return getLocalFile(fileName, false, 0);
+				return getLocalFile(fileName, false, 0, asJson);
 			
 			IClusterMember local = service.getLocalMember();
 			if (local != null && local.getId().equals(nodeId))
-				return getLocalFile(fileName, false, 0);
+				return getLocalFile(fileName, false, 0, asJson);
 			
-			return getRemoteFile(fileName, false, 0, nodeId);
+			return getRemoteFile(fileName, false, 0, nodeId, asJson);
 		}
 	}
 	
-	private Response getLocalFile(String fileName, boolean verifyLength, long length) {
+	private Response getLocalFile(String fileName, boolean verifyLength, long length, String asJson) {
 		File file = new File(fileName);
 		if (file.exists() && file.isFile()) {
 			if (!file.canRead() || !FileAccess.isAccessible(file)) {
@@ -117,21 +123,32 @@ public class FileResourceImpl implements FileResource {
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("File not readable").append("File not readable: ").append(fileName).build().toString())
 						.build();
 			} else if (!verifyLength || file.length()==length) {
-				String contentType = null;
-				String lfn = fileName.toLowerCase();
-				if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
-					contentType = MediaType.TEXT_HTML;
-				} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
-					contentType = MediaType.TEXT_PLAIN;
-				} else {
-					MimetypesFileTypeMap map = new MimetypesFileTypeMap();
-					contentType = map.getContentType(file);
+				try {
+					if (asJson == null) {
+						String contentType = null;
+						String lfn = fileName.toLowerCase();
+						if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
+							contentType = MediaType.TEXT_HTML;
+						} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
+							contentType = MediaType.TEXT_PLAIN;
+						} else {
+							MimetypesFileTypeMap map = new MimetypesFileTypeMap();
+							contentType = map.getContentType(file);
+						}
+						if (Util.isEmpty(contentType, true))
+							contentType = MediaType.APPLICATION_OCTET_STREAM;
+						FileStreamingOutput fso = new FileStreamingOutput(file);
+						return Response.ok(fso, contentType).build();
+					} else {
+						JsonObject json = new JsonObject();
+						byte[] binaryData = Files.readAllBytes(file.toPath());
+						String data = Base64.getEncoder().encodeToString(binaryData);
+						json.addProperty("data", data);
+						return Response.ok(json.toString()).build();
+					}
+				} catch (IOException ex) {
+					return ResponseUtils.getResponseErrorFromException(ex, "IO error");
 				}
-				if (Util.isEmpty(contentType, true))
-					contentType = MediaType.APPLICATION_OCTET_STREAM;
-				
-				FileStreamingOutput fso = new FileStreamingOutput(file);
-				return Response.ok(fso, contentType).build();
 			} else {
 				return Response.status(Status.FORBIDDEN)
 						.entity(new ErrorBuilder().status(Status.FORBIDDEN).title("Access denied").append("Access denied for file: ").append(fileName).build().toString())
@@ -144,7 +161,7 @@ public class FileResourceImpl implements FileResource {
 		}
 	}
 
-	private Response getRemoteFile(String fileName, boolean verifyLength, long length, String nodeId) {
+	private Response getRemoteFile(String fileName, boolean verifyLength, long length, String nodeId, String asJson) {
 		IClusterService service = ClusterUtil.getClusterService();
 		IClusterMember member = ClusterUtil.getClusterMember(nodeId);
 		if (member == null) {
@@ -167,21 +184,30 @@ public class FileResourceImpl implements FileResource {
 						.build();
 			}
 			
-			String contentType = null;
-			String lfn = fileName.toLowerCase();
-			if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
-				contentType = MediaType.TEXT_HTML;
-			} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
-				contentType = MediaType.TEXT_PLAIN;
-			} else {
-				MimetypesFileTypeMap map = new MimetypesFileTypeMap();
-				contentType = map.getContentType(fileInfo.getFileName());
-			}
-			if (Util.isEmpty(contentType, true))
-				contentType = MediaType.APPLICATION_OCTET_STREAM;
-			
 			RemoteFileStreamingOutput rfso = new RemoteFileStreamingOutput(fileInfo, member);
-			return Response.ok(rfso, contentType).build();
+			if (asJson == null) {
+				String contentType = null;
+				String lfn = fileName.toLowerCase();
+				if (lfn.endsWith(".html") || lfn.endsWith(".htm")) {
+					contentType = MediaType.TEXT_HTML;
+				} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
+					contentType = MediaType.TEXT_PLAIN;
+				} else {
+					MimetypesFileTypeMap map = new MimetypesFileTypeMap();
+					contentType = map.getContentType(fileInfo.getFileName());
+				}
+				if (Util.isEmpty(contentType, true))
+					contentType = MediaType.APPLICATION_OCTET_STREAM;
+				return Response.ok(rfso, contentType).build();
+			} else {
+		        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+		        rfso.write(byteArrayOutputStream);
+				JsonObject json = new JsonObject();
+				byte[] binaryData = byteArrayOutputStream.toByteArray();
+				String data = Base64.getEncoder().encodeToString(binaryData);
+				json.addProperty("data", data);
+				return Response.ok(json.toString()).build();
+			}
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
