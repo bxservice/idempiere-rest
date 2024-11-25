@@ -190,12 +190,12 @@ public class NodeResourceImpl implements NodeResource {
 	}
 
 	@Override
-	public Response getNodeLogFile(String id, String fileName) {
+	public Response getNodeLogFile(String id, String fileName, String asJson) {
 		MUser user = MUser.get(Env.getCtx());
 		if (!user.isAdministrator())
 			return forbidden("Access denied", "Access denied for get node log file request");
 		FileResourceImpl fileResource = new FileResourceImpl();
-		return fileResource.getFile(fileName, id);
+		return fileResource.getFile(fileName, id, asJson);
 	}
 
 	@Override
