@@ -157,7 +157,7 @@ public interface ModelResource {
 	 * @param id record id/uuid
 	 * @return zip file binary stream
 	 */
-	public Response getAttachmentsAsZip(@PathParam("tableName") String tableName, @PathParam("id") String id);
+	public Response getAttachmentsAsZip(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam(QueryOperators.AS_JSON) String asJson);
 	
 	@Path("{tableName}/{id}/attachments/zip")
 	@POST
@@ -182,7 +182,7 @@ public interface ModelResource {
 	 * @param fileName name of an attachment item
 	 * @return binary stream of an attachment item
 	 */
-	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName);
+	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName, @QueryParam(QueryOperators.AS_JSON) String asJson);
 	
 	@Path("{tableName}/{id}/attachments")
 	@POST

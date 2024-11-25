@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -556,17 +557,29 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachmentsAsZip(String tableName, String id) {
+	public Response getAttachmentsAsZip(String tableName, String id, String asJson) {
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
 			if (attachment != null) {
-				File zipFile = attachment.saveAsZip();
-				if (zipFile != null) {
-					FileStreamingOutput fso = new FileStreamingOutput(zipFile);
-					return Response.ok(fso).build();
+				try {
+					File zipFile = attachment.saveAsZip();
+					if (zipFile != null) {
+						if (asJson == null) {
+							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
+							return Response.ok(fso).build();
+						} else {
+							JsonObject json = new JsonObject();
+							byte[] binaryData = Files.readAllBytes(zipFile.toPath());
+							String data = Base64.getEncoder().encodeToString(binaryData);
+							json.addProperty("data", data);
+							return Response.ok(json.toString()).build();
+						}
+					}
+				} catch (IOException ex) {
+					return ResponseUtils.getResponseErrorFromException(ex, "IO error");
 				}
 			}
 			return Response.status(Status.NO_CONTENT).build();
@@ -640,7 +653,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachmentEntry(String tableName, String id, String fileName) {
+	public Response getAttachmentEntry(String tableName, String id, String fileName, String asJson) {
 	
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -654,8 +667,16 @@ public class ModelResourceImpl implements ModelResource {
 							File tempFolder = tempPath.toFile();
 							File zipFile = new File(tempFolder, fileName);
 							zipFile = entry.getFile(zipFile);
-							FileStreamingOutput fso = new FileStreamingOutput(zipFile);
-							return Response.ok(fso).build();
+							if (asJson == null) {
+								FileStreamingOutput fso = new FileStreamingOutput(zipFile);
+								return Response.ok(fso).build();
+							} else {
+								JsonObject json = new JsonObject();
+								byte[] binaryData = Files.readAllBytes(zipFile.toPath());
+								String data = Base64.getEncoder().encodeToString(binaryData);
+								json.addProperty("data", data);
+								return Response.ok(json.toString()).build();
+							}
 						} catch (IOException ex) {
 							return ResponseUtils.getResponseErrorFromException(ex, "IO error");
 						}
