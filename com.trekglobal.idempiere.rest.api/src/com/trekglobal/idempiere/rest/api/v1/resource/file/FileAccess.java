@@ -64,7 +64,7 @@ public class FileAccess {
 		File tempFolder = new File(System.getProperty("java.io.tmpdir"));
 		dirAccessList.add(tempFolder.getAbsolutePath());
 
-		// load from dirAccess.properties file
+		// load from dirAccess.txt file
 		String dirAccessPathName = Adempiere.getAdempiereHome() + File.separator + s_dirAccessFileName;
 		File dirAccessFile = new File(dirAccessPathName);
 		if (dirAccessFile.exists()) {

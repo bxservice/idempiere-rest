@@ -2188,7 +2188,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/files/{file name}?length={file size}",
+			"name": "api/v1/files?fileName={file name}&length={file size}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -2209,7 +2209,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/files/{{processFileName}}?length={{processFileLength}}&nodeId={{processNodeId}}",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/files?fileName={{logFileName}}&length={{logFileLength}}",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -2218,17 +2218,16 @@
 					"path": [
 						"api",
 						"v1",
-						"files",
-						"{{processFileName}}"
+						"files"
 					],
 					"query": [
 						{
-							"key": "length",
-							"value": "{{processFileLength}}"
+							"key": "fileName",
+							"value": "{{logFileName}}"
 						},
 						{
-							"key": "nodeId",
-							"value": "{{processNodeId}}"
+							"key": "length",
+							"value": "{{logFileLength}}"
 						}
 					]
 				},
@@ -2782,7 +2781,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/nodes/{id}/logs/{fileName}",
+			"name": "api/v1/nodes/{id}/logs/file",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -2804,7 +2803,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs/{{logFileName}}",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/nodes/{{nodeId}}/logs/file?fileName={{logFileName}}",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -2816,7 +2815,13 @@
 						"nodes",
 						"{{nodeId}}",
 						"logs",
-						"{{logFileName}}"
+						"file"
+					],
+					"query": [
+						{
+							"key": "fileName",
+							"value": "{{logFileName}}"
+						}
 					]
 				}
 			},

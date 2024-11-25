@@ -32,8 +32,11 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.trekglobal.idempiere.rest.api.json.QueryOperators;
 
 /**
  * 
@@ -61,10 +64,10 @@ public interface NodeResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getNodeLogs(@PathParam("id") String id);
 	
-	@Path("{id}/logs/{fileName}")
+	@Path("{id}/logs/file")
 	@GET
 	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN})
-	public Response getNodeLogFile(@PathParam("id") String id, @PathParam("fileName") String fileName);
+	public Response getNodeLogFile(@PathParam("id") String id, @QueryParam("fileName") String fileName, @QueryParam(QueryOperators.AS_JSON) String asJson);
 	
 	@Path("{id}/logs")
 	@DELETE
