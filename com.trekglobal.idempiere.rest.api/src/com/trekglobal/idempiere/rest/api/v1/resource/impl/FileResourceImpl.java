@@ -200,13 +200,14 @@ public class FileResourceImpl implements FileResource {
 					contentType = MediaType.APPLICATION_OCTET_STREAM;
 				return Response.ok(rfso, contentType).build();
 			} else {
-		        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		        rfso.write(byteArrayOutputStream);
-				JsonObject json = new JsonObject();
-				byte[] binaryData = byteArrayOutputStream.toByteArray();
-				String data = Base64.getEncoder().encodeToString(binaryData);
-				json.addProperty("data", data);
-				return Response.ok(json.toString()).build();
+				try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+					rfso.write(byteArrayOutputStream);
+					JsonObject json = new JsonObject();
+					byte[] binaryData = byteArrayOutputStream.toByteArray();
+					String data = Base64.getEncoder().encodeToString(binaryData);
+					json.addProperty("data", data);
+					return Response.ok(json.toString()).build();
+				}
 			}
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, ex.getMessage(), ex);
