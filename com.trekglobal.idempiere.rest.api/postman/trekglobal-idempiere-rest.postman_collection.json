@@ -4153,7 +4153,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/charts/50002",
+			"name": "api/v1/charts/{id}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -4198,6 +4198,46 @@
 					]
 				},
 				"description": "Get chart Sales YTD with size 800x600"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/charts/{id}/data",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/charts/50002/data",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"charts",
+						"50002",
+						"data"
+					]
+				},
+				"description": "Get data from chart 50002"
 			},
 			"response": []
 		},
