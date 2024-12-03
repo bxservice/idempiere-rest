@@ -106,4 +106,12 @@ public class ChartResourceImpl implements ChartResource {
 		return DB.getSQLValue(null, sql, uuid);
 	}
 
+	@Override
+	public Response getChartData(String id) {
+		boolean isUUID = Util.isUUID(id);
+		int chartId = isUUID ? getChartID(id) : Integer.valueOf(id);
+		MChart mc = new MChart(Env.getCtx(), chartId, null);
+		return Response.ok(mc.getData().toString()).build();
+	}
+
 }

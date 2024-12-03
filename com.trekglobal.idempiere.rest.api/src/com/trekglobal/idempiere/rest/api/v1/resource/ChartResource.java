@@ -55,4 +55,14 @@ public interface ChartResource {
 	public Response getChartImage(@PathParam("chartId") String id, @QueryParam("width") @DefaultValue("-1") int width, @QueryParam("height") @DefaultValue("-1") int height,
 			@QueryParam(QueryOperators.AS_JSON) String asJson);
 
+	@Path("{chartId}/data")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get the resulting data of the chart by id
+	 * @param chartId
+	 * @return data represented as JSON
+	 */
+	public Response getChartData(@PathParam("chartId") String id);
+
 }
