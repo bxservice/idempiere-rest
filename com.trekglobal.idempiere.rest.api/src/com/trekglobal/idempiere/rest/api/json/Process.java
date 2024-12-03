@@ -52,6 +52,7 @@ import org.compiere.process.ProcessInfo;
 import org.compiere.process.ProcessInfoLog;
 import org.compiere.process.ProcessInfoUtil;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
@@ -211,7 +212,9 @@ public class Process {
 		processInfo.setExport(true);
 		JsonElement printFormatIdElement = jsonObject.get("print-format-id");
 		if (printFormatIdElement != null && printFormatIdElement.isJsonPrimitive()) {
-			int AD_PrintFormat_ID = printFormatIdElement.getAsInt();
+			String printFormatStr = printFormatIdElement.getAsString();
+			boolean isUUID = Util.isUUID(printFormatStr);
+			int AD_PrintFormat_ID = isUUID ? getPrintFormatId(printFormatStr) : Integer.valueOf(printFormatStr);
 			if (AD_PrintFormat_ID > 0) 
 			{
 				MPrintFormat format = new MPrintFormat(Env.getCtx(), AD_PrintFormat_ID, null);
@@ -347,6 +350,11 @@ public class Process {
 			ex.printStackTrace();
 		}
 		return bos;
+	}
+
+	private static int getPrintFormatId(String uuid) {
+		String sql = "SELECT AD_PrintFormat_ID FROM AD_PrintFormat WHERE AD_PrintFormat_UU = ?";
+		return DB.getSQLValue(null, sql, uuid);
 	}
 
 }
