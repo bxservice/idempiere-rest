@@ -76,7 +76,7 @@ public interface ProcessResource {
 	 *   model-name (tablename)
 	 *   report-type (HTML, CSV, PDF or XLS)
 	 *   is-summary (true/false)
-	 *   print-format-id (ad_printformat_id)
+	 *   print-format-id (ad_printformat_id or ad_printformat_uu)
 	 * note: use one of table-id or model-name.
 	 * @param processSlug
 	 * @param jsonText process parameters and process info setting
