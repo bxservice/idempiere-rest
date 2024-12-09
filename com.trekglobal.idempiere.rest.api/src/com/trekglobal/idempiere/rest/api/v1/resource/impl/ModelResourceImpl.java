@@ -80,6 +80,8 @@ import com.trekglobal.idempiere.rest.api.json.expand.ExpandParser;
 import com.trekglobal.idempiere.rest.api.json.expand.ExpandUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.model.MRestViewRelated;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -108,7 +110,7 @@ public class ModelResourceImpl implements ModelResource {
 	
 	/**
 	 * 
-	 * @param tableName
+	 * @param tableName table or rest view definition name
 	 * @param id id or uuid
 	 * @param details child/link entity
 	 * @param multiProperty comma separated columns
@@ -117,6 +119,10 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		try {
+			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			PO po = query.first();
 
@@ -125,8 +131,16 @@ public class ModelResourceImpl implements ModelResource {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
 				String[] includes = null;
 				if (!Util.isEmpty(multiProperty, true)) {
+					if (view != null)
+						multiProperty = toColumnNames(view, multiProperty);
 					includes = RestUtils.getSelectedColumns(tableName, multiProperty);
 				} else if (!Util.isEmpty(singleProperty, true)) {
+					if (view != null) {
+						String original = singleProperty;
+						singleProperty = toColumnNames(view, singleProperty);
+						if (Util.isEmpty(singleProperty, true))
+							return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", original);
+					}
 					if (po.get_Value(singleProperty) == null) {
 						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
 					}
@@ -135,15 +149,32 @@ public class ModelResourceImpl implements ModelResource {
 				JsonObject json;
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				if (showData)
-					json = serializer.toJson(po, includes, null);
+					json = serializer.toJson(po, view, includes, null);
 				else
 					json = new JsonObject();
 
 				if (showsql != null) {
 					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
 				}
-				if (!Util.isEmpty(details, true))
-					expandDetailsInJsonObject(po, json, json, details, showsql != null, showData);
+				if (!Util.isEmpty(details, true)) {
+					expandDetailsInJsonObject(po, view, json, json, details, showsql != null, showData);
+				} else if (view != null) {
+					//add auto expand detail view definition
+					MRestViewRelated[] relateds = view.getRelatedViews();
+					if (relateds != null && relateds.length > 0) {
+						StringBuilder expands = new StringBuilder();
+						for (MRestViewRelated related : relateds) {
+							if (related.isRestAutoExpand()) {
+								if (expands.length() > 0)
+									expands.append(",");
+								expands.append(related.getName());
+							}
+						}
+						if (expands.length() > 0) {
+							expandDetailsInJsonObject(po, view, json, json, expands.toString(), showsql != null, showData);
+						}
+					}
+				}
 
 				return Response.ok(json.toString()).build();
 			} else {
@@ -154,8 +185,20 @@ public class ModelResourceImpl implements ModelResource {
 		}
 	}
 	
-	private void expandDetailsInJsonObject(PO po, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
-		ExpandParser expandParser = new ExpandParser(po, expandParameter);
+	/**
+	 * Convert view property name to table column name (if needed)
+	 * @param view
+	 * @param propertyNames comma separated list of view property or table column name
+	 * @return converted names
+	 */
+	private String toColumnNames(MRestView view, String propertyNames) {
+		String[] columns = propertyNames.split("[,]");
+		columns = view.toColumnNames(columns, true);
+		return String.join(",", columns);
+	}
+
+	private void expandDetailsInJsonObject(PO po, MRestView view, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
+		ExpandParser expandParser = new ExpandParser(po, view, expandParameter);
 		if (showSql)
 			ExpandUtils.addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
 		
@@ -210,13 +253,21 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
 			String validationRuleID, String context, String showsql) {
 		try {
+			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			
 			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
+			if (view != null)
+				modelHelper.setView(view);
 			List<PO> list = modelHelper.getPOsFromRequest();
 			
 			JsonArray array = new JsonArray();
 			if (list != null) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 				String[] includes = RestUtils.getSelectedColumns(tableName, select);
+				if (view != null)
+					includes = view.toColumnNames(includes, true);
 
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				JsonObject json = new JsonObject();
@@ -230,9 +281,9 @@ public class ModelResourceImpl implements ModelResource {
 				}
 				
 				for (PO po : list) {
-					JsonObject detailJson = serializer.toJson(po, includes, null);
+					JsonObject detailJson = serializer.toJson(po, view, includes, null);
 					if (!Util.isEmpty(details, true))
-						expandDetailsInJsonObject(po, json, detailJson, details, showsql != null, showData);
+						expandDetailsInJsonObject(po, view, json, detailJson, details, showsql != null, showData);
 					array.add(detailJson);
 				}
 				
@@ -260,13 +311,17 @@ public class ModelResourceImpl implements ModelResource {
 	public Response create(String tableName, String jsonText) {
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
+			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			
 			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 
 			trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-			PO po = serializer.fromJson(jsonObject, table);
+			PO po = serializer.fromJson(jsonObject, table, view);
 			if (!RestUtils.hasRoleUpdateAccess(po.getAD_Client_ID(), po.getAD_Org_ID(), po.get_Table_ID(), 0, true))
 				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Update error", "Role does not have access","");
 
@@ -286,7 +341,7 @@ public class ModelResourceImpl implements ModelResource {
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
 			for(String field : fields) {
-				String strError = createChild(field, jsonObject, po, detailMap, trx);
+				String strError = createChild(field, jsonObject, po, view, detailMap, trx);
 				if(strError != null)
 					return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", "Save error with exception: ", strError);
 			}
@@ -300,7 +355,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			trx.commit(true);
 			po.load(trx.getTrxName());
-			jsonObject = serializer.toJson(po);
+			jsonObject = serializer.toJson(po, view);
 			if (processMsg.length() > 0)
 				jsonObject.addProperty("doc-processmsg", processMsg.toString());
 			if (detailMap.size() > 0) {
@@ -323,48 +378,71 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param field
 	 * @param jsonObject
 	 * @param po
+	 * @param view 
 	 * @param detailMap
 	 * @param trx
 	 * @return
 	 */
-	private String createChild(String field, JsonObject jsonObject, PO po, Map<String, JsonArray> detailMap, Trx trx) {
+	private String createChild(String field, JsonObject jsonObject, PO po, MRestView view, Map<String, JsonArray> detailMap, Trx trx) {
 		JsonElement fieldElement = jsonObject.get(field);
 		if (fieldElement != null && fieldElement.isJsonArray()) {
-			MTable childTable = MTable.get(Env.getCtx(), field);
+			String childTableName = field;
+			MRestView childView = null;
+			if (view != null) {
+				//find child view definition
+				MRestViewRelated[] relateds = view.getRelatedViews();
+				for(MRestViewRelated related : relateds) {
+					MRestView relatedView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
+					RestUtils.checkViewAccess(relatedView, true);
+					String tableName = MTable.getTableName(Env.getCtx(), relatedView.getAD_Table_ID());
+					if (related.getName().equals(field)) {						
+						childTableName = tableName;
+						childView = relatedView;
+						break;
+					} else if (tableName.equals(field)) {
+						childView = relatedView;
+						break;
+					}
+				}
+				if (childView == null)
+					return null;
+			}
+			MTable childTable = MTable.get(Env.getCtx(), childTableName);
 			if (childTable != null && childTable.getAD_Table_ID() > 0) {
 				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
 				JsonArray fieldArray = fieldElement.getAsJsonArray();
 				JsonArray savedArray = new JsonArray();
 				try {
+					MRestView finalChildView = childView;
 					fieldArray.forEach(e -> {
 						if (e.isJsonObject()) {
 							JsonObject childJsonObject = e.getAsJsonObject();
-							PO childPO = childSerializer.fromJson(childJsonObject, childTable);
+							PO childPO = childSerializer.fromJson(childJsonObject, childTable, finalChildView);
 							if (!RestUtils.hasRoleUpdateAccess(childPO.getAD_Client_ID(), childPO.getAD_Org_ID(), childPO.get_Table_ID(), 0, true))
 								throw new AdempiereException("AccessCannotUpdate");
 							
 							childPO.set_TrxName(trx.getTrxName());
 							childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
 							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
-						if (! childPO.validForeignKeys()) {
+							if (! childPO.validForeignKeys()) {
 								String msg = CLogger.retrieveErrorString("Foreign key validation error");
 								throw new AdempiereException(msg);
 							}
 							childPO.saveEx();
 							fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
-							childJsonObject = childSerializer.toJson(childPO);
+							childJsonObject = childSerializer.toJson(childPO, finalChildView);
 							JsonObject newChildJsonObject = e.getAsJsonObject();
 							Map<String, JsonArray> childDetailMap = new LinkedHashMap<>();
 							Set<String> fields = newChildJsonObject.keySet();
 							for(String childField : fields) {
-								String strError = createChild(childField, newChildJsonObject, childPO, childDetailMap, trx);
+								String strError = createChild(childField, newChildJsonObject, childPO, finalChildView, childDetailMap, trx);
 								if(strError != null)
 									throw new AdempiereException(strError);
 							}
 							if (childDetailMap.size() > 0) {
-								for(String childTableName : childDetailMap.keySet()) {
-									JsonArray childArray = childDetailMap.get(childTableName);
-									childJsonObject.add(childTableName, childArray);
+								for(String tableName : childDetailMap.keySet()) {
+									JsonArray childArray = childDetailMap.get(tableName);
+									childJsonObject.add(tableName, childArray);
 								}
 							}
 							savedArray.add(childJsonObject);
@@ -387,8 +465,12 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response update(String tableName, String id, String jsonText) {
-
+	public Response update(String name, String id, String jsonText) {
+		MRestView view = RestUtils.getViewAndCheckAccess(name, false);
+		if (view != null)
+			name = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		
+		String tableName = name;
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (!poParser.isValidPO()) {
 			return poParser.getResponseError();
@@ -405,7 +487,7 @@ public class ModelResourceImpl implements ModelResource {
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-			po = serializer.fromJson(jsonObject, po);
+			po = serializer.fromJson(jsonObject, po, view);
 			po.set_TrxName(trx.getTrxName());
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
 			try {
@@ -425,23 +507,44 @@ public class ModelResourceImpl implements ModelResource {
 			final int parentId = po.get_ID();
 			for(String field : fields) {
 				JsonElement fieldElement = jsonObject.get(field);
-				if (fieldElement != null && fieldElement.isJsonArray()) {
-					MTable childTable = MTable.get(Env.getCtx(), field);
+				if (fieldElement != null && fieldElement.isJsonArray()) {					
+					MRestView childView = null;
+					if (view != null) {
+						//find child view definition
+						MRestViewRelated[] relateds = view.getRelatedViews();
+						for(MRestViewRelated related : relateds) {
+							MRestView relatedView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
+							RestUtils.checkViewAccess(relatedView, true);
+							String tName = MTable.getTableName(Env.getCtx(), relatedView.getAD_Table_ID());
+							if (related.getName().equals(field)) {						
+								childView = relatedView;
+								break;
+							} else if (tName.equals(field)) {
+								childView = relatedView;
+								break;
+							}
+						}
+						if (childView == null)
+							continue;
+					}
+					String childTableName = childView != null ? MTable.getTableName(Env.getCtx(), childView.getAD_Table_ID()) : field;
+					MTable childTable = MTable.get(Env.getCtx(), childTableName);
 					if (childTable != null && childTable.getAD_Table_ID() > 0) {									
-						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(field));
+						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(childTableName, MTable.getClass(childTableName));
 						JsonArray fieldArray = fieldElement.getAsJsonArray();
 						JsonArray savedArray = new JsonArray();
+						MRestView finalChildView = childView;
 						try {
 							fieldArray.forEach(e -> {
 								if (e.isJsonObject()) {
 									JsonObject childJsonObject = e.getAsJsonObject();
-									PO childPO = loadPO(field, childJsonObject);
+									PO childPO = loadPO(childTableName, childJsonObject);
 									
 									if (childPO == null) {
-										childPO = childSerializer.fromJson(childJsonObject, childTable);
+										childPO = childSerializer.fromJson(childJsonObject, childTable, finalChildView);
 										childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(tableName), parentId);
 									} else {
-										childPO = childSerializer.fromJson(childJsonObject, childPO);
+										childPO = childSerializer.fromJson(childJsonObject, childPO, finalChildView);
 									}
 									childPO.set_TrxName(trx.getTrxName());
 									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
@@ -451,7 +554,7 @@ public class ModelResourceImpl implements ModelResource {
 									}
 									childPO.saveEx();
 									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
-									childJsonObject = serializer.toJson(childPO);
+									childJsonObject = serializer.toJson(childPO, finalChildView);
 									savedArray.add(childJsonObject);
 								}
 							});
@@ -476,7 +579,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			
 			po.load(trx.getTrxName());
-			jsonObject = serializer.toJson(po);
+			jsonObject = serializer.toJson(po, view);
 			if (processMsg.length() > 0)
 				jsonObject.addProperty("doc-processmsg", processMsg.toString());
 			if (detailMap.size() > 0) {
@@ -511,6 +614,9 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response delete(String tableName, String id) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (poParser.isValidPO()) {
@@ -534,6 +640,10 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachments(String tableName, String id) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		
 		JsonArray array = new JsonArray();
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -558,6 +668,9 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentsAsZip(String tableName, String id, String asJson) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -605,6 +718,10 @@ public class ModelResourceImpl implements ModelResource {
 		String base64Content = jsonElement.getAsString();
 		if (Util.isEmpty(base64Content, true))
 			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
+		
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -655,6 +772,10 @@ public class ModelResourceImpl implements ModelResource {
 	@Override
 	public Response getAttachmentEntry(String tableName, String id, String fileName, String asJson) {
 	
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -715,6 +836,10 @@ public class ModelResourceImpl implements ModelResource {
 		if (jsonElement != null && jsonElement.isJsonPrimitive())
 			overwrite = jsonElement.getAsBoolean();
 		
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
@@ -752,6 +877,9 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachments(String tableName, String id) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -776,6 +904,9 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -811,6 +942,9 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response printModelRecord(String tableName, String id, String reportType) {
+		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		if (view != null)
+			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (poParser.isValidPO()) {
