@@ -183,7 +183,8 @@ public class ExpandParser {
 		MColumn column = table.getColumn(keyColumnName);
 
 		return column != null && 
-				(ExpandUtils.isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName()));
+				(ExpandUtils.isRecordIDTableIDFK(keyColumnName) || masterTableName.equalsIgnoreCase(column.getReferenceTableName())
+				 || MColumn.get(Env.getCtx(), masterTableName, keyColumnName) != null);
 	}	
 
 	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName, String[] includes) {
@@ -195,7 +196,10 @@ public class ExpandParser {
 	}
 	
 	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
-		String filter = getFilterClause(operators, keyColumnName, po.get_ID());
+		MColumn column = MColumn.get(Env.getCtx(), tableName, keyColumnName);
+		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(keyColumnName); 
+		
+		String filter = getFilterClause(operators, keyColumnName, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
 		int top = ExpandUtils.getTopClause(operators);
 		int skip = ExpandUtils.getSkipClause(operators);
