@@ -45,6 +45,7 @@ import org.compiere.util.Util;
 
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
 
 public class ModelHelper {
 	
@@ -67,6 +68,7 @@ public class ModelHelper {
 	private int rowCount = 0;
 	private int pageCount = 0;
 	private String sqlStatement;
+	private MRestView view;
 	
 	public ModelHelper(String tableName, String filter, String orderBy, 
 			int top, int skip, String validationRuleID, String context) {
@@ -83,13 +85,21 @@ public class ModelHelper {
 		this(tableName, filter, orderBy, top, skip, null, null);
 	}
 	
+	public void setView(MRestView view) {
+		this.view = view;
+		//validate view and tableName agree, should never happens
+		if (view != null && !(MTable.getTableName(Env.getCtx(), view.getAD_Table_ID()).equalsIgnoreCase(tableName))) {
+			throw new IllegalArgumentException("Rest view belongs to a different table from what this ModelHelper is using");
+		}
+	}
+	
 	public List<PO> getPOsFromRequest() {
 
 		String whereClause = getRequestWhereClause();
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		MTable table = RestUtils.getTableAndCheckAccess(tableName);
 
-		ConvertedQuery convertedStatement = converter.convertStatement(tableName, whereClause);
+		ConvertedQuery convertedStatement = converter.convertStatement(view, tableName, whereClause);
 		String convertedWhereClause = getFullWhereClause(convertedStatement);
 
 		Query query = RestUtils.getQuery(tableName, convertedWhereClause,  new ArrayList<Object>(convertedStatement.getParameters()));
@@ -135,6 +145,18 @@ public class ModelHelper {
 					convertedWhereClause = parseContext(convertedWhereClause, context);
 				}
 			}
+		}
+		
+		//add optional where clause from view definition
+		if (view != null && !Util.isEmpty(view.getWhereClause(), true)) {
+			String viewWhereClause = view.getWhereClause();
+			int atIdx = viewWhereClause.indexOf("@");
+			if (atIdx >= 0 && viewWhereClause.indexOf("@", atIdx+1) > atIdx) {
+				viewWhereClause = Env.parseContext(Env.getCtx(), -1, viewWhereClause, false);
+			}
+			if (!Util.isEmpty(convertedWhereClause))
+				convertedWhereClause =  convertedWhereClause + " AND ";			
+			convertedWhereClause = convertedWhereClause + "(" + viewWhereClause + ")";
 		}
 		
 		return convertedWhereClause;
