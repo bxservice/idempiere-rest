@@ -75,7 +75,7 @@ public class ChartResourceImpl implements ChartResource {
 		        ImageIO.write(img, "png", file);
 				if (asJson == null) {
 					FileStreamingOutput fso = new FileStreamingOutput(file);
-					return Response.ok(fso).build();
+					return Response.ok(fso).header("Content-Type", "image/png").build();
 				} else {
 					JsonObject json = new JsonObject();
 					byte[] binaryData = Files.readAllBytes(file.toPath());
