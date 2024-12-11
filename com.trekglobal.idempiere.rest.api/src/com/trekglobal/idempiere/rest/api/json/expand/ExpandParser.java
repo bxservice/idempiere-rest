@@ -197,6 +197,9 @@ public class ExpandParser {
 	
 	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
 		MColumn column = MColumn.get(Env.getCtx(), tableName, keyColumnName);
+		if (column == null)
+			throw new IDempiereRestException("Invalid column for expand: " + keyColumnName, Status.BAD_REQUEST);
+
 		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(keyColumnName); 
 		
 		String filter = getFilterClause(operators, keyColumnName, parentId);
