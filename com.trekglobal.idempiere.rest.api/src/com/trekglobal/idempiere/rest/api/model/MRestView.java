@@ -91,14 +91,16 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 			copyColumns();
 		} else if (success) {
 			if (is_ValueChanged(COLUMNNAME_AD_Table_ID)) {
-				getColumns(true);
-				for(MRestViewColumn column : columns) {
+				Query query = new Query(Env.getCtx(), MRestViewColumn.Table_Name, "REST_View_ID=?", null);
+				List<MRestViewColumn> columnList = query.setParameters(getREST_View_ID()).list();
+				for(MRestViewColumn column : columnList) {
 					column.deleteEx(true, get_TrxName());
 				}
-				copyColumns();
 				columns = null;
-				getRelatedViews(true);
-				for(MRestViewRelated related : relateds) {
+				copyColumns();				
+				query = new Query(Env.getCtx(), MRestViewRelated.Table_Name, "REST_View_ID=?", null);
+				List<MRestViewRelated> relatedList = query.setParameters(getREST_View_ID()).list();
+				for(MRestViewRelated related : relatedList) {
 					related.deleteEx(true, get_TrxName());
 				}
 				relateds = null;

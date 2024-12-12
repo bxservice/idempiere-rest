@@ -225,9 +225,13 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				}
 			} else {
 				// Check Right is Column
-				if (view != null)
-					right = toColumnName(view, right.trim());
-				MColumn columnRight = table.getColumn(right.trim());
+				MColumn tableColumnRight = table.getColumn(right.trim());
+				if (view != null) {
+					right = view.toColumnName(right.trim());
+					if (right == null && tableColumnRight != null)
+						throw new IDempiereRestException("Invalid column for filter: " + tableColumnRight.getColumnName(), Status.BAD_REQUEST);
+				}
+				MColumn columnRight = right != null && tableColumnRight == null ? table.getColumn(right.trim()) : tableColumnRight;
 				if (columnRight != null) {
 					if(columnRight.isSecure() || columnRight.isEncrypted()) {
 						throw new IDempiereRestException("Invalid column for filter: " + right.trim(), Status.BAD_REQUEST);

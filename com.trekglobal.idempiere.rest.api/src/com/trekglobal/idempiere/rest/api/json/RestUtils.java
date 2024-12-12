@@ -328,6 +328,9 @@ public class RestUtils {
 	public static String getLinkKeyColumnName(String parentTable, String childTable) {
 		MTable pTable = MTable.get(Env.getCtx(), parentTable);
 		MTable cTable = MTable.get(Env.getCtx(), childTable);
+		if (cTable == null || cTable.getAD_Table_ID()==0) {
+			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + childTable, Status.NOT_FOUND);
+		}
 		MColumn[] cColumns = cTable.getColumns(false);
 		String[] parentKeys = pTable.getKeyColumns();
 		//check parent keys
@@ -360,12 +363,15 @@ public class RestUtils {
 		} 
 		
 		//find match for every id column in parent table
+		String[] childKeys = cTable.getKeyColumns();
 		for(MColumn pColumn : pTable.getColumns(false)) {
 			if (pColumn.getColumnName().endsWith("_ID")) {
 				String pRefTable = pColumn.getReferenceTableName();
 				if (pRefTable != null) {
 					//match reference table of parent and child id column
 					for(MColumn c : cColumns) {
+						if (childKeys.length == 1 && childKeys[0].equals(c.getColumnName()))
+							continue;
 						if (c.getColumnName().endsWith("_ID")) {
 							if (pRefTable.equalsIgnoreCase(c.getReferenceTableName())) {
 								return pColumn.getColumnName()+":"+c.getColumnName();
