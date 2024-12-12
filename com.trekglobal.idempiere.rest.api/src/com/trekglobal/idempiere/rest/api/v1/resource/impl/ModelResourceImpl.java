@@ -282,8 +282,25 @@ public class ModelResourceImpl implements ModelResource {
 				
 				for (PO po : list) {
 					JsonObject detailJson = serializer.toJson(po, view, includes, null);
-					if (!Util.isEmpty(details, true))
+					if (!Util.isEmpty(details, true)) {
 						expandDetailsInJsonObject(po, view, json, detailJson, details, showsql != null, showData);
+					} else if (view != null) {
+						//add auto expand detail view definition
+						MRestViewRelated[] relateds = view.getRelatedViews();
+						if (relateds != null && relateds.length > 0) {
+							StringBuilder expands = new StringBuilder();
+							for (MRestViewRelated related : relateds) {
+								if (related.isRestAutoExpand()) {
+									if (expands.length() > 0)
+										expands.append(",");
+									expands.append(related.getName());
+								}
+							}
+							if (expands.length() > 0) {
+								expandDetailsInJsonObject(po, view, json, detailJson, expands.toString(), showsql != null, showData);
+							}
+						}
+					}
 					array.add(detailJson);
 				}
 				

@@ -317,6 +317,68 @@ public class RestUtils {
 		return view.hasAccess(role, isReadWrite);
 	}
 	
+	/**
+	 * Get column that link parent and child table.<br/>
+	 * If same column name is use to link parent and child table, return a single column name.</br>
+	 * If different column name is use to link parent and child table, return parentColumnName:childColumnName.
+	 * @param parentTable
+	 * @param childTable
+	 * @return single column name or parentColumnName:childColumnName
+	 */
+	public static String getLinkKeyColumnName(String parentTable, String childTable) {
+		MTable pTable = MTable.get(Env.getCtx(), parentTable);
+		MTable cTable = MTable.get(Env.getCtx(), childTable);
+		MColumn[] cColumns = cTable.getColumns(false);
+		String[] parentKeys = pTable.getKeyColumns();
+		//check parent keys
+		if (parentKeys.length == 1) {
+			if (cTable.getColumnIndex(parentKeys[0]) >= 0) {
+				return parentKeys[0];
+			}
+			//match reference table of parent and child id column
+			for(MColumn c : cColumns) {
+				if (c.getColumnName().endsWith("_ID")) {
+					if (parentTable.equalsIgnoreCase(c.getReferenceTableName())) {
+						return parentKeys[0]+":"+c.getColumnName();
+					}
+				}
+			}
+		} else if (parentKeys.length > 1) {
+			for(String pKey : parentKeys) {
+				String pRefTable = pTable.getColumn(pKey).getReferenceTableName();
+				if (pRefTable != null) {
+					//match reference table of parent and child id column
+					for(MColumn c : cColumns) {
+						if (c.getColumnName().endsWith("_ID")) {
+							if (pRefTable.equalsIgnoreCase(c.getReferenceTableName())) {
+								return pKey+":"+c.getColumnName();
+							}
+						}
+					}
+				}
+			}
+		} 
+		
+		//find match for every id column in parent table
+		for(MColumn pColumn : pTable.getColumns(false)) {
+			if (pColumn.getColumnName().endsWith("_ID")) {
+				String pRefTable = pColumn.getReferenceTableName();
+				if (pRefTable != null) {
+					//match reference table of parent and child id column
+					for(MColumn c : cColumns) {
+						if (c.getColumnName().endsWith("_ID")) {
+							if (pRefTable.equalsIgnoreCase(c.getReferenceTableName())) {
+								return pColumn.getColumnName()+":"+c.getColumnName();
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has no column that links to the parent table: " + childTable, Status.INTERNAL_SERVER_ERROR);
+	}
+	
 	public static String getKeyColumnName(String tableName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		String[] keyColumns = table.getKeyColumns();
@@ -357,7 +419,7 @@ public class RestUtils {
 	public static void setSessionContextVariables(Properties ctx) {
 		int sessionId = Env.getContextAsInt(ctx, Env.AD_SESSION_ID);
 		if (sessionId > 0) {
-			if (ctxSessionCache.containsKey(sessionId)) {
+			if (ctxSessionCache.containsKey(sessionId)) { 
 				// key found in cache, just set the properties found in cache and return
 				Properties savedCtx = ctxSessionCache.get(sessionId);
 				setCtxFromSavedCtx(ctx, savedCtx);

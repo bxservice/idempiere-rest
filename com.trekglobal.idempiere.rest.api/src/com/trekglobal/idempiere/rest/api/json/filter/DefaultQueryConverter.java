@@ -245,14 +245,17 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	
 	/**
 	 * Convert view property name to column name.<br/>
-	 * If name doesn't match any view property name, will assume it is already a column name and return as it is
+	 * Throw IDempiereRestException if name doesn't match any view property name or column name.
 	 * @param view
 	 * @param name column or view property name
 	 * @return column name
 	 */
 	private String toColumnName(MRestView view, String name) {
 		String viewColumnName = view.toColumnName(name);
-		return viewColumnName != null ? viewColumnName : name;
+		if (viewColumnName  != null)
+			return viewColumnName;
+		else
+			throw new IDempiereRestException("Invalid column for filter: " + name, Status.BAD_REQUEST);
 	}
 
 	private String convertMethodCall(String methodCall, String columnName, String value, boolean isNot) {

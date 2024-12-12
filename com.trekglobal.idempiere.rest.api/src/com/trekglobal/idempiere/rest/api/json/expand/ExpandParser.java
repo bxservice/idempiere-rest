@@ -186,9 +186,15 @@ public class ExpandParser {
 		}
 		String[] tableNameKeyColumnName = getTableNameAndKeyColumnName(detailEntity);
 		String tableName = tableNameKeyColumnName[0];
-		String keyColumn = tableNameKeyColumnName[1];		
+		String parentKeyColumn = tableNameKeyColumnName[1];
+		String childKeyColumn = parentKeyColumn;
+		if (parentKeyColumn.contains(":")) {
+			String[] pcKeys = parentKeyColumn.split("[:]");
+			parentKeyColumn = pcKeys[0];
+			childKeyColumn = pcKeys[1];
+		}
 
-		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn);
+		List<PO> childPOs = getChildPOs(operators, tableName, parentKeyColumn, childKeyColumn);
 		if (childPOs != null && childPOs.size() > 0) {
 			JsonArray childArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
@@ -199,7 +205,7 @@ public class ExpandParser {
 				includes = detailView.toColumnNames(includes, true);
 
 			for (PO child : childPOs) {
-				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {keyColumn, "model-name"});
+				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {childKeyColumn, "model-name"});
 				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject, detailView);
 				childArray.add(childJsonObject);
 			}
@@ -222,9 +228,12 @@ public class ExpandParser {
 		String[] tableNameKeyColumnName = new String[2];
 		tableNameKeyColumnName[0] = getTableName(detailEntity);
 		tableNameKeyColumnName[1] = getKeyColumnName(detailEntity);
+		String keyColumn = tableNameKeyColumnName[1];
+		if (keyColumn.contains(":"))
+			keyColumn = keyColumn.split("[:]")[0];
 		
 		if (usesDifferentFK(detailEntity) && 
-				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
+				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], keyColumn))
 			throw new IDempiereRestException("Expand error", 
 					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + masterTableName
 					, Status.BAD_REQUEST);
@@ -234,7 +243,7 @@ public class ExpandParser {
 	
 	private String getKeyColumnName(String detailEntity) {
 		return usesDifferentFK(detailEntity) ? detailEntity.substring(detailEntity.indexOf(".") + 1)
-				: RestUtils.getKeyColumnName(masterTableName);
+				: RestUtils.getLinkKeyColumnName(masterTableName, detailEntity);
 	}
 	
 	private String getTableName(String detailEntity) {
@@ -254,19 +263,19 @@ public class ExpandParser {
 				 || MColumn.get(Env.getCtx(), masterTableName, keyColumnName) != null);
 	}	
 
-	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName) {
-		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
+	private List<PO> getChildPOs(List<String> operators, String tableName, String parentKeyColumn, String childKeyColumn) {
+		ModelHelper modelHelper = getModelHelper(operators, tableName, parentKeyColumn, childKeyColumn);
 		List<PO> poList = modelHelper.getPOsFromRequest();
-		addSQLStatementToMap(tableName, keyColumnName, modelHelper.getSQLStatement());
+		addSQLStatementToMap(tableName, childKeyColumn, modelHelper.getSQLStatement());
 
 		return poList;
 	}
 	
-	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
-		MColumn column = MColumn.get(Env.getCtx(), tableName, keyColumnName);
-		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(keyColumnName); 
+	private ModelHelper getModelHelper(List<String> operators, String tableName, String parentKeyColumn, String childKeyColumn) {
+		MColumn column = MColumn.get(Env.getCtx(), tableName, childKeyColumn);
+		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(parentKeyColumn); 
 		
-		String filter = getFilterClause(operators, keyColumnName, parentId);
+		String filter = getFilterClause(operators, childKeyColumn, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
 		int top = ExpandUtils.getTopClause(operators);
 		int skip = ExpandUtils.getSkipClause(operators);

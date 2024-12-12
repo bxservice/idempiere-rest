@@ -88,24 +88,45 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 	@Override
 	protected boolean afterSave(boolean newRecord, boolean success) {
 		if (newRecord && success) {
-			//auto populate view columns
-			MTable table = MTable.get(getAD_Table_ID());
-			MColumn[] columns = table.getColumns(false);
-			String keyColumn = table.getKeyColumns() != null && table.getKeyColumns().length == 1 ? table.getKeyColumns()[0] : "";
-			String uidColumn = PO.getUUIDColumnName(table.getTableName());
-			for(MColumn column : columns) {
-				if (column.getColumnName().equals(keyColumn))
-					continue;
-				else if (column.getColumnName().equals(uidColumn))
-					continue;
-				MRestViewColumn restViewColumn = new MRestViewColumn(Env.getCtx(), 0, get_TrxName());
-				restViewColumn.setREST_View_ID(getREST_View_ID());
-				restViewColumn.setAD_Column_ID(column.getAD_Column_ID());
-				restViewColumn.setName(TypeConverterUtils.toPropertyName(column.getColumnName()));
-				restViewColumn.saveEx();
+			copyColumns();
+		} else if (success) {
+			if (is_ValueChanged(COLUMNNAME_AD_Table_ID)) {
+				getColumns(true);
+				for(MRestViewColumn column : columns) {
+					column.deleteEx(true, get_TrxName());
+				}
+				copyColumns();
+				columns = null;
+				getRelatedViews(true);
+				for(MRestViewRelated related : relateds) {
+					related.deleteEx(true, get_TrxName());
+				}
+				relateds = null;
 			}
 		}
 		return success;
+	}
+
+	/**
+	 * Copy all columns from table
+	 */
+	private void copyColumns() {
+		//auto populate view columns
+		MTable table = MTable.get(getAD_Table_ID());
+		MColumn[] columns = table.getColumns(false);
+		String keyColumn = table.getKeyColumns() != null && table.getKeyColumns().length == 1 ? table.getKeyColumns()[0] : "";
+		String uidColumn = PO.getUUIDColumnName(table.getTableName());
+		for(MColumn column : columns) {
+			if (column.getColumnName().equals(keyColumn))
+				continue;
+			else if (column.getColumnName().equals(uidColumn))
+				continue;
+			MRestViewColumn restViewColumn = new MRestViewColumn(Env.getCtx(), 0, get_TrxName());
+			restViewColumn.setREST_View_ID(getREST_View_ID());
+			restViewColumn.setAD_Column_ID(column.getAD_Column_ID());
+			restViewColumn.setName(TypeConverterUtils.toPropertyName(column.getColumnName()));
+			restViewColumn.saveEx();
+		}
 	}
 
 	/**
@@ -194,8 +215,9 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 	public String toColumnName(String name) {
 		MRestViewColumn[] columns = getColumns();
 		for(MRestViewColumn column : columns) {
-			if (column.getName().equals(name)) {
-				return MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
+			String columnName = MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
+			if (column.getName().equals(name) || columnName.equalsIgnoreCase(name)) {
+				return name;
 			}
 		}
 		return null;
