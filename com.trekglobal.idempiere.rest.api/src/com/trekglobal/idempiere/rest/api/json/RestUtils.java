@@ -361,27 +361,7 @@ public class RestUtils {
 				}
 			}
 		} 
-		
-		//find match for every id column in parent table
-		String[] childKeys = cTable.getKeyColumns();
-		for(MColumn pColumn : pTable.getColumns(false)) {
-			if (pColumn.getColumnName().endsWith("_ID")) {
-				String pRefTable = pColumn.getReferenceTableName();
-				if (pRefTable != null) {
-					//match reference table of parent and child id column
-					for(MColumn c : cColumns) {
-						if (childKeys.length == 1 && childKeys[0].equals(c.getColumnName()))
-							continue;
-						if (c.getColumnName().endsWith("_ID")) {
-							if (pRefTable.equalsIgnoreCase(c.getReferenceTableName())) {
-								return pColumn.getColumnName()+":"+c.getColumnName();
-							}
-						}
-					}
-				}
-			}
-		}
-		
+				
 		throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has no column that links to the parent table: " + childTable, Status.INTERNAL_SERVER_ERROR);
 	}
 	
