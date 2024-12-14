@@ -62,7 +62,7 @@ public class MRestResourceAccess extends X_REST_Resource_Access {
 	 * @return true if resource access permission is manage by role
 	 */
 	public static boolean isResourceAccessByRole() {
-		return MSysConfig.getBooleanValue(REST_RESOURCE_ACCESS_CONTROL, false);
+		return MSysConfig.getBooleanValue(REST_RESOURCE_ACCESS_CONTROL, true);
 	}
 
 	/**
