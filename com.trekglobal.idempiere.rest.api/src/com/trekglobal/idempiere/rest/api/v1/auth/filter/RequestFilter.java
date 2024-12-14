@@ -54,6 +54,7 @@ import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
+import com.trekglobal.idempiere.rest.api.model.MRestResourceAccess;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
@@ -103,6 +104,14 @@ public class RequestFilter implements ContainerRequestFilter {
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
 						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					}
+				}
+				//check resource access by role (if enable)
+				if (MRestResourceAccess.isResourceAccessByRole()) {
+					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
+						if (!MRestResourceAccess.hasAccess(requestContext.getUriInfo().getPath(true), requestContext.getMethod())) {
+							requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+						}
 					}
 				}
 			} catch (JWTVerificationException ex) {
