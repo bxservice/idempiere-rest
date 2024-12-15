@@ -37,6 +37,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
+import org.idempiere.cache.ImmutableIntPOCache;
 import org.idempiere.cache.ImmutablePOCache;
 import org.idempiere.cache.ImmutablePOSupport;
 
@@ -47,6 +48,7 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 	private static final long serialVersionUID = 7362614368992553892L;
 
 	private final static ImmutablePOCache<String, MRestView> s_cache = new ImmutablePOCache<String, MRestView>(MRestView.Table_Name, 20);
+	private final static ImmutableIntPOCache<Integer, MRestView> s_idCache = new ImmutableIntPOCache<Integer, MRestView>(MRestView.Table_Name, 20);
 	
 	private MRestViewColumn[] columns = null;
 	private MRestViewRelated[] relateds = null;
@@ -145,6 +147,28 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 		view = query.setParameters(name).first();
 		if (view != null) {
 			s_cache.put (name, view, e -> new MRestView(Env.getCtx(), e));
+			if (!s_idCache.containsKey(view.get_ID()))
+				s_idCache.put(view.get_ID(), view, e -> new MRestView(Env.getCtx(), e));
+		}
+		return view;
+	}
+	
+	/**
+	 * Get view by id
+	 * @param name
+	 * @return MRestView
+	 */
+	public static MRestView get(int id) {
+		MRestView view = s_idCache.get(Env.getCtx(), id, e -> new MRestView(Env.getCtx(), e));
+		if (view != null)
+			return view;
+		
+		Query query = new Query(Env.getCtx(), Table_Name, "REST_View_ID=?", null);
+		view = query.setParameters(id).first();
+		if (view != null) {
+			s_idCache.put (id, view, e -> new MRestView(Env.getCtx(), e));
+			if (!s_cache.containsKey(view.getName()))
+				s_cache.put(view.getName(), view, e -> new MRestView(Env.getCtx(), e));
 		}
 		return view;
 	}

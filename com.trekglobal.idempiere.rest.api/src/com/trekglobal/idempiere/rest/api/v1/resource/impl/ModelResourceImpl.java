@@ -70,6 +70,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.ModelHelper;
 import com.trekglobal.idempiere.rest.api.json.POParser;
@@ -97,12 +98,22 @@ public class ModelResourceImpl implements ModelResource {
 	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
 	public static final String PO_AFTER_REST_SAVE = "idempiere-rest/po/afterSave";
 
+	private boolean useRestView = false;
+	
 	/**
 	 * default constructor
 	 */
 	public ModelResourceImpl() {
 	}
 
+	/**
+	 * Use Rest_View as entry point 
+	 */
+	protected ModelResourceImpl restView() {
+		useRestView = true;
+		return this;
+	}
+	
 	@Override
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {
 		return getPO(tableName, id, details, select, null, showsql);
@@ -119,10 +130,16 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
 		try {
-			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-			if (view != null)
-				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			MRestView view = null;
+			if (useRestView)  {
+				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				if (view != null)
+					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+				else
+					throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+			}
 			
+			RestUtils.getTableAndCheckAccess(tableName, false);
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			PO po = query.first();
 
@@ -253,10 +270,16 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
 			String validationRuleID, String context, String showsql) {
 		try {
-			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-			if (view != null)
-				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			MRestView view = null;
+			if (useRestView) {
+				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				if (view != null)
+					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+				else
+					throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+			}
 			
+			RestUtils.getTableAndCheckAccess(tableName, false);
 			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
 			if (view != null)
 				modelHelper.setView(view);
@@ -328,9 +351,14 @@ public class ModelResourceImpl implements ModelResource {
 	public Response create(String tableName, String jsonText) {
 		Trx trx = Trx.get(Trx.createTrxName(), true);
 		try {
-			MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-			if (view != null)
-				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			MRestView view = null;
+			if (useRestView) {
+				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				if (view != null)
+					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+				else
+					throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+			}
 			
 			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 
@@ -483,9 +511,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response update(String name, String id, String jsonText) {
-		MRestView view = RestUtils.getViewAndCheckAccess(name, false);
-		if (view != null)
-			name = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(name, false);
+			if (view != null)
+				name = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + name, Status.NOT_FOUND);
+		}
 		
 		String tableName = name;
 		POParser poParser = new POParser(tableName, id, true, true);
@@ -631,9 +664,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response delete(String tableName, String id) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		POParser poParser = new POParser(tableName, id, true, true);
 		if (poParser.isValidPO()) {
@@ -657,9 +695,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachments(String tableName, String id) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		JsonArray array = new JsonArray();
 		POParser poParser = new POParser(tableName, id, true, false);
@@ -685,9 +728,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response getAttachmentsAsZip(String tableName, String id, String asJson) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -787,11 +835,15 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response getAttachmentEntry(String tableName, String id, String fileName, String asJson) {
-	
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+	public Response getAttachmentEntry(String tableName, String id, String fileName, String asJson) {	
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -894,9 +946,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachments(String tableName, String id) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -921,9 +978,14 @@ public class ModelResourceImpl implements ModelResource {
 
 	@Override
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
@@ -959,15 +1021,20 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response printModelRecord(String tableName, String id, String reportType) {
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
-		if (view != null)
-			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+		MRestView view = null;
+		if (useRestView) {
+			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+			else
+				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+		} 
 		
-		POParser poParser = new POParser(tableName, id, true, true);
+		POParser poParser = new POParser(tableName, id, true, false);
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			try {
-				MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
+				MTable table = RestUtils.getTableAndCheckAccess(tableName, false);
 				int windowId = Env.getZoomWindowID(table.get_ID(), po.get_ID());
 				if (windowId == 0)
 					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Window not found", "No valid window found for table name: ", tableName);
