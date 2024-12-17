@@ -132,7 +132,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			MRestView view = null;
 			if (useRestView)  {
-				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				view = RestUtils.getView(tableName);
 				if (view != null)
 					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 				else
@@ -272,7 +272,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			MRestView view = null;
 			if (useRestView) {
-				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				view = RestUtils.getView(tableName);
 				if (view != null)
 					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 				else
@@ -353,7 +353,7 @@ public class ModelResourceImpl implements ModelResource {
 		try {
 			MRestView view = null;
 			if (useRestView) {
-				view = RestUtils.getViewAndCheckAccess(tableName, false);
+				view = RestUtils.getView(tableName);
 				if (view != null)
 					tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 				else
@@ -438,7 +438,6 @@ public class ModelResourceImpl implements ModelResource {
 				MRestViewRelated[] relateds = view.getRelatedViews();
 				for(MRestViewRelated related : relateds) {
 					MRestView relatedView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
-					RestUtils.checkViewAccess(relatedView, true);
 					String tableName = MTable.getTableName(Env.getCtx(), relatedView.getAD_Table_ID());
 					if (related.getName().equals(field)) {						
 						childTableName = tableName;
@@ -513,7 +512,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response update(String name, String id, String jsonText) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(name, false);
+			view = RestUtils.getView(name);
 			if (view != null)
 				name = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -564,7 +563,6 @@ public class ModelResourceImpl implements ModelResource {
 						MRestViewRelated[] relateds = view.getRelatedViews();
 						for(MRestViewRelated related : relateds) {
 							MRestView relatedView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
-							RestUtils.checkViewAccess(relatedView, true);
 							String tName = MTable.getTableName(Env.getCtx(), relatedView.getAD_Table_ID());
 							if (related.getName().equals(field)) {						
 								childView = relatedView;
@@ -666,7 +664,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response delete(String tableName, String id) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -697,7 +695,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getAttachments(String tableName, String id) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -730,7 +728,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getAttachmentsAsZip(String tableName, String id, String asJson) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -784,7 +782,7 @@ public class ModelResourceImpl implements ModelResource {
 		if (Util.isEmpty(base64Content, true))
 			return ResponseUtils.getResponseError(Status.BAD_REQUEST, "data property is mandatory", "", "");
 		
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		MRestView view = RestUtils.getView(tableName);
 		if (view != null)
 			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
@@ -838,7 +836,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response getAttachmentEntry(String tableName, String id, String fileName, String asJson) {	
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -905,7 +903,7 @@ public class ModelResourceImpl implements ModelResource {
 		if (jsonElement != null && jsonElement.isJsonPrimitive())
 			overwrite = jsonElement.getAsBoolean();
 		
-		MRestView view = RestUtils.getViewAndCheckAccess(tableName, false);
+		MRestView view = RestUtils.getView(tableName);
 		if (view != null)
 			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
@@ -948,7 +946,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response deleteAttachments(String tableName, String id) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -980,7 +978,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response deleteAttachmentEntry(String tableName, String id, String fileName) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
@@ -1023,7 +1021,7 @@ public class ModelResourceImpl implements ModelResource {
 	public Response printModelRecord(String tableName, String id, String reportType) {
 		MRestView view = null;
 		if (useRestView) {
-			view = RestUtils.getViewAndCheckAccess(tableName, false);
+			view = RestUtils.getView(tableName);
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else

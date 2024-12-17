@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Properties;
 
 import org.compiere.model.MColumn;
-import org.compiere.model.MRole;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
@@ -90,6 +89,12 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 	@Override
 	protected boolean afterSave(boolean newRecord, boolean success) {
 		if (newRecord && success) {
+			StackTraceElement[] stackTraces = Thread.currentThread().getStackTrace();
+			for (StackTraceElement stackTrace : stackTraces) {
+				if ("org.adempiere.pipo2.PackIn".equals(stackTrace.getClassName())) {
+					return true;
+				}
+			}
 			copyColumns();
 		} else if (success) {
 			if (is_ValueChanged(COLUMNNAME_AD_Table_ID)) {
@@ -220,17 +225,6 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 			.setParameters(getREST_View_ID()).list();
 		relateds = relatedList.toArray(new MRestViewRelated[0]);
 		return relateds;
-	}
-
-	/**
-	 * Is role has access to this view
-	 * @param role
-	 * @param isReadWrite
-	 * @return true if has access
-	 */
-	public boolean hasAccess(MRole role, boolean isReadWrite) {
-		Query query = new Query(Env.getCtx(), MRestViewAccess.Table_Name, "REST_View_ID=? AND AD_Role_ID=?"+(isReadWrite ? " AND IsReadonly='N'" : ""), null);		
-		return query.setOnlyActiveRecords(true).setParameters(getREST_View_ID(), role.getAD_Role_ID()).count() == 1;
 	}
 
 	/**

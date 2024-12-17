@@ -40,7 +40,6 @@ import org.compiere.util.Util;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
-import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
@@ -90,67 +89,65 @@ public class ViewResourceImpl implements ViewResource {
 			List<MRestView> views = query.setOrderBy("REST_View.Name").list();
 			JsonArray array = new JsonArray();
 			for(MRestView view : views) {
-				if (RestUtils.hasViewAccess(view, false)) {
-					JsonObject json = new JsonObject();
-					json.addProperty("id", view.getREST_View_ID());
-					if (!Util.isEmpty(view.getREST_View_UU())) {
-						json.addProperty("uid", view.getREST_View_UU());
-					}
-					json.addProperty("name", view.getName());
-					MTable table = MTable.get(view.getAD_Table_ID());
-					json.addProperty("tableName", table.getTableName().toLowerCase());
-					
-					if (!Util.isEmpty(view.getWhereClause())) {
-						json.addProperty("whereClause", view.getWhereClause());
-					}
-					MRestViewColumn[] columns = view.getColumns();
-					if (columns.length > 0) {
-						JsonArray columnArray = new JsonArray();
-						for(MRestViewColumn column : columns) {
-							JsonObject columnJson = new JsonObject();
-							columnJson.addProperty("id", column.get_ID());
-							if (!Util.isEmpty(column.getREST_ViewColumn_UU())) {
-								columnJson.addProperty("uid", column.getREST_ViewColumn_UU());
-							}
-							columnJson.addProperty("name", column.getName());
-							columnJson.addProperty("columnName", MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID()));
-							if (column.getREST_ReferenceView_ID() > 0) {
-								MRestView referenceView = MRestView.get(column.getREST_ReferenceView_ID());
-								JsonObject refJson = new JsonObject();
-								refJson.addProperty("id", referenceView.get_ID());
-								if (!Util.isEmpty(referenceView.getREST_View_UU()))
-									refJson.addProperty("uid", referenceView.getREST_View_UU());
-								refJson.addProperty("name", referenceView.getName());
-								columnJson.add("referenceView", refJson);
-							}
-							columnArray.add(columnJson);
+				JsonObject json = new JsonObject();
+				json.addProperty("id", view.getREST_View_ID());
+				if (!Util.isEmpty(view.getREST_View_UU())) {
+					json.addProperty("uid", view.getREST_View_UU());
+				}
+				json.addProperty("name", view.getName());
+				MTable table = MTable.get(view.getAD_Table_ID());
+				json.addProperty("tableName", table.getTableName().toLowerCase());
+				
+				if (!Util.isEmpty(view.getWhereClause())) {
+					json.addProperty("whereClause", view.getWhereClause());
+				}
+				MRestViewColumn[] columns = view.getColumns();
+				if (columns.length > 0) {
+					JsonArray columnArray = new JsonArray();
+					for(MRestViewColumn column : columns) {
+						JsonObject columnJson = new JsonObject();
+						columnJson.addProperty("id", column.get_ID());
+						if (!Util.isEmpty(column.getREST_ViewColumn_UU())) {
+							columnJson.addProperty("uid", column.getREST_ViewColumn_UU());
 						}
-						json.add("columns", columnArray);
-					}
-					MRestViewRelated[] relateds = view.getRelatedViews();
-					if (relateds.length > 0) {
-						JsonArray relatedArray = new JsonArray();
-						for(MRestViewRelated related : relateds) {
-							JsonObject relatedJson = new JsonObject();
-							relatedJson.addProperty("id", related.get_ID());
-							if (!Util.isEmpty(related.getREST_ViewRelated_UU())) {
-								relatedJson.addProperty("uid", related.getREST_ViewRelated_UU());
-							}
-							relatedJson.addProperty("name", related.getName());
-							MRestView referenceView = MRestView.get(related.getREST_RelatedRestView_ID());
+						columnJson.addProperty("name", column.getName());
+						columnJson.addProperty("columnName", MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID()));
+						if (column.getREST_ReferenceView_ID() > 0) {
+							MRestView referenceView = MRestView.get(column.getREST_ReferenceView_ID());
 							JsonObject refJson = new JsonObject();
 							refJson.addProperty("id", referenceView.get_ID());
 							if (!Util.isEmpty(referenceView.getREST_View_UU()))
 								refJson.addProperty("uid", referenceView.getREST_View_UU());
 							refJson.addProperty("name", referenceView.getName());
-							relatedJson.add("view", refJson);
-							relatedJson.addProperty("autoExpand", related.isRestAutoExpand());
-							relatedArray.add(relatedJson);
+							columnJson.add("referenceView", refJson);
 						}
-						json.add("relatedViews", relatedArray);
+						columnArray.add(columnJson);
 					}
-					array.add(json);
+					json.add("columns", columnArray);
 				}
+				MRestViewRelated[] relateds = view.getRelatedViews();
+				if (relateds.length > 0) {
+					JsonArray relatedArray = new JsonArray();
+					for(MRestViewRelated related : relateds) {
+						JsonObject relatedJson = new JsonObject();
+						relatedJson.addProperty("id", related.get_ID());
+						if (!Util.isEmpty(related.getREST_ViewRelated_UU())) {
+							relatedJson.addProperty("uid", related.getREST_ViewRelated_UU());
+						}
+						relatedJson.addProperty("name", related.getName());
+						MRestView referenceView = MRestView.get(related.getREST_RelatedRestView_ID());
+						JsonObject refJson = new JsonObject();
+						refJson.addProperty("id", referenceView.get_ID());
+						if (!Util.isEmpty(referenceView.getREST_View_UU()))
+							refJson.addProperty("uid", referenceView.getREST_View_UU());
+						refJson.addProperty("name", referenceView.getName());
+						relatedJson.add("view", refJson);
+						relatedJson.addProperty("autoExpand", related.isRestAutoExpand());
+						relatedArray.add(relatedJson);
+					}
+					json.add("relatedViews", relatedArray);
+				}
+				array.add(json);
 			}
 			JsonObject json = new JsonObject();
 			json.add("views", array);

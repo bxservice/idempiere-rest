@@ -175,7 +175,6 @@ public class ExpandParser {
 			for (MRestViewRelated related : relateds) {
 				if (related.getName().equals(detailEntity)) {
 					detailView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
-					RestUtils.checkViewAccess(detailView, false);
 					detailEntity = MTable.getTableName(Env.getCtx(), detailView.getAD_Table_ID());
 					restViewRelated = related;
 					break;

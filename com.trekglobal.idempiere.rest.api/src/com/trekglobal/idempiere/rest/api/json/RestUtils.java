@@ -277,46 +277,19 @@ public class RestUtils {
 	}
 
 	/**
-	 * Get view definition and perform access right check
+	 * Get view definition
 	 * @param name
-	 * @param isReadWrite
-	 * @return Rest view. Throw IDempiereRestException if current role doesn't has access
+	 * @return Rest view.
 	 */
-	public static MRestView getViewAndCheckAccess(String name, boolean isReadWrite) {
+	public static MRestView getView(String name) {
 		MRestView view = MRestView.get(name);
 		if (view == null || view.get_ID()==0) {
 			return null;
 		}
 		
-		checkViewAccess(view, isReadWrite);
-		
 		return view;
 	}
 
-	/**
-	 * Check view access. Throw IDempiereRestException if current role doesn't has access
-	 * @param view
-	 * @param isReadWrite
-	 */
-	public static void checkViewAccess(MRestView view, boolean isReadWrite) {
-		if (!hasViewAccess(view, isReadWrite)) {
-			throw new IDempiereRestException("Access denied", "Access denied for view: " + view.getName(), Status.FORBIDDEN);
-		}
-	}
-	
-	/**
-	 * Is current role has access to view
-	 * @param view
-	 * @param isReadWrite
-	 * @return true if current role has access to view
-	 */
-	public static boolean hasViewAccess(MRestView view, boolean isReadWrite) {
-		MRole role = MRole.getDefault();
-		if (role == null)
-			return false;
-		return view.hasAccess(role, isReadWrite);
-	}
-	
 	/**
 	 * Get column that link parent and child table.<br/>
 	 * If same column name is use to link parent and child table, return a single column name.</br>
