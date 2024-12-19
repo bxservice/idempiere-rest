@@ -99,7 +99,13 @@ public class RequestFilter implements ContainerRequestFilter {
 		// consume JWT i.e. execute signature validation
 		if (authHeaderVal != null && authHeaderVal.startsWith("Bearer")) {
 			try {
-				validate(authHeaderVal.split(" ")[1], requestContext);
+				//validate Bearer token exists
+				String[] authHeaderValues = authHeaderVal.split(" ");
+				if (authHeaderValues.length < 2) {
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					return;
+				}
+				validate(authHeaderValues[1], requestContext);
 				if (Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_USER_ID)) ||
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {

@@ -46,6 +46,9 @@ import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.ModelHelper;
 import com.trekglobal.idempiere.rest.api.json.POParser;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
+import com.trekglobal.idempiere.rest.api.model.MRestViewRelated;
 
 public class ExpandParser {
 	
@@ -54,9 +57,15 @@ public class ExpandParser {
 	private String masterTableName = null;
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonElement> tableNameChildArrayMap = new HashMap<>();
+	private MRestView view;
 	
 	public ExpandParser(PO po, String expandParameter) {
+		this(po, null, expandParameter);
+	}
+	
+	public ExpandParser(PO po, MRestView view, String expandParameter) {
 		this.po = po;
+		this.view = view;
 		this.expandParameter = expandParameter;
 		masterTableName = po.get_TableName();
 		expandRelatedResources();
@@ -80,11 +89,30 @@ public class ExpandParser {
 	}
 	
 	private boolean isExpandMaster(String relatedResource) {
-		int columnIndex = po.get_ColumnIndex(relatedResource);
+		String columnName = relatedResource;
+		if (view != null) {
+			//find matching column or property name from view definition
+			MRestViewColumn[] columns = view.getColumns();
+			boolean found = false;
+			for (MRestViewColumn column : columns) {
+				String viewColumn = MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
+				if (column.getName().equals(columnName)) {
+					columnName = viewColumn;
+					found = true;
+					break;
+				} else if (columnName.equals(viewColumn)) {
+					found = true;
+					break;
+				}
+			}
+			if (!found)
+				return false;
+		}
+		int columnIndex = po.get_ColumnIndex(columnName);
 		if (columnIndex < 0)
 			return false;
 		
-		MColumn column = MColumn.get(Env.getCtx(), masterTableName, relatedResource);
+		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
 		if (column == null || Util.isEmpty(column.getReferenceTableName())) {
 			throw new IDempiereRestException("Expand error", "Column " + relatedResource + " cannot be expanded", Status.BAD_REQUEST);
 		}
@@ -94,49 +122,95 @@ public class ExpandParser {
 	
 	private void expandMaster(String columnName, List<String> operators) {
 		checkMasterExpandOperators(operators);
-		
+		MRestView referenceView = null;
+		MRestViewColumn restViewColumn = null;
+		if (view != null) {
+			//find matching view column and reference view (if set)
+			MRestViewColumn[] columns = view.getColumns();
+			for (MRestViewColumn column : columns) {
+				String viewColumn = MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
+				if (column.getName().equals(columnName)) {
+					columnName = viewColumn;
+					if (column.getREST_ReferenceView_ID() > 0) {
+						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
+					}
+					restViewColumn = column;
+					break;
+				} else if (columnName.equals(viewColumn)) {
+					if (column.getREST_ReferenceView_ID() > 0) {
+						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
+					}
+					restViewColumn = column;
+					break;
+				}
+			}
+		}
 		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
-		String tableName = column.getReferenceTableName();
+		String tableName = referenceView != null ? MTable.getTableName(Env.getCtx(), referenceView.getAD_Table_ID()) : column.getReferenceTableName();
 		String foreignTableID = po.get_ValueAsString(columnName);
 		
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
 
-		String select = ExpandUtils.getSelectClause(operators);
-		String[] includes = RestUtils.getSelectedColumns(tableName, select);
-		if (includes != null && includes.length > 0)
-			query.selectColumns(includes);
-		
 		PO po = query.first();
 		addSQLStatementToMap(tableName, columnName, query.getSQL());
 
 		POParser poParser = new POParser(tableName, foreignTableID, po);
 		if (poParser.isValidPO()) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-			JsonObject json = serializer.toJson(po, includes, null);
-			tableNameChildArrayMap.put(column.getColumnName(), json);
+			String select = ExpandUtils.getSelectClause(operators);
+			String[] includes = RestUtils.getSelectedColumns(tableName, select); 
+			if (includes != null && includes.length > 0)
+				query.selectColumns(includes);
+			JsonObject json = serializer.toJson(po, referenceView, includes, null);
+			tableNameChildArrayMap.put(restViewColumn != null ? restViewColumn.getName() : column.getColumnName(), json);
 		}
 	}
 	
 	private void expandDetail(String detailEntity, List<String> operators) {
 		String[] includes;
 
+		MRestViewRelated restViewRelated = null;
+		MRestView detailView = null;
+		if (view != null) {
+			//find detail view definition
+			MRestViewRelated[] relateds = view.getRelatedViews();
+			for (MRestViewRelated related : relateds) {
+				if (related.getName().equals(detailEntity)) {
+					detailView = new MRestView(Env.getCtx(), related.getREST_RelatedRestView_ID(), null);
+					detailEntity = MTable.getTableName(Env.getCtx(), detailView.getAD_Table_ID());
+					restViewRelated = related;
+					break;
+				}
+			}
+			if (detailView == null)
+				return;
+		}
 		String[] tableNameKeyColumnName = getTableNameAndKeyColumnName(detailEntity);
 		String tableName = tableNameKeyColumnName[0];
-		String keyColumn = tableNameKeyColumnName[1];		
+		String parentKeyColumn = tableNameKeyColumnName[1];
+		String childKeyColumn = parentKeyColumn;
+		if (parentKeyColumn.contains(":")) {
+			String[] pcKeys = parentKeyColumn.split("[:]");
+			parentKeyColumn = pcKeys[0];
+			childKeyColumn = pcKeys[1];
+		}
 
 		String select = ExpandUtils.getSelectClause(operators);
 		includes = RestUtils.getSelectedColumns(tableName, select);
-		List<PO> childPOs = getChildPOs(operators, tableName, keyColumn, includes);
+		List<PO> childPOs = getChildPOs(operators, tableName, parentKeyColumn, childKeyColumn, includes);
 		if (childPOs != null && childPOs.size() > 0) {
 			JsonArray childArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 
+			if (detailView != null && includes != null && includes.length > 0)
+				includes = detailView.toColumnNames(includes, true);
+
 			for (PO child : childPOs) {
-				JsonObject childJsonObject = serializer.toJson(child, includes, new String[] {keyColumn, "model-name"});
-				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject);
+				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {childKeyColumn, "model-name"});
+				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject, detailView);
 				childArray.add(childJsonObject);
 			}
-			tableNameChildArrayMap.put(detailEntity, childArray);
+			tableNameChildArrayMap.put(restViewRelated != null ? restViewRelated.getName() : detailEntity, childArray);
 		}
 	}
 	
@@ -155,9 +229,12 @@ public class ExpandParser {
 		String[] tableNameKeyColumnName = new String[2];
 		tableNameKeyColumnName[0] = getTableName(detailEntity);
 		tableNameKeyColumnName[1] = getKeyColumnName(detailEntity);
+		String keyColumn = tableNameKeyColumnName[1];
+		if (keyColumn.contains(":"))
+			keyColumn = keyColumn.split("[:]")[0];
 		
 		if (usesDifferentFK(detailEntity) && 
-				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], tableNameKeyColumnName[1]))
+				!isValidTableAndKeyColumn(tableNameKeyColumnName[0], keyColumn))
 			throw new IDempiereRestException("Expand error", 
 					"Column: " +  tableNameKeyColumnName[1] + " is not a valid FK for table: " + masterTableName
 					, Status.BAD_REQUEST);
@@ -167,7 +244,7 @@ public class ExpandParser {
 	
 	private String getKeyColumnName(String detailEntity) {
 		return usesDifferentFK(detailEntity) ? detailEntity.substring(detailEntity.indexOf(".") + 1)
-				: RestUtils.getKeyColumnName(masterTableName);
+				: RestUtils.getLinkKeyColumnName(masterTableName, detailEntity);
 	}
 	
 	private String getTableName(String detailEntity) {
@@ -187,22 +264,21 @@ public class ExpandParser {
 				 || MColumn.get(Env.getCtx(), masterTableName, keyColumnName) != null);
 	}	
 
-	private List<PO> getChildPOs(List<String> operators, String tableName, String keyColumnName, String[] includes) {
-		ModelHelper modelHelper = getModelHelper(operators, tableName, keyColumnName);
+	private List<PO> getChildPOs(List<String> operators, String tableName, String parentKeyColumn, String childKeyColumn, String[] includes) {
+		ModelHelper modelHelper = getModelHelper(operators, tableName, parentKeyColumn, childKeyColumn);
 		List<PO> poList = modelHelper.getPOsFromRequest(includes);
-		addSQLStatementToMap(tableName, keyColumnName, modelHelper.getSQLStatement());
+		addSQLStatementToMap(tableName, childKeyColumn, modelHelper.getSQLStatement());
 
 		return poList;
 	}
 	
-	private ModelHelper getModelHelper(List<String> operators, String tableName, String keyColumnName) {
-		MColumn column = MColumn.get(Env.getCtx(), tableName, keyColumnName);
+	private ModelHelper getModelHelper(List<String> operators, String tableName, String parentKeyColumn, String childKeyColumn) {
+		MColumn column = MColumn.get(Env.getCtx(), tableName, childKeyColumn);
 		if (column == null)
-			throw new IDempiereRestException("Invalid column for expand: " + keyColumnName, Status.BAD_REQUEST);
-
-		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(keyColumnName); 
+			throw new IDempiereRestException("Invalid column for expand: " + childKeyColumn, Status.BAD_REQUEST);
+		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(parentKeyColumn); 
 		
-		String filter = getFilterClause(operators, keyColumnName, parentId);
+		String filter = getFilterClause(operators, childKeyColumn, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
 		int top = ExpandUtils.getTopClause(operators);
 		int skip = ExpandUtils.getSkipClause(operators);
@@ -223,11 +299,11 @@ public class ExpandParser {
 		return filterClause.toString();
 	}
 	
-	private void expandChildDetails(PO childPO, String expandClause, JsonObject childJson) {
+	private void expandChildDetails(PO childPO, String expandClause, JsonObject childJson, MRestView detailView) {
 		if (Util.isEmpty(expandClause))
 			return;
 
-		ExpandParser expandParser = new ExpandParser(childPO, expandClause);
+		ExpandParser expandParser = new ExpandParser(childPO, detailView, expandClause);
 		ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), childJson);
 		addChildDetailSQLToMap(expandParser.getTableNameSQLStatementMap());
 	}

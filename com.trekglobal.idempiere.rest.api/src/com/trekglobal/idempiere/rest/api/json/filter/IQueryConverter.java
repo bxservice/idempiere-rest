@@ -29,6 +29,8 @@ import java.util.List;
 
 import org.adempiere.base.Service;
 
+import com.trekglobal.idempiere.rest.api.model.MRestView;
+
 public interface IQueryConverter {
 
     /*************************************************************************
@@ -39,6 +41,17 @@ public interface IQueryConverter {
 	 *  @throws Exception
 	 */
 	public ConvertedQuery convertStatement(String tableName, String queryStatement);
+	
+	/**
+	 * Convert an individual REST style statements to a database WHERE statement syntax
+	 * @param view optional view definition
+	 * @param tableName
+	 * @param queryStatement
+	 * @return converted query including where clause and array of parameters
+	 */
+	default ConvertedQuery convertStatement(MRestView view, String tableName, String queryStatement) {
+		return convertStatement(tableName, queryStatement);
+	}
 	
 	/**
 	 * Get Query Converter based on the convention being used
