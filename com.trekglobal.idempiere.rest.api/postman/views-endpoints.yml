@@ -1,0 +1,998 @@
+openapi: 3.0.0
+info:
+  title: views-endpoints
+  description: >-
+    # 🚀 Get started here
+
+
+    Examples for /views endpoints.
+
+
+    ## 🔖 **How to use this template**
+
+
+    #### **Step 1: Set environment**
+
+
+    Set environment to views-local-test environment. Where necessary, change the
+    environment variable values to suit your local test environment.
+
+
+    #### Step 2: **Get auth token**
+
+
+    Run Get auth token request to acquire authentication token from server.
+
+
+    #### **Step 3: Run example requests**
+
+
+    Run example requests inside te users folder.
+  version: 1.0.0
+servers:
+  - url: 'http://{base_url}'
+    variables:
+      base_url:
+        default: 'localhost:8080/api/v1'
+tags:
+  - name: users
+paths:
+  /views/users/{id}:
+    get:
+      tags:
+        - users
+      summary: Get User
+      description: >-
+        This is a GET request to get single user record from the users views
+        endpoint. The user id is pass as path variable (:id).
+
+
+        $expand is use to include C_BPartner reference.
+
+
+        A successful GET response will have a `200 OK` status, and should
+        include Json response body.
+
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+        - name: $expand
+          in: query
+          schema:
+            type: string
+          example: C_BPartner_ID
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: 102
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example: 
+                id: 102
+                uid: "eb6dee9e-b7ef-4d40-bd7e-c2c3ecd9d79c"
+                C_BPartner_ID: 
+                  "id": 119
+                  "uid": "61a84a1b-37a0-4dda-80a2-3ee218522b32"
+                  "employee": true
+                  "name": "GardenUser BP"
+                  "value": "GardenUser"
+                  "model-name": "c_bpartner"
+                tenant: 
+                  "propertyLabel": "Tenant"
+                  "id": 11
+                  "identifier": "GardenWorld"
+                  "model-name": "ad_client"
+                organization: 
+                  "propertyLabel": "Organization"
+                  "id": 0
+                  "identifier": "*"
+                  "model-name": "ad_org"
+                "name": "GardenUser"
+                "email": "user @ gardenworld.com"
+                "active": true
+                "created": "2001-03-27T15:44:12Z"
+                "updated": "2001-12-08T22:01:24Z"
+                "model-name": "ad_user"
+        
+    put:
+      tags:
+        - users
+      summary: Update User
+      description: >-
+        This is a PUT request and it is used to overwrite an existing piece of
+        data. The record id is pass as path variable (:id).
+
+
+        A successful PUT request typically returns a `200 OK`response code.
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                {
+                    "name" : "updated_name"
+                }
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          example: '{{updateUserId}}'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: 
+               schema:
+                 type: object
+                 example:
+                   "id": 1000000
+                   "uid": "99bd604a-48a3-4aa3-a38e-f85f3e058629"
+                   "tenant": 
+                      "propertyLabel": "Tenant"
+                      "id": 11
+                      "identifier": "GardenWorld"
+                      "model-name": "ad_client"
+                   "organization": 
+                      "propertyLabel": "Organization"
+                      "id": 11
+                      "identifier": "HQ"
+                      "model-name": "ad_org"
+                   "name": "updated_name"
+                   "email": "myemail@test.com"
+                   "active": true
+                   "created": "2024-12-19T11:17:57Z"
+                   "updated": "2024-12-19T11:20:11Z"
+                   "model-name": "ad_user"
+        
+  /views/users:
+    get:
+      tags:
+        - users
+      summary: Get Users
+      description: >-
+        This is a GET request to get an array of user records from the users
+        views endpoint.
+
+
+        $expand is use to include C_BPartner reference.
+
+
+        A successful GET response will have a `200 OK` status, and should
+        include Json response body.
+
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+        - name: $expand
+          in: query
+          schema:
+            type: string
+          example: C_BPartner_ID
+          description: 'Include C_BPartner_ID reference in Json response'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                type: object
+              example: {
+            "page-count": 1,
+            "records-size": 100,
+            "skip-records": 0,
+            "row-count": 8,
+            "array-count": 0,
+            "records": [
+                {
+                    "id": 102,
+                    "uid": "eb6dee9e-b7ef-4d40-bd7e-c2c3ecd9d79c",
+                    "C_BPartner_ID": {
+                        "id": 119,
+                        "uid": "61a84a1b-37a0-4dda-80a2-3ee218522b32",
+                        "employee": true,
+                        "name": "GardenUser BP",
+                        "value": "GardenUser",
+                        "model-name": "c_bpartner"
+                    },
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "GardenUser",
+                    "email": "user @ gardenworld.com",
+                    "active": true,
+                    "created": "2001-03-27T15:44:12Z",
+                    "updated": "2001-12-08T22:01:24Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 103,
+                    "uid": "0386f06b-ef43-4208-b6b2-535956ac83de",
+                    "C_BPartner_ID": {
+                        "id": 114,
+                        "uid": "5c557ed6-c443-4b99-ae77-546ccd46bc1f",
+                        "employee": false,
+                        "name": "Tree Farm Inc.",
+                        "value": "TreeFarm",
+                        "model-name": "c_bpartner"
+                    },
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "Joe Sales",
+                    "active": true,
+                    "created": "2001-05-21T21:34:07Z",
+                    "updated": "2001-05-21T21:34:07Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 104,
+                    "uid": "afcfce23-2862-411e-bceb-7b7ae2b5e07a",
+                    "C_BPartner_ID": {
+                        "id": 117,
+                        "uid": "037972d8-b74c-462d-b407-4a9b60e66ca8",
+                        "employee": false,
+                        "name": "C&W Construction",
+                        "value": "C&W",
+                        "model-name": "c_bpartner"
+                    },
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "Carl Boss",
+                    "active": true,
+                    "created": "2002-08-25T00:30:53Z",
+                    "updated": "2005-09-16T18:18:35Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 105,
+                    "uid": "5348c319-f4c2-4303-b41b-ab3653bac0b4",
+                    "C_BPartner_ID": {
+                        "id": 120,
+                        "uid": "f6efd81a-abe6-4bca-86fe-810d4355d572",
+                        "employee": false,
+                        "name": "Seed Farm Inc.",
+                        "value": "SeedFarm",
+                        "model-name": "c_bpartner"
+                    },
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "Henry Seed",
+                    "active": true,
+                    "created": "2004-03-23T22:12:22Z",
+                    "updated": "2004-03-23T22:12:22Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 50001,
+                    "uid": "e904b07d-e23b-4494-8bff-066efc7cae83",
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "WebService",
+                    "email": "webservice @ gardenworld.com",
+                    "active": true,
+                    "created": "2009-01-30T19:44:55Z",
+                    "updated": "2013-03-05T17:32:43Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 10,
+                    "uid": "98acf599-bd19-4439-a8b6-958ac247d680",
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 0,
+                        "identifier": "System",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "System",
+                    "email": "system @ idempiere.com",
+                    "active": true,
+                    "created": "1999-11-12T20:41:43Z",
+                    "updated": "2000-01-02T00:00:00Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 100,
+                    "uid": "986cb4dc-7161-4d77-a7c7-3832d24b19de",
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 0,
+                        "identifier": "System",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "SuperUser",
+                    "email": "superuser @ idempiere.com",
+                    "active": true,
+                    "created": "1999-12-09T18:15:00Z",
+                    "updated": "2024-12-18T22:32:25Z",
+                    "model-name": "ad_user"
+                },
+                {
+                    "id": 101,
+                    "uid": "d4a5259d-edbb-4c28-a7b4-6ffb5ff69442",
+                    "C_BPartner_ID": {
+                        "id": 113,
+                        "uid": "6544d69b-9e95-4725-a7d5-ca948b60dfbd",
+                        "employee": true,
+                        "name": "GardenAdmin BP",
+                        "value": "GardenAdmin",
+                        "model-name": "c_bpartner"
+                    },
+                    "tenant": {
+                        "propertyLabel": "Tenant",
+                        "id": 11,
+                        "identifier": "GardenWorld",
+                        "model-name": "ad_client"
+                    },
+                    "organization": {
+                        "propertyLabel": "Organization",
+                        "id": 0,
+                        "identifier": "*",
+                        "model-name": "ad_org"
+                    },
+                    "name": "GardenAdmin",
+                    "email": "admin @ gardenworld.com",
+                    "active": true,
+                    "created": "2001-03-27T15:44:12Z",
+                    "updated": "2024-12-19T10:27:50Z",
+                    "model-name": "ad_user"
+                }
+            ]
+        }
+    post:
+      tags:
+        - users
+      summary: Create User
+      description: >-
+        This is a POST request, submitting data to users endpoint via the
+        request body. This request submits JSON data, and the created record is
+        reflected in the response.
+
+
+        A successful POST request typically returns a`201 Created` response
+        code.
+
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: first_name
+                email: myemail@test.com
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                "id": 1000000
+                "uid": "99bd604a-48a3-4aa3-a38e-f85f3e058629"
+                "tenant": 
+                    "propertyLabel": "Tenant"
+                    "id": 11
+                    "identifier": "GardenWorld"
+                    "model-name": "ad_client"
+                "organization": 
+                    "propertyLabel": "Organization"
+                    "id": 11
+                    "identifier": "HQ"
+                    "model-name": "ad_org"
+                "name": "first_name"
+                "email": "myemail@test.com"
+                "active": true
+                "created": "2024-12-19T11:17:57Z"
+                "updated": "2024-12-19T11:17:57Z"
+                "model-name": "ad_user"
+                   
+  /views:
+    get:
+      tags:
+        - users
+      summary: Get Views
+      description: >-
+        This is a GET request to get an array of rest_view records from the
+        views endpoint.
+
+
+        A successful GET response will have a `200 OK` status, and should
+        include Json response body.
+
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  views:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        uid:
+                          type: string
+                        name:
+                          type: string
+                        tableName:
+                          type: string
+                        columns:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                              uid:
+                                type: string
+                              name:
+                                type: string
+                              columnName:
+                                type: string
+                              referenceView:
+                                type: object
+                        relatedViews:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                              uid:
+                                type: string
+                              name:
+                                type: string
+                              view:
+                                type: object
+                              autoExpand:
+                                type: boolean
+              example:
+                views: [
+                  {
+                    "id": 1000007,
+                    "uid": "5cb7c771-3911-4042-9e72-42f8f4713e33",
+                    "name": "bpartner",
+                    "tableName": "c_bpartner",
+                    "columns": [
+                        {
+                            "id": 1000157,
+                            "uid": "01acdf10-26a6-497d-a1b7-c4d52b68bb5e",
+                            "name": "employee",
+                            "columnName": "IsEmployee"
+                        },
+                        {
+                            "id": 1000170,
+                            "uid": "106eb790-575c-4d62-9230-f487988342a7",
+                            "name": "name",
+                            "columnName": "Name"
+                        },
+                        {
+                            "id": 1000191,
+                            "uid": "ab6c494f-a293-4419-b679-f2ce5d440165",
+                            "name": "taxID",
+                            "columnName": "TaxID"
+                        },
+                        {
+                            "id": 1000196,
+                            "uid": "ff7ff8f1-96a5-4ce4-ba90-8240ede7a1a2",
+                            "name": "value",
+                            "columnName": "Value"
+                        }
+                      ]
+                  },
+                  {
+                    "id": 1000004,
+                    "uid": "11a5f6aa-33e1-471b-aab7-bf0160088d4e",
+                    "name": "userRoles",
+                    "tableName": "ad_user_roles",
+                    "columns": [
+                        {
+                            "id": 1000048,
+                            "uid": "a14ec96c-b21d-4cce-b004-646e399d7940",
+                            "name": "user",
+                            "columnName": "AD_User_ID"
+                        },
+                        {
+                            "id": 1000047,
+                            "uid": "349592b7-d69a-45b8-a469-8b53ab38b52d",
+                            "name": "role",
+                            "columnName": "AD_Role_ID"
+                        }
+                      ]
+                  },
+                  {
+                    "id": 1000005,
+                    "uid": "05e4c4fc-7962-4247-9c89-9cc371c92bae",
+                    "name": "users",
+                    "tableName": "ad_user",
+                    columns: [
+                         {
+                            "id": 1000107,
+                            "uid": "9341441f-d0c3-4250-9aed-7d22afa1cd07",
+                            "name": "C_BPartner_ID",
+                            "columnName": "C_BPartner_ID",
+                            "referenceView": {
+                                "id": 1000007,
+                                "uid": "5cb7c771-3911-4042-9e72-42f8f4713e33",
+                                "name": "bpartner"
+                            }
+                         },
+                         {
+                            "id": 1000050,
+                            "uid": "96803d6d-f9e4-4029-aee2-8ea3f14320c4",
+                            "name": "tenant",
+                            "columnName": "AD_Client_ID"
+                         },
+                         {
+                            "id": 1000112,
+                            "uid": "9451b119-db3d-4d5a-9a1a-82354335dc7d",
+                            "name": "organization",
+                            "columnName": "AD_Org_ID"
+                         },
+                         {
+                            "id": 1000109,
+                            "uid": "25bbab29-ad01-42ed-ae62-4db9c677f8fd",
+                            "name": "name",
+                            "columnName": "Name"
+                         },
+                         {
+                            "id": 1000113,
+                            "uid": "1a7e9df3-33fd-412f-8ad6-2242f1d13103",
+                            "name": "email",
+                            "columnName": "EMail"
+                         },
+                         {
+                            "id": 1000114,
+                            "uid": "54493e40-c0de-4e1b-8044-5cc1f9d1a3f0",
+                            "name": "active",
+                            "columnName": "IsActive"
+                         },
+                         {
+                            "id": 1000110,
+                            "uid": "ba9d5967-9107-4310-88ff-808391ffe991",
+                            "name": "created",
+                            "columnName": "Created"
+                         },
+                         {
+                            "id": 1000111,
+                            "uid": "7605be4e-7828-4541-854a-7183efc4d536",
+                            "name": "updated",
+                            "columnName": "Updated"
+                         }
+                      ],
+                    relatedViews: [
+                         {
+                            "id": 1000000,
+                            "uid": "98257655-9a35-4469-96d0-74422a431c3c",
+                            "name": "roles",
+                            "view": {
+                                "id": 1000004,
+                                "uid": "11a5f6aa-33e1-471b-aab7-bf0160088d4e",
+                                "name": "userRoles"
+                            },
+                            "autoExpand": true
+                         }
+                      ]
+                  }
+               ]
+
+  /views/userRoles:
+    get:
+      tags:
+        - users
+      summary: Get user roles
+      description: >-
+        This is a GET request to get an array of records from the userRoles
+        views endpoint.
+
+
+        A successful GET response will have a `200 OK` status, and should
+        include Json response body.
+
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: Bearer {{authToken}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+              example:
+                "page-count": 1
+                "records-size": 100
+                "skip-records": 0
+                "row-count": 11
+                "array-count": 0
+                "records": [
+                {
+                    "uid": "a6810a39-e784-4cac-a72f-5e33de6822e3",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 100,
+                        "identifier": "SuperUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 0,
+                        "identifier": "System Administrator",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "0d765a58-e636-46da-9bb9-636206cd39f8",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 100,
+                        "identifier": "SuperUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 102,
+                        "identifier": "GardenWorld Admin",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "5c199d76-5a6e-454d-b4dc-7792274c95c0",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 100,
+                        "identifier": "SuperUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 103,
+                        "identifier": "GardenWorld User",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "8642f17b-5143-4fac-bffe-e2e5c9bbe081",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 101,
+                        "identifier": "GardenAdmin",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 102,
+                        "identifier": "GardenWorld Admin",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "23f3ce62-5963-4a6b-85b6-198538ae0da6",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 101,
+                        "identifier": "GardenAdmin",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 103,
+                        "identifier": "GardenWorld User",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "1bf9c8cf-58ae-4af2-8527-07a6ed514690",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 102,
+                        "identifier": "GardenUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 103,
+                        "identifier": "GardenWorld User",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "9777948f-e98f-42eb-afd3-75a433c09bff",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 100,
+                        "identifier": "SuperUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 50004,
+                        "identifier": "Web Service Execution",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "8f246aed-d8da-421a-bd4d-73c4c258ab85",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 50001,
+                        "identifier": "WebService",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 50004,
+                        "identifier": "Web Service Execution",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "f0638aee-6960-4d5e-ae10-947fb24ca5a3",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 100,
+                        "identifier": "SuperUser",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 200001,
+                        "identifier": "GardenWorld Admin Not Advanced",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "3708c068-968b-44dc-9398-d2a2ce659c2f",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 101,
+                        "identifier": "GardenAdmin",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 200001,
+                        "identifier": "GardenWorld Admin Not Advanced",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                },
+                {
+                    "uid": "af4e703f-c6da-4d78-97f1-f90a3bf5a6dc",
+                    "user": {
+                        "propertyLabel": "User/Contact",
+                        "id": 10,
+                        "identifier": "System",
+                        "model-name": "ad_user"
+                    },
+                    "role": {
+                        "propertyLabel": "Role",
+                        "id": 0,
+                        "identifier": "System Administrator",
+                        "model-name": "ad_role"
+                    },
+                    "model-name": "ad_user_roles"
+                }
+            ]
+
+  /auth/tokens:
+    post:
+      tags:
+        - default
+      summary: Get auth token
+      description: >-
+        Create authentication token with user name and password. The return
+        token is use as Authorization request header (Bearer {token}) for
+        subsequent api call.
+
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              example: 
+                     "userName": "{{loginUserName}}"
+                     "password": "{{loginPassword}}"
+                     "parameters": {
+                          "clientId": 11,
+                          "roleId": 102,
+                          "organizationId": 11,
+                          "warehouseId": 103,
+                          "language": "en_US"
+                     }
+      parameters:
+        - name: Content-Type
+          in: header
+          schema:
+            type: string
+          example: application/json
+        - name: Accept
+          in: header
+          schema:
+            type: string
+          example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: 
+              schema:
+                type: object
+              example:
+                "userId": 101
+                "language": "en_US"
+                "menuTreeId": 10
+                "token": "eyJraWQiOiJpZGVtcGllcmUiLCJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsIkFEX0NsaWVudF9JRCI6MTEsIkFEX1VzZXJfSUQiOjEwMSwiQURfUm9sZV9JRCI6MTAyLCJBRF9PcmdfSUQiOjExLCJNX1dhcmVob3VzZV9JRCI6MTAzLCJBRF9MYW5ndWFnZSI6ImVuX1VTIiwiQURfU2Vzc2lvbl9JRCI6MTAwMDAyNCwiaXNzIjoiaWRlbXBpZXJlLm9yZyIsImV4cCI6MTczNDU4MTg3M30.2yvSMxV02kL2Ol2xLNwFx-RdFzRwyICt3FebzbEGGBcy185JOo8AVHxtkuHAGeLKy3L4Mc5i1Xa4o9G6OVnYAw"
+                "refresh_token": "eyJraWQiOiJpZGVtcGllcmUiLCJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhNTAwNDQ1N2QwODJkOThiMjhjNjg4N2Q4ZDM4OWZlM2JkYmQ4M2ViN2M2ZjczOGU4NTIzOTA5NGNkYmViZDVmIiwiaXNzIjoiaWRlbXBpZXJlLm9yZyJ9.JIWuj-cqDwFmNmAcMYMDDnsKo1uo6g9UVLvGSA9_1HqNODGd1fWQCKHYsfyIuHzvP5C_GvVoZ7ID8jLAIPgoCQ"
+

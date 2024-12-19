@@ -52,6 +52,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.impl.ProcessResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ReferenceResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ServerResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.StatusLineResourceImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ViewResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.WindowResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.WorkflowResourceImpl;
 
@@ -90,6 +91,7 @@ public class ApplicationV1 extends Application {
         classes.add(StatusLineResourceImpl.class);
         classes.add(ChartResourceImpl.class);
         classes.add(MenuTreeResourceImpl.class);
+        classes.add(ViewResourceImpl.class);
         
         IServicesHolder<ResourceExtension> list = Service.locator().list(ResourceExtension.class);
         for (IServiceReferenceHolder<ResourceExtension> holder : list.getServiceReferences()) {

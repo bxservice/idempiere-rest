@@ -38,6 +38,7 @@ import org.compiere.util.Util;
 import org.osgi.service.component.annotations.Component;
 
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
 
 /**
  * Default Query converter that uses oData notation
@@ -49,9 +50,15 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	private CCache<String, ConvertedQuery> convertCache = new CCache<String, ConvertedQuery>(null, "JSON_DB_Convert_Cache", 1000, 60, false);
 	private ConvertedQuery convertedQuery;
 	private MTable table;
+	private MRestView view;
 
 	@Override
 	public synchronized ConvertedQuery convertStatement(String tableName, String queryStatement) {
+		return convertStatement(null, tableName, queryStatement);				
+	}
+	
+	@Override
+	public synchronized ConvertedQuery convertStatement(MRestView view, String tableName, String queryStatement) {
 		ConvertedQuery cache = convertCache.get(queryStatement);
 		if (cache != null) {
 			return cache;
@@ -60,6 +67,7 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 		convertedQuery = new ConvertedQuery();
 		if (!Util.isEmpty(queryStatement, true)) {
 			table = MTable.get(Env.getCtx(), tableName);
+			this.view = view;
 			convertStatement(queryStatement);
 
 			convertCache.put(queryStatement, convertedQuery);
@@ -144,13 +152,27 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 			//Another method, f.i contains(tolower(name),'admin')
 			String innerMethodName = ODataUtils.getMethodCall(left);
 			String columnName = ODataUtils.getFirstParameter(innerMethodName, left);
-			column = table.getColumn(columnName.trim());
+			MColumn tableColumn = table.getColumn(columnName.trim());
+			String viewColumnName = null;
+			if (view != null) {
+				viewColumnName = view.toColumnName(columnName.trim());
+				if (viewColumnName == null && tableColumn != null)
+					throw new IDempiereRestException("Invalid column for filter: " + columnName.trim(), Status.BAD_REQUEST);
+			}
+			column = viewColumnName != null && tableColumn == null ? table.getColumn(viewColumnName) : tableColumn;
 			if (column == null || column.isSecure() || column.isEncrypted()) {
 				throw new IDempiereRestException("Invalid column for filter: " + columnName.trim(), Status.BAD_REQUEST);
 			}
 			leftParameter = ODataUtils.getSQLFunction(innerMethodName, columnName, false);
 		} else {
-			column = table.getColumn(left.trim());
+			MColumn tableColumn = table.getColumn(left.trim());
+			String viewColumnName = null;
+			if (view != null) {
+				viewColumnName = view.toColumnName(left.trim());
+				if (viewColumnName == null && tableColumn != null)
+					throw new IDempiereRestException("Invalid column for filter: " + left.trim(), Status.BAD_REQUEST);
+			}
+			column = viewColumnName != null && tableColumn == null ? table.getColumn(viewColumnName) : tableColumn;
 			if (column == null || column.isSecure() || column.isEncrypted()) {
 				throw new IDempiereRestException("Invalid column for filter: " + left.trim(), Status.BAD_REQUEST);
 			}
@@ -198,7 +220,14 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				//Another method, f.i tolower(name)
 				String innerMethodName = ODataUtils.getMethodCall(right);
 				String innerValue = ODataUtils.getFirstParameter(innerMethodName, right);
-				MColumn columnRight = table.getColumn(innerValue.trim());
+				MColumn tableColumn = table.getColumn(innerValue.trim());
+				String viewColumnName = null;
+				if (view != null) {
+					viewColumnName = view.toColumnName(innerValue.trim());
+					if (viewColumnName == null && tableColumn != null)
+						throw new IDempiereRestException("Invalid column for filter: " + innerValue.trim(), Status.BAD_REQUEST);
+				}
+				MColumn columnRight = viewColumnName != null && tableColumn == null ? table.getColumn(viewColumnName) : tableColumn;
 				if (columnRight != null) {
 					if(columnRight.isSecure() || columnRight.isEncrypted()) {
 						throw new IDempiereRestException("Invalid column for filter: " + innerValue.trim(), Status.BAD_REQUEST);
@@ -211,7 +240,14 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 				}
 			} else {
 				// Check Right is Column
-				MColumn columnRight = table.getColumn(right.trim());
+				MColumn tableColumnRight = table.getColumn(right.trim());
+				String viewRight = null;
+				if (view != null) {
+					viewRight = view.toColumnName(right.trim());
+					if (viewRight == null && tableColumnRight != null)
+						throw new IDempiereRestException("Invalid column for filter: " + tableColumnRight.getColumnName(), Status.BAD_REQUEST);
+				}
+				MColumn columnRight = viewRight != null && tableColumnRight == null ? table.getColumn(viewRight) : tableColumnRight;
 				if (columnRight != null) {
 					if(columnRight.isSecure() || columnRight.isEncrypted()) {
 						throw new IDempiereRestException("Invalid column for filter: " + right.trim(), Status.BAD_REQUEST);
@@ -230,7 +266,14 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 	private String convertMethodCall(String methodCall, String columnName, String value, boolean isNot) {
 		String rightParameter = "?";
 		String innerMethodName = null;
-		MColumn column = table.getColumn(columnName);
+		MColumn tableColumn = table.getColumn(columnName);
+		String viewColumnName = null;
+		if (view != null) {
+			viewColumnName = view.toColumnName(columnName);
+			if (viewColumnName == null && tableColumn != null) 
+				throw new IDempiereRestException("Invalid column for filter: " + columnName, Status.BAD_REQUEST);
+		}
+		MColumn column = viewColumnName != null && tableColumn == null ? table.getColumn(viewColumnName) : tableColumn;
 		if (column == null || column.isSecure() || column.isEncrypted()) {
 			throw new IDempiereRestException("Invalid column for filter: " + columnName, Status.BAD_REQUEST);
 		}
@@ -243,7 +286,14 @@ public class DefaultQueryConverter implements IQueryConverter, IQueryConverterFa
 			rightParameter = ODataUtils.getSQLFunction(innerMethodName, "?", false);
 		}
 		
-		MColumn columnRight = table.getColumn(value.trim());
+		tableColumn = table.getColumn(value.trim());
+		viewColumnName = null;
+		if (view != null) {
+			viewColumnName = view.toColumnName(value.trim());
+			if (viewColumnName == null && tableColumn != null)
+				throw new IDempiereRestException("Invalid column for filter: " + value.trim(), Status.BAD_REQUEST);
+		}
+		MColumn columnRight = viewColumnName != null && tableColumn == null ? table.getColumn(viewColumnName) : tableColumn;
 		if (columnRight != null) {
 			if (columnRight.isSecure() || columnRight.isEncrypted()) {
 				throw new IDempiereRestException("Invalid column for filter: " + value.trim(), Status.BAD_REQUEST);
