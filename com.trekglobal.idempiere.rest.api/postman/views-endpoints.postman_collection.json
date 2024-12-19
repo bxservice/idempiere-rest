@@ -1,0 +1,441 @@
+{
+	"info": {
+		"_postman_id": "26d8b74c-8c3c-4ac3-8948-39ff9e208749",
+		"name": "views-endpoints",
+		"description": "# 🚀 Get started here\n\nExamples for /views endpoints.\n\n## 🔖 **How to use this template**\n\n#### **Step 1: Set environment**\n\nSet environment to views-local-test environment. Where necessary, change the environment variable values to suit your local test environment.\n\n#### Step 2: **Get auth token**\n\nRun Get auth token request to acquire authentication token from server.\n\n#### **Step 3: Run example requests**\n\nRun example requests inside te users folder.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "8597989"
+	},
+	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "Get User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/views/users/:id?$expand=C_BPartner_ID",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views",
+								"users",
+								":id"
+							],
+							"query": [
+								{
+									"key": "$expand",
+									"value": "C_BPartner_ID"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{ad_user_id}}"
+								}
+							]
+						},
+						"description": "This is a GET request to get single user record from the users views endpoint. The user id is pass as path variable (:id).\n\n$expand is use to include C_BPartner reference.\n\nA successful GET response will have a `200 OK` status, and should include Json response body.\n\nExample response:\n\n``` json\n{\n    \"id\": 102,\n    \"uid\": \"eb6dee9e-b7ef-4d40-bd7e-c2c3ecd9d79c\",\n    \"C_BPartner_ID\": {\n        \"id\": 119,\n        \"uid\": \"61a84a1b-37a0-4dda-80a2-3ee218522b32\",\n        \"employee\": true,\n        \"name\": \"GardenUser BP\",\n        \"value\": \"GardenUser\",\n        \"model-name\": \"c_bpartner\"\n    },\n    \"tenant\": {\n        \"propertyLabel\": \"Tenant\",\n        \"id\": 11,\n        \"identifier\": \"GardenWorld\",\n        \"model-name\": \"ad_client\"\n    },\n    \"organization\": {\n        \"propertyLabel\": \"Organization\",\n        \"id\": 0,\n        \"identifier\": \"*\",\n        \"model-name\": \"ad_org\"\n    },\n    \"name\": \"GardenUser\",\n    \"email\": \"user @ gardenworld.com\",\n    \"active\": true,\n    \"created\": \"2001-03-27T15:44:12Z\",\n    \"updated\": \"2001-12-08T22:01:24Z\",\n    \"model-name\": \"ad_user\"\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Users",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/views/users?$expand=C_BPartner_ID",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views",
+								"users"
+							],
+							"query": [
+								{
+									"key": "$expand",
+									"value": "C_BPartner_ID"
+								}
+							]
+						},
+						"description": "This is a GET request to get an array of user records from the users views endpoint.\n\n$expand is use to include C_BPartner reference.\n\nA successful GET response will have a `200 OK` status, and should include Json response body.\n\nExample response:\n\n``` json\n{\n    \"page-count\": 1,\n    \"records-size\": 100,\n    \"skip-records\": 0,\n    \"row-count\": 8,\n    \"array-count\": 0,\n    \"records\": [\n        {\n            \"id\": 102,\n            \"uid\": \"eb6dee9e-b7ef-4d40-bd7e-c2c3ecd9d79c\",\n            \"C_BPartner_ID\": {\n                \"id\": 119,\n                \"uid\": \"61a84a1b-37a0-4dda-80a2-3ee218522b32\",\n                \"employee\": true,\n                \"name\": \"GardenUser BP\",\n                \"value\": \"GardenUser\",\n                \"model-name\": \"c_bpartner\"\n            },\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"GardenUser\",\n            \"email\": \"user @ gardenworld.com\",\n            \"active\": true,\n            \"created\": \"2001-03-27T15:44:12Z\",\n            \"updated\": \"2001-12-08T22:01:24Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 103,\n            \"uid\": \"0386f06b-ef43-4208-b6b2-535956ac83de\",\n            \"C_BPartner_ID\": {\n                \"id\": 114,\n                \"uid\": \"5c557ed6-c443-4b99-ae77-546ccd46bc1f\",\n                \"employee\": false,\n                \"name\": \"Tree Farm Inc.\",\n                \"value\": \"TreeFarm\",\n                \"model-name\": \"c_bpartner\"\n            },\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"Joe Sales\",\n            \"active\": true,\n            \"created\": \"2001-05-21T21:34:07Z\",\n            \"updated\": \"2001-05-21T21:34:07Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 104,\n            \"uid\": \"afcfce23-2862-411e-bceb-7b7ae2b5e07a\",\n            \"C_BPartner_ID\": {\n                \"id\": 117,\n                \"uid\": \"037972d8-b74c-462d-b407-4a9b60e66ca8\",\n                \"employee\": false,\n                \"name\": \"C&W Construction\",\n                \"value\": \"C&W\",\n                \"model-name\": \"c_bpartner\"\n            },\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"Carl Boss\",\n            \"active\": true,\n            \"created\": \"2002-08-25T00:30:53Z\",\n            \"updated\": \"2005-09-16T18:18:35Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 105,\n            \"uid\": \"5348c319-f4c2-4303-b41b-ab3653bac0b4\",\n            \"C_BPartner_ID\": {\n                \"id\": 120,\n                \"uid\": \"f6efd81a-abe6-4bca-86fe-810d4355d572\",\n                \"employee\": false,\n                \"name\": \"Seed Farm Inc.\",\n                \"value\": \"SeedFarm\",\n                \"model-name\": \"c_bpartner\"\n            },\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"Henry Seed\",\n            \"active\": true,\n            \"created\": \"2004-03-23T22:12:22Z\",\n            \"updated\": \"2004-03-23T22:12:22Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 50001,\n            \"uid\": \"e904b07d-e23b-4494-8bff-066efc7cae83\",\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"WebService\",\n            \"email\": \"webservice @ gardenworld.com\",\n            \"active\": true,\n            \"created\": \"2009-01-30T19:44:55Z\",\n            \"updated\": \"2013-03-05T17:32:43Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 10,\n            \"uid\": \"98acf599-bd19-4439-a8b6-958ac247d680\",\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 0,\n                \"identifier\": \"System\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"System\",\n            \"email\": \"system @ idempiere.com\",\n            \"active\": true,\n            \"created\": \"1999-11-12T20:41:43Z\",\n            \"updated\": \"2000-01-02T00:00:00Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 100,\n            \"uid\": \"986cb4dc-7161-4d77-a7c7-3832d24b19de\",\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 0,\n                \"identifier\": \"System\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"SuperUser\",\n            \"email\": \"superuser @ idempiere.com\",\n            \"active\": true,\n            \"created\": \"1999-12-09T18:15:00Z\",\n            \"updated\": \"2024-12-18T22:32:25Z\",\n            \"model-name\": \"ad_user\"\n        },\n        {\n            \"id\": 101,\n            \"uid\": \"d4a5259d-edbb-4c28-a7b4-6ffb5ff69442\",\n            \"C_BPartner_ID\": {\n                \"id\": 113,\n                \"uid\": \"6544d69b-9e95-4725-a7d5-ca948b60dfbd\",\n                \"employee\": true,\n                \"name\": \"GardenAdmin BP\",\n                \"value\": \"GardenAdmin\",\n                \"model-name\": \"c_bpartner\"\n            },\n            \"tenant\": {\n                \"propertyLabel\": \"Tenant\",\n                \"id\": 11,\n                \"identifier\": \"GardenWorld\",\n                \"model-name\": \"ad_client\"\n            },\n            \"organization\": {\n                \"propertyLabel\": \"Organization\",\n                \"id\": 0,\n                \"identifier\": \"*\",\n                \"model-name\": \"ad_org\"\n            },\n            \"name\": \"GardenAdmin\",\n            \"email\": \"admin @ gardenworld.com\",\n            \"active\": true,\n            \"created\": \"2001-03-27T15:44:12Z\",\n            \"updated\": \"2024-12-19T10:27:50Z\",\n            \"model-name\": \"ad_user\"\n        }\n    ]\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Views",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/views",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views"
+							]
+						},
+						"description": "This is a GET request to get an array of rest_view records from the views endpoint.\n\nA successful GET response will have a `200 OK` status, and should include Json response body.\n\nExample response:\n\n``` json\n{\n    \"views\": [\n        {\n            \"id\": 1000007,\n            \"uid\": \"5cb7c771-3911-4042-9e72-42f8f4713e33\",\n            \"name\": \"bpartner\",\n            \"tableName\": \"c_bpartner\",\n            \"columns\": [\n                {\n                    \"id\": 1000157,\n                    \"uid\": \"01acdf10-26a6-497d-a1b7-c4d52b68bb5e\",\n                    \"name\": \"employee\",\n                    \"columnName\": \"IsEmployee\"\n                },\n                {\n                    \"id\": 1000170,\n                    \"uid\": \"106eb790-575c-4d62-9230-f487988342a7\",\n                    \"name\": \"name\",\n                    \"columnName\": \"Name\"\n                },\n                {\n                    \"id\": 1000191,\n                    \"uid\": \"ab6c494f-a293-4419-b679-f2ce5d440165\",\n                    \"name\": \"taxID\",\n                    \"columnName\": \"TaxID\"\n                },\n                {\n                    \"id\": 1000196,\n                    \"uid\": \"ff7ff8f1-96a5-4ce4-ba90-8240ede7a1a2\",\n                    \"name\": \"value\",\n                    \"columnName\": \"Value\"\n                }\n            ]\n        },\n        {\n            \"id\": 1000004,\n            \"uid\": \"11a5f6aa-33e1-471b-aab7-bf0160088d4e\",\n            \"name\": \"userRoles\",\n            \"tableName\": \"ad_user_roles\",\n            \"columns\": [\n                {\n                    \"id\": 1000048,\n                    \"uid\": \"a14ec96c-b21d-4cce-b004-646e399d7940\",\n                    \"name\": \"user\",\n                    \"columnName\": \"AD_User_ID\"\n                },\n                {\n                    \"id\": 1000047,\n                    \"uid\": \"349592b7-d69a-45b8-a469-8b53ab38b52d\",\n                    \"name\": \"role\",\n                    \"columnName\": \"AD_Role_ID\"\n                }\n            ]\n        },\n        {\n            \"id\": 1000005,\n            \"uid\": \"05e4c4fc-7962-4247-9c89-9cc371c92bae\",\n            \"name\": \"users\",\n            \"tableName\": \"ad_user\",\n            \"columns\": [\n                {\n                    \"id\": 1000107,\n                    \"uid\": \"9341441f-d0c3-4250-9aed-7d22afa1cd07\",\n                    \"name\": \"C_BPartner_ID\",\n                    \"columnName\": \"C_BPartner_ID\",\n                    \"referenceView\": {\n                        \"id\": 1000007,\n                        \"uid\": \"5cb7c771-3911-4042-9e72-42f8f4713e33\",\n                        \"name\": \"bpartner\"\n                    }\n                },\n                {\n                    \"id\": 1000050,\n                    \"uid\": \"96803d6d-f9e4-4029-aee2-8ea3f14320c4\",\n                    \"name\": \"tenant\",\n                    \"columnName\": \"AD_Client_ID\"\n                },\n                {\n                    \"id\": 1000112,\n                    \"uid\": \"9451b119-db3d-4d5a-9a1a-82354335dc7d\",\n                    \"name\": \"organization\",\n                    \"columnName\": \"AD_Org_ID\"\n                },\n                {\n                    \"id\": 1000109,\n                    \"uid\": \"25bbab29-ad01-42ed-ae62-4db9c677f8fd\",\n                    \"name\": \"name\",\n                    \"columnName\": \"Name\"\n                },\n                {\n                    \"id\": 1000113,\n                    \"uid\": \"1a7e9df3-33fd-412f-8ad6-2242f1d13103\",\n                    \"name\": \"email\",\n                    \"columnName\": \"EMail\"\n                },\n                {\n                    \"id\": 1000114,\n                    \"uid\": \"54493e40-c0de-4e1b-8044-5cc1f9d1a3f0\",\n                    \"name\": \"active\",\n                    \"columnName\": \"IsActive\"\n                },\n                {\n                    \"id\": 1000110,\n                    \"uid\": \"ba9d5967-9107-4310-88ff-808391ffe991\",\n                    \"name\": \"created\",\n                    \"columnName\": \"Created\"\n                },\n                {\n                    \"id\": 1000111,\n                    \"uid\": \"7605be4e-7828-4541-854a-7183efc4d536\",\n                    \"name\": \"updated\",\n                    \"columnName\": \"Updated\"\n                }\n            ],\n            \"relatedViews\": [\n                {\n                    \"id\": 1000000,\n                    \"uid\": \"98257655-9a35-4469-96d0-74422a431c3c\",\n                    \"name\": \"roles\",\n                    \"view\": {\n                        \"id\": 1000004,\n                        \"uid\": \"11a5f6aa-33e1-471b-aab7-bf0160088d4e\",\n                        \"name\": \"userRoles\"\n                    },\n                    \"autoExpand\": true\n                }\n            ]\n        }\n    ]\n}\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Get user roles",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/views/userRoles",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views",
+								"userRoles"
+							]
+						},
+						"description": "This is a GET request to get an array of records from the userRoles views endpoint.\n\nA successful GET response will have a `200 OK` status, and should include Json response body.\n\nExample response:\n\n``` json\n{\n    \"page-count\": 1,\n    \"records-size\": 100,\n    \"skip-records\": 0,\n    \"row-count\": 11,\n    \"array-count\": 0,\n    \"records\": [\n        {\n            \"uid\": \"a6810a39-e784-4cac-a72f-5e33de6822e3\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 100,\n                \"identifier\": \"SuperUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 0,\n                \"identifier\": \"System Administrator\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"0d765a58-e636-46da-9bb9-636206cd39f8\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 100,\n                \"identifier\": \"SuperUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 102,\n                \"identifier\": \"GardenWorld Admin\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"5c199d76-5a6e-454d-b4dc-7792274c95c0\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 100,\n                \"identifier\": \"SuperUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 103,\n                \"identifier\": \"GardenWorld User\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"8642f17b-5143-4fac-bffe-e2e5c9bbe081\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 101,\n                \"identifier\": \"GardenAdmin\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 102,\n                \"identifier\": \"GardenWorld Admin\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"23f3ce62-5963-4a6b-85b6-198538ae0da6\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 101,\n                \"identifier\": \"GardenAdmin\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 103,\n                \"identifier\": \"GardenWorld User\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"1bf9c8cf-58ae-4af2-8527-07a6ed514690\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 102,\n                \"identifier\": \"GardenUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 103,\n                \"identifier\": \"GardenWorld User\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"9777948f-e98f-42eb-afd3-75a433c09bff\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 100,\n                \"identifier\": \"SuperUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 50004,\n                \"identifier\": \"Web Service Execution\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"8f246aed-d8da-421a-bd4d-73c4c258ab85\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 50001,\n                \"identifier\": \"WebService\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 50004,\n                \"identifier\": \"Web Service Execution\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"f0638aee-6960-4d5e-ae10-947fb24ca5a3\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 100,\n                \"identifier\": \"SuperUser\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 200001,\n                \"identifier\": \"GardenWorld Admin Not Advanced\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"3708c068-968b-44dc-9398-d2a2ce659c2f\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 101,\n                \"identifier\": \"GardenAdmin\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 200001,\n                \"identifier\": \"GardenWorld Admin Not Advanced\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        },\n        {\n            \"uid\": \"af4e703f-c6da-4d78-97f1-f90a3bf5a6dc\",\n            \"user\": {\n                \"propertyLabel\": \"User/Contact\",\n                \"id\": 10,\n                \"identifier\": \"System\",\n                \"model-name\": \"ad_user\"\n            },\n            \"role\": {\n                \"propertyLabel\": \"Role\",\n                \"id\": 0,\n                \"identifier\": \"System Administrator\",\n                \"model-name\": \"ad_role\"\n            },\n            \"model-name\": \"ad_user_roles\"\n        }\n    ]\n}\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful POST request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"updateUserId\", jsonData.id);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\"name\": \"first_name\",\n    \"email\": \"myemail@test.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/views/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views",
+								"users"
+							]
+						},
+						"description": "This is a POST request, submitting data to users endpoint via the request body. This request submits JSON data, and the created record is reflected in the response.\n\nA successful POST request typically returns a`201 Created` response code.\n\nExample response:\n\n``` json\n{\n    \"id\": 1000000,\n    \"uid\": \"99bd604a-48a3-4aa3-a38e-f85f3e058629\",\n    \"tenant\": {\n        \"propertyLabel\": \"Tenant\",\n        \"id\": 11,\n        \"identifier\": \"GardenWorld\",\n        \"model-name\": \"ad_client\"\n    },\n    \"organization\": {\n        \"propertyLabel\": \"Organization\",\n        \"id\": 11,\n        \"identifier\": \"HQ\",\n        \"model-name\": \"ad_org\"\n    },\n    \"name\": \"first_name\",\n    \"email\": \"myemail@test.com\",\n    \"active\": true,\n    \"created\": \"2024-12-19T11:17:57Z\",\n    \"updated\": \"2024-12-19T11:17:57Z\",\n    \"model-name\": \"ad_user\"\n}\n\n ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Successful PUT request\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{authToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\" : \"updated_name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/views/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"views",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{updateUserId}}"
+								}
+							]
+						},
+						"description": "This is a PUT request and it is used to overwrite an existing piece of data. The record id is pass as path variable (:id).\n\nA successful PUT request typically returns a `200 OK`response code.\n\nExample response:\n\n``` json\n{\n    \"id\": 1000000,\n    \"uid\": \"99bd604a-48a3-4aa3-a38e-f85f3e058629\",\n    \"tenant\": {\n        \"propertyLabel\": \"Tenant\",\n        \"id\": 11,\n        \"identifier\": \"GardenWorld\",\n        \"model-name\": \"ad_client\"\n    },\n    \"organization\": {\n        \"propertyLabel\": \"Organization\",\n        \"id\": 11,\n        \"identifier\": \"HQ\",\n        \"model-name\": \"ad_org\"\n    },\n    \"name\": \"updated_name\",\n    \"email\": \"myemail@test.com\",\n    \"active\": true,\n    \"created\": \"2024-12-19T11:17:57Z\",\n    \"updated\": \"2024-12-19T11:20:11Z\",\n    \"model-name\": \"ad_user\"\n}\n\n ```"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Get auth token",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"authToken\", jsonData.token);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"userName\":\"{{loginUserName}}\",\n    \"password\":\"{{loginPassword}}\",\n    \"parameters\": {\n        \"clientId\": {{loginClientId}},\n        \"roleId\": {{loginRoleId}},\n        \"organizationId\": {{loginOrganizationId}},\n        \"warehouseId\": {{loginWarehouseId}},\n        \"language\": \"{{loginLanguage}}\"\n    }\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/tokens",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"tokens"
+					]
+				},
+				"description": "Create authentication token with user name and password. The return token is use as Authorization request header (Bearer {token}) for subsequent api call.\n\nExample response:\n\n``` json\n{\n    \"userId\": 101,\n    \"language\": \"en_US\",\n    \"menuTreeId\": 10,\n    \"token\": \"eyJraWQiOiJpZGVtcGllcmUiLCJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJHYXJkZW5BZG1pbiIsIkFEX0NsaWVudF9JRCI6MTEsIkFEX1VzZXJfSUQiOjEwMSwiQURfUm9sZV9JRCI6MTAyLCJBRF9PcmdfSUQiOjExLCJNX1dhcmVob3VzZV9JRCI6MTAzLCJBRF9MYW5ndWFnZSI6ImVuX1VTIiwiQURfU2Vzc2lvbl9JRCI6MTAwMDAyNCwiaXNzIjoiaWRlbXBpZXJlLm9yZyIsImV4cCI6MTczNDU4MTg3M30.2yvSMxV02kL2Ol2xLNwFx-RdFzRwyICt3FebzbEGGBcy185JOo8AVHxtkuHAGeLKy3L4Mc5i1Xa4o9G6OVnYAw\",\n    \"refresh_token\": \"eyJraWQiOiJpZGVtcGllcmUiLCJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhNTAwNDQ1N2QwODJkOThiMjhjNjg4N2Q4ZDM4OWZlM2JkYmQ4M2ViN2M2ZjczOGU4NTIzOTA5NGNkYmViZDVmIiwiaXNzIjoiaWRlbXBpZXJlLm9yZyJ9.JIWuj-cqDwFmNmAcMYMDDnsKo1uo6g9UVLvGSA9_1HqNODGd1fWQCKHYsfyIuHzvP5C_GvVoZ7ID8jLAIPgoCQ\"\n}\n ```"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "{{host}}/api/v1",
+			"type": "string"
+		}
+	]
+}
