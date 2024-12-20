@@ -29,6 +29,7 @@ import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 
 import com.google.gson.JsonElement;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
 
 /**
  * 
@@ -48,6 +49,17 @@ public interface ITypeConverter<T> {
 	
 	/**
 	 * Convert AD type to json type
+	 * @param column
+	 * @param value
+	 * @param referenceView
+	 * @return Object
+	 */
+	default Object toJsonValue(MColumn column, T value, MRestView referenceView) {
+		return toJsonValue(column, value);
+	}
+	
+	/**
+	 * Convert AD type to json type
 	 * @param field
 	 * @param value
 	 * @return Object
@@ -61,6 +73,17 @@ public interface ITypeConverter<T> {
 	 * @return Object
 	 */
 	public Object fromJsonValue(MColumn column, JsonElement value);
+	
+	/**
+	 * Convert json type to AD type
+	 * @param column
+	 * @param value
+	 * @param referenceView
+	 * @return Object
+	 */
+	default Object fromJsonValue(MColumn column, JsonElement value, MRestView referenceView) {
+		return fromJsonValue(column, value);
+	}
 	
 	/**
 	 * Convert json type to AD type

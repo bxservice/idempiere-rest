@@ -45,6 +45,8 @@ import org.compiere.util.Util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
 
 /**
  * json type converter for C_Location
@@ -62,14 +64,19 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object toJsonValue(MColumn column, Object value) {
+		return toJsonValue(column, value, null);
+	}
+	
+	@Override
+	public Object toJsonValue(MColumn column, Object value, MRestView referenceView) {
 		String label = Msg.getElement(Env.getCtx(), column.getColumnName());
 		Lookup lookup = new MLocationLookup(Env.getCtx(), 0);
-		return toJsonValue(column.getAD_Reference_ID(), label, lookup, column.getReferenceTableName(), value);
+		return toJsonValue(column.getAD_Reference_ID(), label, lookup, column.getReferenceTableName(), value, referenceView);
 	}
 
 	@Override
 	public Object toJsonValue(GridField field, Object value) {
-		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), getReferenceTableNameFromField(field), value);
+		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), getReferenceTableNameFromField(field), value, null);
 	}
 	
 	private String getReferenceTableNameFromField(GridField field) {
@@ -86,11 +93,12 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 		return refTableName;
 	}
 	
-	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value) {
+	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value, MRestView referenceView) {
 		if (lookup != null) {
 			MLocation loc = MLocation.get((Integer)value);
 			JsonObject ref = new JsonObject();
-			ref.addProperty("propertyLabel", label);
+			if (referenceView == null)
+				ref.addProperty("propertyLabel", label);
 			if (value instanceof Number)
 				ref.addProperty("id", ((Number)value).intValue());
 			else
@@ -99,14 +107,17 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 			if (!Util.isEmpty(display, true)) {
 				ref.addProperty("identifier", display);
 			}							
-			if (!Util.isEmpty(refTableName))
+			if (!Util.isEmpty(refTableName) && referenceView == null)
 				ref.addProperty("model-name", refTableName.toLowerCase());
 			
 			MColumn[] columns = MTable.get(MLocation.Table_ID).getColumns(false);
 			String columnName = null;
 			Object columnValue = null;
 			
-			for(MColumn column : columns) {
+			MRestViewColumn[] viewColumns = referenceView != null ? referenceView.getColumns() : null;
+			int count = viewColumns != null ? viewColumns.length : columns.length;
+			for(int i = 0; i < count; i++) {
+				MColumn column = viewColumns != null ? MColumn.get(viewColumns[i].getAD_Column_ID()) : columns[i];
 				if(column.isKey())continue;
 				
 				columnName = column.getColumnName();
@@ -123,11 +134,11 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 						if(displayValue!=null)
 							refChild.addProperty("identifier",displayValue);
 						refChild.addProperty("model-name", MTable.get(Env.getCtx(), columnName.replace("_ID", "")).getTableName().toLowerCase());
-						ref.add(columnName, refChild);
+						ref.add(viewColumns != null ? viewColumns[i].getName() : columnName, refChild);
 					}
 				} else {
 					if((columnValue = loc.get_Value(columnName))!=null) {
-						ref.addProperty(columnName, columnValue.toString());
+						ref.addProperty(viewColumns != null ? viewColumns[i].getName() : columnName, columnValue.toString());
 					}
 				}
 			}
@@ -144,10 +155,19 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object fromJsonValue(MColumn column, JsonElement value) {
-		return fromJson(value);
+		return fromJsonValue(column, value, null);
+	}
+	
+	@Override
+	public Object fromJsonValue(MColumn column, JsonElement value, MRestView referenceView) {
+		return fromJson(value, referenceView);
 	}
 	
 	public Object fromJson(JsonElement element) {
+		return fromJson(element, null);
+	}
+	
+	public Object fromJson(JsonElement element, MRestView referenceView) {
 		if (element != null && element.isJsonObject()) {
 		
 			JsonObject json = element.getAsJsonObject();
@@ -167,9 +187,12 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 			POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 			DefaultPOSerializer.validateJsonFields(json, po);
 			Set<String> jsonFields = json.keySet();
-			for(int i = 0; i < poInfo.getColumnCount(); i++) {
-				String columnName = poInfo.getColumnName(i);
-				String propertyName = TypeConverterUtils.toPropertyName(columnName);
+			MRestViewColumn[] viewColumns = referenceView != null ? referenceView.getColumns() : null;
+			int count = viewColumns != null ? viewColumns.length : poInfo.getColumnCount(); 
+			for(int i = 0; i < count; i++) {
+				MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
+				String columnName = viewColumn != null ? MColumn.get(viewColumn.getAD_Column_ID()).getColumnName() : poInfo.getColumnName(i);
+				String propertyName = viewColumn != null ? viewColumn.getName() : TypeConverterUtils.toPropertyName(columnName);
 				if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
 					continue;
 				JsonElement field = json.get(propertyName);
@@ -178,7 +201,8 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 				if (field == null)
 					continue;
 				MColumn column = table.getColumn(columnName);
-				Object value = TypeConverterUtils.fromJsonValue(column, field);
+				Object value = TypeConverterUtils.fromJsonValue(column, field, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0
+						? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
 				if (! DefaultPOSerializer.isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
 					continue;
 				if (! DefaultPOSerializer.isUpdatable(column, false, po))

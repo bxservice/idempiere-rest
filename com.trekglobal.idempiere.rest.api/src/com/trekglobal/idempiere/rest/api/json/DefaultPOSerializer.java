@@ -129,7 +129,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				//get property name from view definition or default conversion
 				String propertyName = viewColumn != null ? viewColumn.getName()
 						: MSysConfig.getBooleanValue("REST_COLUMNNAME_TOLOWERCASE", false) ? TypeConverterUtils.toPropertyName(columnName) : columnName;
-				Object jsonValue = TypeConverterUtils.toJsonValue(column, value);
+				Object jsonValue = TypeConverterUtils.toJsonValue(column, value, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0 
+						? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
 				if (jsonValue != null) {
 					if (jsonValue instanceof Number)
 						json.addProperty(propertyName, (Number)jsonValue);
@@ -164,7 +165,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		int count = view != null ? viewColumns.length : poInfo.getColumnCount(); 
 		for(int i = 0; i < count; i++) {
-			String columnName = viewColumns != null ? MColumn.getColumnName(Env.getCtx(), viewColumns[i].getAD_Column_ID()) : poInfo.getColumnName(i);
+			MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
+			String columnName = viewColumn != null ? MColumn.getColumnName(Env.getCtx(), viewColumn.getAD_Column_ID()) : poInfo.getColumnName(i);
 			MColumn column = table.getColumn(columnName);
 			String propertyName = null;
 			if (viewColumns != null) {
@@ -184,7 +186,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				setDefaultValue(po, column);
 				continue;
 			}
-			Object value = TypeConverterUtils.fromJsonValue(column, field);
+			Object value = TypeConverterUtils.fromJsonValue(column, field, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0 
+					? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
 			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
 				continue;
 			if (! isUpdatable(column, false, po))

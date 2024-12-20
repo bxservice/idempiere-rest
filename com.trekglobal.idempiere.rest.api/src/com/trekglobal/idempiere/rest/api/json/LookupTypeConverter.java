@@ -58,6 +58,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
 
 /**
  * json type converter for AD lookup type
@@ -74,13 +75,18 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object toJsonValue(MColumn column, Object value) {
+		return toJsonValue(column, value, null);
+	}
+	
+	@Override
+	public Object toJsonValue(MColumn column, Object value, MRestView referenceView) {
 		String label = Msg.getElement(Env.getCtx(), column.getColumnName());
-		return toJsonValue(column.getAD_Reference_ID(), label, getColumnLookup(column), column.getReferenceTableName(), value);
+		return toJsonValue(column.getAD_Reference_ID(), label, getColumnLookup(column), column.getReferenceTableName(), value, referenceView);
 	}
 
 	@Override
 	public Object toJsonValue(GridField field, Object value) {
-		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), getReferenceTableNameFromField(field), value);
+		return toJsonValue(field.getDisplayType(), field.getHeader(), field.getLookup(), getReferenceTableNameFromField(field), value, null);
 	}
 
 	@Override
@@ -107,10 +113,11 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		return refTableName;
 	}
 
-	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value) {
+	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value, MRestView referenceView) {
 		if (lookup != null) {
 			JsonObject ref = new JsonObject();
-			ref.addProperty("propertyLabel", label);
+			if (referenceView == null)
+				ref.addProperty("propertyLabel", label);
 			if (value instanceof Number)
 				ref.addProperty("id", ((Number)value).intValue());
 			else
@@ -120,7 +127,10 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				ref.addProperty("identifier", display);
 			}							
 			if (!Util.isEmpty(refTableName)) {
-				ref.addProperty("model-name", refTableName.toLowerCase());
+				if (referenceView != null)
+					ref.addProperty("view-name", referenceView.getName());
+				else
+					ref.addProperty("model-name", refTableName.toLowerCase());
 				if (RestUtils.isReturnUULookup(refTableName)) {
 					String uidColumn = PO.getUUIDColumnName(refTableName);
 					String keyColumn = RestUtils.getKeyColumnName(refTableName);
