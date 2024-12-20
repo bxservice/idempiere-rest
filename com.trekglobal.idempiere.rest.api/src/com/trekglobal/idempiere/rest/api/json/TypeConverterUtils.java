@@ -52,6 +52,7 @@ import org.compiere.util.DisplayType;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonPrimitive;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
 
 /**
  * @author hengsin
@@ -82,18 +83,29 @@ public class TypeConverterUtils {
 		return propertyName;
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
 	/**
 	 * Convert db column value to json value
 	 * @param column
 	 * @param value
 	 * @return Object
 	 */
-	public static Object toJsonValue(MColumn column, Object value) {		
+	public static Object toJsonValue(MColumn column, Object value) {
+		return toJsonValue(column, value, null);
+	}
+	
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	/**
+	 * Convert db column value to json value
+	 * @param column
+	 * @param value
+	 * @param referenceView
+	 * @return Object
+	 */
+	public static Object toJsonValue(MColumn column, Object value, MRestView referenceView) {		
 		ITypeConverter typeConverter = getTypeConverter(column.getAD_Reference_ID(), value);
 		
 		if (typeConverter != null) {
-			return typeConverter.toJsonValue(column, value);
+			return typeConverter.toJsonValue(column, value, referenceView);
 		} else if (value != null && DisplayType.isText(column.getAD_Reference_ID())) {
 			return value.toString();
 		} else if (value != null && column.getAD_Reference_ID() == DisplayType.ID && value instanceof Number) {
@@ -124,18 +136,29 @@ public class TypeConverterUtils {
 		}
 	}
 	
-	@SuppressWarnings("rawtypes")
 	/**
 	 * Convert json value to db column value
 	 * @param column
 	 * @param value
 	 * @return Object
 	 */
-	public static Object fromJsonValue(MColumn column, JsonElement value) {		
+	public static Object fromJsonValue(MColumn column, JsonElement value) {
+		return fromJsonValue(column, value, null);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	/**
+	 * Convert json value to db column value
+	 * @param column
+	 * @param value
+	 * @param referenceView
+	 * @return Object
+	 */
+	public static Object fromJsonValue(MColumn column, JsonElement value, MRestView referenceView) {		
 		ITypeConverter typeConverter = getTypeConverter(column.getAD_Reference_ID(), value);
 		
 		if (typeConverter != null) {
-			return typeConverter.fromJsonValue(column, value);
+			return typeConverter.fromJsonValue(column, value, referenceView);
 		} else if (value != null && !(value instanceof JsonNull) && DisplayType.isText(column.getAD_Reference_ID())) {
 			return value.getAsString();
 		} else {
