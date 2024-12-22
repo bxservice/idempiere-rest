@@ -125,7 +125,8 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 				if (columnName.endsWith("_ID")) {
 					if((columnValue = loc.get_Value(columnName))!=null) {
 						JsonObject refChild = new JsonObject();
-						refChild.addProperty("propertyLabel",Msg.getElement(Env.getCtx(), columnName));
+						if (viewColumns == null)
+							refChild.addProperty("propertyLabel",Msg.getElement(Env.getCtx(), columnName));
 						if (value instanceof Number)
 							refChild.addProperty("id", (Integer)columnValue);
 						else
@@ -133,7 +134,10 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 						String displayValue = getColumnLookup(column).getDisplay(columnValue);
 						if(displayValue!=null)
 							refChild.addProperty("identifier",displayValue);
-						refChild.addProperty("model-name", MTable.get(Env.getCtx(), columnName.replace("_ID", "")).getTableName().toLowerCase());
+						if (viewColumns != null && viewColumns[i].getREST_ReferenceView_ID() > 0)
+							refChild.addProperty("view-name", MRestView.get(viewColumns[i].getREST_ReferenceView_ID()).getName());
+						else
+							refChild.addProperty("model-name", MTable.get(Env.getCtx(), columnName.replace("_ID", "")).getTableName().toLowerCase());
 						ref.add(viewColumns != null ? viewColumns[i].getName() : columnName, refChild);
 					}
 				} else {
