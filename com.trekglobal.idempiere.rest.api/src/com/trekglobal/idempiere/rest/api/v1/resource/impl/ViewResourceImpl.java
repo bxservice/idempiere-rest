@@ -111,7 +111,15 @@ public class ViewResourceImpl implements ViewResource {
 							columnJson.addProperty("uid", column.getREST_ViewColumn_UU());
 						}
 						columnJson.addProperty("name", column.getName());
-						columnJson.addProperty("columnName", MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID()));
+						MColumn tableColumn = MColumn.get(column.getAD_Column_ID());								
+						columnJson.addProperty("columnName", tableColumn.getColumnName());
+						String helpText = null;
+						if (!Util.isEmpty(tableColumn.get_Translation(MColumn.COLUMNNAME_Help)))
+							helpText = tableColumn.get_Translation(MColumn.COLUMNNAME_Help);
+						else
+							helpText = tableColumn.get_Translation(MColumn.COLUMNNAME_Description);
+						if (!Util.isEmpty(helpText))
+							columnJson.addProperty("help", helpText);
 						if (column.getREST_ReferenceView_ID() > 0) {
 							MRestView referenceView = MRestView.get(column.getREST_ReferenceView_ID());
 							JsonObject refJson = new JsonObject();
