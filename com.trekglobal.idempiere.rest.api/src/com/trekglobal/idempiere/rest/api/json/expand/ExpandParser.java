@@ -100,7 +100,7 @@ public class ExpandParser {
 					columnName = viewColumn;
 					found = true;
 					break;
-				} else if (columnName.equals(viewColumn)) {
+				} else if (columnName.equalsIgnoreCase(viewColumn)) {
 					found = true;
 					break;
 				}
@@ -136,7 +136,7 @@ public class ExpandParser {
 					}
 					restViewColumn = column;
 					break;
-				} else if (columnName.equals(viewColumn)) {
+				} else if (columnName.equalsIgnoreCase(viewColumn)) {
 					if (column.getREST_ReferenceView_ID() > 0) {
 						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
 					}

@@ -145,8 +145,12 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 		}
-		if (!exclude("model-name", excludes))
+		if (!exclude("model-name", excludes)) {
 			json.addProperty("model-name", poInfo.getTableName().toLowerCase());
+			if (view != null) {
+				json.addProperty("view-name", view.getName());
+			}
+		}
 		return json;
 	}
 
