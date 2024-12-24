@@ -100,7 +100,7 @@ public class ExpandParser {
 					columnName = viewColumn;
 					found = true;
 					break;
-				} else if (columnName.equals(viewColumn)) {
+				} else if (columnName.equalsIgnoreCase(viewColumn)) {
 					found = true;
 					break;
 				}
@@ -136,7 +136,7 @@ public class ExpandParser {
 					}
 					restViewColumn = column;
 					break;
-				} else if (columnName.equals(viewColumn)) {
+				} else if (columnName.equalsIgnoreCase(viewColumn)) {
 					if (column.getREST_ReferenceView_ID() > 0) {
 						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
 					}
@@ -197,13 +197,12 @@ public class ExpandParser {
 
 		String select = ExpandUtils.getSelectClause(operators);
 		includes = RestUtils.getSelectedColumns(tableName, select);
+		if (detailView != null && includes != null && includes.length > 0)
+			includes = detailView.toColumnNames(includes, true);
 		List<PO> childPOs = getChildPOs(operators, tableName, parentKeyColumn, childKeyColumn, includes);
 		if (childPOs != null && childPOs.size() > 0) {
 			JsonArray childArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
-
-			if (detailView != null && includes != null && includes.length > 0)
-				includes = detailView.toColumnNames(includes, true);
 
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {childKeyColumn, "model-name"});
