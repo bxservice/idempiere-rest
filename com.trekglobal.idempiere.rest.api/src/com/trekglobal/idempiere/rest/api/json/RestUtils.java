@@ -258,7 +258,7 @@ public class RestUtils {
 		}
 		
 		//If no window or no access to the window - check if the role has read/write access to the table
-		return role.isTableAccess(table.getAD_Table_ID(), false);
+		return role.isTableAccess(table.getAD_Table_ID(), !isReadWrite);
 	}
 	
 	public static boolean hasRoleUpdateAccess(int AD_Client_ID, int AD_Org_ID, int AD_Table_ID, int Record_ID, boolean isNew) {

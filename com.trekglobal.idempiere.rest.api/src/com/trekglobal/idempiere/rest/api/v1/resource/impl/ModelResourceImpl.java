@@ -143,17 +143,22 @@ public class ModelResourceImpl implements ModelResource {
 
 			String[] includes = null;
 			if (!Util.isEmpty(multiProperty, true)) {
+				if (view != null)
+					multiProperty = toColumnNames(view, multiProperty);
 				includes = RestUtils.getSelectedColumns(tableName, multiProperty);
 			} else if (!Util.isEmpty(singleProperty, true)) {
+				if (view != null) {
+					String original = singleProperty;
+					singleProperty = toColumnNames(view, singleProperty);
+					if (Util.isEmpty(singleProperty, true))
+						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", original);
+				}
 				MTable table = MTable.get(Env.getCtx(), tableName);
 				if (!table.columnExists(singleProperty)) {
 					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for column name: ", singleProperty);
 				}
 				includes = new String[] {singleProperty};
 			}
-
-			if (view != null)
-				includes = view.toColumnNames(includes, true);
 
 			Query query = RestUtils.getQuery(tableName, id, true, false);
 			if (includes != null && includes.length > 0)
@@ -163,23 +168,7 @@ public class ModelResourceImpl implements ModelResource {
 			POParser poParser = new POParser(tableName, id, po);
 			if (poParser.isValidPO()) {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
-				if (!Util.isEmpty(multiProperty, true)) {
-					if (view != null)
-						multiProperty = toColumnNames(view, multiProperty);
-					includes = RestUtils.getSelectedColumns(tableName, multiProperty);
-				} else if (!Util.isEmpty(singleProperty, true)) {
-					if (view != null) {
-						String original = singleProperty;
-						singleProperty = toColumnNames(view, singleProperty);
-						if (Util.isEmpty(singleProperty, true))
-							return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", original);
-					}
-					if (po.get_Value(singleProperty) == null) {
-						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", singleProperty);
-					}
-					includes = new String[] {singleProperty};
-				}
-				JsonObject json;
+				JsonObject json;				
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				if (showData)
 					json = serializer.toJson(po, view, includes, null);
@@ -200,7 +189,7 @@ public class ModelResourceImpl implements ModelResource {
 							if (related.isRestAutoExpand()) {
 								if (expands.length() > 0)
 									expands.append(",");
-								expands.append(related.getName());
+								autoExpandRelated(expands, related);
 							}
 						}
 						if (expands.length() > 0) {
@@ -215,6 +204,27 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		} catch(Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
+		}
+	}
+
+	private void autoExpandRelated(StringBuilder expands, MRestViewRelated related) {
+		expands.append(related.getName());		
+		MRestView view = MRestView.get(related.getREST_RelatedRestView_ID());
+		MRestViewRelated[] relateds = view.getRelatedViews();
+		if (relateds != null && relateds.length > 0) {
+			StringBuilder childs = new StringBuilder();
+			for (MRestViewRelated rv : relateds) {
+				if (rv.isRestAutoExpand()) {
+					if (childs.length() > 0)
+						childs.append(",");
+					autoExpandRelated(childs, rv);
+				}
+			}
+			if (childs.length() > 0) {
+				expands.append("($expand=")
+					.append(childs.toString())
+					.append(")");
+			}
 		}
 	}
 	
@@ -332,7 +342,7 @@ public class ModelResourceImpl implements ModelResource {
 								if (related.isRestAutoExpand()) {
 									if (expands.length() > 0)
 										expands.append(",");
-									expands.append(related.getName());
+									autoExpandRelated(expands, related);
 								}
 							}
 							if (expands.length() > 0) {
