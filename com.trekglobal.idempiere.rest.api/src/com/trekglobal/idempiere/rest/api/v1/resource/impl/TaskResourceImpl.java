@@ -167,7 +167,7 @@ public class TaskResourceImpl implements TaskResource {
 		task.execute();
 		String stdOut = task.getExecutedTask().getOut().toString();
 		String stdErr = task.getExecutedTask().getErr().toString();
-		int exitValue = task.getExecutedTask().getExitValue();
+		Integer exitValue = task.getExecutedTask().getExitValue();
 
 		JsonObject json = new JsonObject();
 		json.addProperty("exitValue", exitValue);
