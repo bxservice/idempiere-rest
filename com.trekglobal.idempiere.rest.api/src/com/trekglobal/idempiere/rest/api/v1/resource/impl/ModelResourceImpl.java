@@ -307,10 +307,12 @@ public class ModelResourceImpl implements ModelResource {
 			
 			RestUtils.getTableAndCheckAccess(tableName, false);
 			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
+			if (view != null && !Util.isEmpty(select, true)) {
+				select = toColumnNames(view, select);
+			}
 			String[] includes = RestUtils.getSelectedColumns(tableName, select);
 			if (view != null) {
 				modelHelper.setView(view);
-				includes = view.toColumnNames(includes, true);
 			}
 			List<PO> list = modelHelper.getPOsFromRequest(includes);
 			
