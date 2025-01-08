@@ -4375,6 +4375,51 @@
 			},
 			"response": []
 		},
+				{
+			"name": "api/v1/charts/data?$filter={where clause}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/charts/data?$filter=AD_Chart_ID eq 50000 OR AD_Chart_ID eq 50001",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"charts",
+						"data"
+					],
+					"query": [
+						{
+							"key": "$filter",
+							"value": "AD_Chart_ID eq 50000 OR AD_Chart_ID eq 50001"
+						}
+					]
+				},
+				"description": "Get data from charts filtered by id"
+			},
+			"response": []
+		},
 		{
 			"name": "api/v1/menutree/{id}",
 			"request": {
