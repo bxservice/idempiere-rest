@@ -64,5 +64,16 @@ public interface ChartResource {
 	 * @return data represented as JSON
 	 */
 	public Response getChartData(@PathParam("chartId") String id);
+	
+	@Path("data")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get the resulting data of the chart(s) using the filter 
+	 * @param filter
+	 * @return data represented as JSON
+	 */
+	public Response getMultipleChartData(@QueryParam(QueryOperators.FILTER) String filter);
+
 
 }
