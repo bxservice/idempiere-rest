@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
@@ -219,4 +220,69 @@ public class ViewResourceImpl implements ViewResource {
 	public Response printModelRecord(String tableName, String id, String reportType) {
 		return restView().printModelRecord(tableName, id, reportType);
 	}
+
+	@Override
+	public Response getModelYAML(String tableName) {
+		MRestView view = MRestView.get(tableName);
+		
+		StringBuilder header = new StringBuilder();
+		header.append("openapi: 3.0.0\n");
+		header.append("info:\n");
+		header.append(" ".repeat(2)).append("title: views/").append(tableName).append("\n");
+		header.append(" ".repeat(2)).append("version: 1.0.0\n");
+		header.append("components:\n");
+		header.append(" ".repeat(2)).append("schemas:\n");
+		
+		StringBuilder body = new StringBuilder();		
+		buildYAMLForView(view, body);
+		
+		if (body.indexOf("#/components/schemas/Image") > 0) {
+			YAMLSchema.addImageReference(header);
+		}
+		if (body.indexOf("#/components/schemas/Location") > 0) {
+			YAMLSchema.addLocationReference(header, 4);			
+		}
+		
+		addRelatedViews(view, header);
+		
+		body.append("paths:\n");
+		body.append(" ".repeat(2)).append("/:\n");
+		body.append(" ".repeat(4)).append("get:\n");
+		body.append(" ".repeat(6)).append("responses:\n");
+		body.append(" ".repeat(8)).append("'200':\n");
+		body.append(" ".repeat(10)).append("description: dummy request\n");
+		body.append(" ".repeat(10)).append("content:\n");
+		body.append(" ".repeat(12)).append("application/json: {}\n");
+						
+		return Response.status(Status.OK).entity(header.append(body.toString()).toString()).build();
+	}
+
+	private void addRelatedViews(MRestView view, StringBuilder header) {
+		MRestViewRelated[] relatedViews = view.getRelatedViews();
+		for (MRestViewRelated relatedView : relatedViews) {
+			if (relatedView.isRestAutoExpand()) {
+				MRestView childView = MRestView.get(relatedView.getREST_RelatedRestView_ID()); 
+				buildYAMLForView(childView, header);
+				addRelatedViews(childView, header);
+			}
+		}
+	}
+	
+	private void buildYAMLForView(MRestView view, StringBuilder body) {
+		MTable table = MTable.get(view.getAD_Table_ID());
+		
+		body.append(" ".repeat(4)).append(view.getName()).append(":\n");
+		body.append(" ".repeat(6)).append("type: object\n");
+		body.append(" ".repeat(6)).append("properties:\n");
+		if (table.getKeyColumns() != null && table.getKeyColumns().length == 1 && table.getKeyColumns()[0].endsWith("_ID")) {
+			body.append(" ".repeat(8)).append("id:\n");
+			body.append(" ".repeat(10)).append("type: integer\n");
+			body.append(" ".repeat(10)).append("description: record id\n");
+		}
+		body.append(" ".repeat(8)).append("uid:\n");
+		body.append(" ".repeat(10)).append("type: string\n");
+		body.append(" ".repeat(10)).append("description: record uuid\n");
+				
+		YAMLSchema.addViewProperties(view, body, 8);
+	}	
 }
