@@ -231,4 +231,14 @@ public interface ModelResource {
 	 * @return json representation of record
 	 */
 	public Response printModelRecord(@PathParam("tableName") String tableName, @PathParam("id") String id, @QueryParam(QueryOperators.REPORTTYPE) String reportType);
+	
+	@Path("{tableName}/yaml")
+	@GET
+	@Produces("application/yaml")
+	/**
+	 * Get OpenAPI YAML schema for model
+	 * @param tableName
+	 * @return
+	 */
+	public Response getModelYAML(@PathParam("tableName") String tableName);
 }

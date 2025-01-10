@@ -1451,6 +1451,32 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}/yaml",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/yaml",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": "{{protocol}}://{{host}}:{{port}}/api/v1/models/ad_user/yaml",
+				"description": "Get openapi yaml for model"
+			},
+			"response": []
+		},      
+		{
 			"name": "api/v1/windows",
 			"request": {
 				"method": "GET",

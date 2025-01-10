@@ -1132,4 +1132,53 @@ public class ModelResourceImpl implements ModelResource {
 		return null;
 	}
 
+	@Override
+	public Response getModelYAML(String tableName) {
+		MTable table = RestUtils.getTableAndCheckAccess(tableName, false);
+		tableName = table.getTableName();
+		
+		StringBuilder header = new StringBuilder();
+		header.append("openapi: 3.0.0\n");
+		header.append("info:\n");
+		header.append(" ".repeat(2)).append("title: models/").append(tableName).append("\n");
+		header.append(" ".repeat(2)).append("version: 1.0.0\n");
+		YAMLSchema.addServers(header);
+		header.append("components:\n");		
+		YAMLSchema.addSecuritySchema(header);
+		YAMLSchema.addPredefinedParameters(header);
+		header.append(" ".repeat(2)).append("schemas:\n");
+		
+		StringBuilder body = new StringBuilder();
+		
+		buildYAMLForTable(table, body);
+		
+		if (body.indexOf("#/components/schemas/Image") > 0) {
+			YAMLSchema.addImageReference(header);
+		}
+		if (body.indexOf("#/components/schemas/Location") > 0) {
+			YAMLSchema.addLocationReference(header, 4);			
+		}
+
+		YAMLSchema.addSecurityHeader(body);
+		body.append("paths:\n");
+		YAMLSchema.addAuthRequest(body);
+		YAMLSchema.addModelRequest(tableName, false, body);
+		
+		return Response.status(Status.OK).entity(header.append(body.toString()).toString()).build();
+	}
+
+	private void buildYAMLForTable(MTable table, StringBuilder builder) {
+		builder.append(" ".repeat(4)).append(table.getTableName()).append(":\n");
+		builder.append(" ".repeat(6)).append("type: object\n");
+		builder.append(" ".repeat(6)).append("properties:\n");
+		builder.append(" ".repeat(8)).append("id:\n");
+		builder.append(" ".repeat(10)).append("type: integer\n");
+		builder.append(" ".repeat(10)).append("description: table id\n");
+		builder.append(" ".repeat(8)).append("uid:\n");
+		builder.append(" ".repeat(10)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("description: table uuid\n");
+		
+		YAMLSchema.addTableProperties(table, builder, 8);
+	}
+	
 }
