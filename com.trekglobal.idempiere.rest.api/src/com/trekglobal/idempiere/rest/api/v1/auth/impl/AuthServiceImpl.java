@@ -50,6 +50,7 @@ import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.MUserOrgAccess;
+import org.compiere.model.MWarehouse;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
@@ -381,7 +382,9 @@ public class AuthServiceImpl implements AuthService {
 		JsonObject responseNode = new JsonObject();
 		Builder builder = JWT.create().withSubject(userName);
 		String defaultLanguage = Language.getBaseAD_Language();
-		int clientId = parameters.getClientId() != null ? parameters.getClientId() : -1;
+		int clientId = getClientId(parameters, responseNode);
+		if (clientId == -2)
+			return unauthorized("Client value not found", userName);
 		boolean isValidClient = false;
 		if (clientId == -1) {
 			if (!Util.isEmpty(clients) && clients.indexOf(",") == -1) {			
@@ -426,8 +429,10 @@ public class AuthServiceImpl implements AuthService {
 				responseNode.addProperty("organizationId", orgId);
 			}
 			
-			int warehouseId = parameters.getWarehouseId();
-			if (warehouseId == 0) {
+			int warehouseId = getWarehouseId(clientId, parameters, responseNode);
+			if (warehouseId == -2)
+				return unauthorized("Warehouse name not found", userName);
+			if (warehouseId == -1) {
 				if (orgId > 0) {
 					warehouseId = MOrgInfo.get(orgId).getM_Warehouse_ID();
 					if (warehouseId > 0)
@@ -473,6 +478,32 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	/**
+	 * Get client id from login parameters
+	 * @param parameters
+	 * @param responseNode
+	 * @return client id or -1 (no clientId parameter) or -2 (client value not found)
+	 */
+	private int getClientId(LoginParameters parameters, JsonObject responseNode) {
+		String s = parameters.getClientId();
+		if (Util.isEmpty(s))
+			return -1;
+		int clientId = -1;
+		if (Pattern.matches("\\d+", s.trim())) {
+			clientId = Integer.parseInt(s.trim());
+			if (MClient.get(clientId).get_ID() == clientId)
+				return clientId;
+		}
+		Query query = new Query(Env.getCtx(), MClient.Table_Name, "IsActive='Y' AND Value=?", null);
+		clientId = query.setParameters(s.trim()).firstId();
+		if (clientId == -1) {
+			return -2;
+		} else {
+			responseNode.addProperty("clientId", clientId);
+			return clientId;
+		}
+	}
+
+	/**
 	 * Get organization id from login parameters
 	 * @param clientId
 	 * @param parameters
@@ -483,10 +514,12 @@ public class AuthServiceImpl implements AuthService {
 		String s = parameters.getOrganizationId();
 		if (Util.isEmpty(s))
 			return -1;
-		if (Pattern.matches("\\d+", s.trim())) {
-			return Integer.parseInt(s.trim());
-		}
 		int orgId = -1;
+		if (Pattern.matches("\\d+", s.trim())) {
+			orgId = Integer.parseInt(s.trim());
+			if (MOrg.get(orgId) != null)
+				return orgId;
+		}
 		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND Name=?", null);
 		try {
 			orgId = query.setParameters(clientId, s.trim()).firstIdOnly();
@@ -512,11 +545,12 @@ public class AuthServiceImpl implements AuthService {
 		String s = parameters.getRoleId();
 		if (Util.isEmpty(s))
 			return -1;
-		if (Pattern.matches("\\d+", s.trim())) {
-			return Integer.parseInt(s.trim());
-		}
-		
 		int roleId = -1;
+		if (Pattern.matches("\\d+", s.trim())) {
+			roleId = Integer.parseInt(s.trim());
+			if (MRole.get(Env.getCtx(), roleId).get_ID() == roleId)
+				return roleId;
+		}
 		Query query = new Query(Env.getCtx(), MRole.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND Name=?", null);
 		try {
 			roleId = query.setParameters(clientId, s.trim()).firstIdOnly();
@@ -528,6 +562,33 @@ public class AuthServiceImpl implements AuthService {
 		} else {
 			responseNode.addProperty("roleId", roleId);
 			return roleId;
+		}
+	}
+
+	/**
+	 * Get warehouse id from login parameters
+	 * @param clientId
+	 * @param parameters
+	 * @param responseNode
+	 * @return warehouse id or -1 (no warehouseId parameter) or -2 (warehouse name not found)
+	 */
+	private int getWarehouseId(int clientId, LoginParameters parameters, JsonObject responseNode) {
+		String s = parameters.getWarehouseId();
+		if (Util.isEmpty(s))
+			return -1;
+		int warehouseId = -1;
+		if (Pattern.matches("\\d+", s.trim())) {
+			warehouseId = Integer.parseInt(s.trim());
+			if (warehouseId == 0 || MWarehouse.get(warehouseId) != null)
+				return warehouseId;
+		}
+		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND Name=?", null);
+		warehouseId = query.setParameters(clientId, s.trim()).firstId();
+		if (warehouseId == -1) {
+			return -2;
+		} else {
+			responseNode.addProperty("warehouseId", warehouseId);
+			return warehouseId;
 		}
 	}
 
