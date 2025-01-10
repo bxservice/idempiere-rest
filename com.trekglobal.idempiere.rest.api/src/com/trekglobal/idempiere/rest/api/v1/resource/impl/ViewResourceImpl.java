@@ -230,7 +230,10 @@ public class ViewResourceImpl implements ViewResource {
 		header.append("info:\n");
 		header.append(" ".repeat(2)).append("title: views/").append(tableName).append("\n");
 		header.append(" ".repeat(2)).append("version: 1.0.0\n");
+		YAMLSchema.addServers(header);
 		header.append("components:\n");
+		YAMLSchema.addSecuritySchema(header);
+		YAMLSchema.addPredefinedParameters(header);
 		header.append(" ".repeat(2)).append("schemas:\n");
 		
 		StringBuilder body = new StringBuilder();		
@@ -245,14 +248,11 @@ public class ViewResourceImpl implements ViewResource {
 		
 		addRelatedViews(view, header);
 		
+		YAMLSchema.addSecurityHeader(body);
+		
 		body.append("paths:\n");
-		body.append(" ".repeat(2)).append("/:\n");
-		body.append(" ".repeat(4)).append("get:\n");
-		body.append(" ".repeat(6)).append("responses:\n");
-		body.append(" ".repeat(8)).append("'200':\n");
-		body.append(" ".repeat(10)).append("description: dummy request\n");
-		body.append(" ".repeat(10)).append("content:\n");
-		body.append(" ".repeat(12)).append("application/json: {}\n");
+		YAMLSchema.addAuthRequest(body);
+		YAMLSchema.addModelRequest(tableName, true, body);
 						
 		return Response.status(Status.OK).entity(header.append(body.toString()).toString()).build();
 	}

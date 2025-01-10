@@ -52,6 +52,98 @@ public class YAMLSchema {
 	}
 
 	/**
+	 * Add servers: to builder
+	 * @param builder
+	 */
+	public static void addServers(StringBuilder builder) {
+		builder.append("servers:\n");
+		builder.append(" ".repeat(2)).append("- url: '{base_url}'\n");
+		builder.append(" ".repeat(4)).append("variables:\n");
+		builder.append(" ".repeat(6)).append("base_url:\n");
+		builder.append(" ".repeat(8)).append("enum:\n");
+		builder.append(" ".repeat(10)).append("- 'http://localhost:8080/api/v1'\n");
+		builder.append(" ".repeat(8)).append("default: 'http://localhost:8080/api/v1'\n");			          			       
+	}
+	
+	/**
+	 * Add securitySchema: to builder
+	 * @param builder
+	 */
+	public static void addSecuritySchema(StringBuilder builder) {
+		builder.append(" ".repeat(2)).append("securitySchemes:\n");
+		builder.append(" ".repeat(4)).append("bearerAuth:\n");
+		builder.append(" ".repeat(6)).append("type: http\n");
+		builder.append(" ".repeat(6)).append("scheme: bearer\n");
+		builder.append(" ".repeat(6)).append("bearerFormat: JWT\n");
+	}
+	
+	/**
+	 * Add predefined parameter references for query and get by id
+	 * @param builder
+	 */
+	public static void addPredefinedParameters(StringBuilder builder) {
+		builder.append(" ".repeat(2)).append("parameters:\n");
+		//$expand
+		builder.append(" ".repeat(4)).append("expand:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $expand\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: expand of parent or child entities\n");
+		//$filter
+		builder.append(" ".repeat(4)).append("filter:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $filter\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: query filter\n");
+		//$orderby
+		builder.append(" ".repeat(4)).append("orderby:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $orderby\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: ordering of query result\n");
+		//$select
+		builder.append(" ".repeat(4)).append("select:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $select\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: comma separated list of properties to be included in the json result object\n");
+		//$top
+		builder.append(" ".repeat(4)).append("top:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $top\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: first n items to return from query result\n");
+		//$skip
+		builder.append(" ".repeat(4)).append("skip:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $skip\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: integer\n");
+		builder.append(" ".repeat(8)).append("minimum: 0\n");
+		builder.append(" ".repeat(6)).append("description: first n items to skip\n");
+	}
+	
+	/**
+	 * Add global security authentication header
+	 * @param builder
+	 */
+	public static void addSecurityHeader(StringBuilder builder) {
+		builder.append("security:\n");
+		builder.append(" ".repeat(2)).append("- bearerAuth: [] # use the same name as above\n");
+	}
+	
+	/**
 	 * Add view columns to builder
 	 * @param view
 	 * @param builder
@@ -352,5 +444,225 @@ public class YAMLSchema {
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 			}
 		}
+	}
+	
+	/**
+	 * Add get query request
+	 * @param name model or view name
+	 * @param view true for /views, false for /models
+	 * @param builder
+	 */
+	private static void addQueryRequest(String name, boolean view, StringBuilder builder) {
+		builder.append(" ".repeat(2)).append(view ? "/views/" : "/models/").append(name).append(":\n");
+		builder.append(" ".repeat(4)).append("get:\n");
+		builder.append(" ".repeat(6)).append("parameters:\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/expand'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/select'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/filter'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/orderby'\n");    
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/top'\n");    
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/skip'\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("page-count:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: number of page\n");
+		builder.append(" ".repeat(18)).append("records-size:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: number of records per page\n");
+		builder.append(" ".repeat(18)).append("skip-records:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(18)).append("row-count:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: total number of records\n");
+		builder.append(" ".repeat(18)).append("array-count:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(18)).append("records:\n");
+		builder.append(" ".repeat(20)).append("type: array\n");
+		builder.append(" ".repeat(20)).append("items: { $ref: '#/components/schemas/").append(name).append("' }\n");
+	}
+	
+	/**
+	 * Add standard model or view request
+	 * @param name model or view name
+	 * @param view true for /views, false for /models
+	 * @param builder
+	 */
+	public static void addModelRequest(String name, boolean view, StringBuilder builder) {
+		builder.append(" ".repeat(2)).append(view ? "/views/" : "/models/").append(name).append("/{id}:\n");
+		//get by id
+		builder.append(" ".repeat(4)).append("get:\n");
+		builder.append(" ".repeat(6)).append("parameters:\n");
+		builder.append(" ".repeat(8)).append("- name: id\n");
+		builder.append(" ".repeat(10)).append("in: path\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("required: true\n");
+		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/expand'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/select'\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		//update by id
+		builder.append(" ".repeat(4)).append("put:\n");
+		builder.append(" ".repeat(6)).append("requestBody:\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(6)).append("parameters:\n");
+		builder.append(" ".repeat(8)).append("- name: id\n");
+		builder.append(" ".repeat(10)).append("in: path\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("required: true\n");
+		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		//delete by id
+		builder.append(" ".repeat(4)).append("delete:\n");
+		builder.append(" ".repeat(6)).append("parameters:\n");
+		builder.append(" ".repeat(8)).append("- name: id\n");
+		builder.append(" ".repeat(10)).append("in: path\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("required: true\n");
+		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("msg:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: info or error message\n");
+		builder.append(" ".repeat(20)).append("example: 'Deleted'\n");
+		addQueryRequest(name, view, builder);
+		//create record
+		builder.append(" ".repeat(4)).append("post:\n");
+		builder.append(" ".repeat(6)).append("requestBody:\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'201':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+	}
+	
+	/**
+	 * Add authentication request
+	 * @param builder
+	 */
+	public static void addAuthRequest(StringBuilder builder) {
+		builder.append(" ".repeat(2)).append("/auth/tokens:\n");
+		builder.append(" ".repeat(4)).append("post:\n");
+		builder.append(" ".repeat(6)).append("summary: Login for authorization token\n");
+		builder.append(" ".repeat(6)).append("requestBody:\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("userName:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Username for authentication\n");
+		builder.append(" ".repeat(18)).append("password:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Password for authentication\n");
+		builder.append(" ".repeat(18)).append("parameters:\n");
+		builder.append(" ".repeat(20)).append("type: object\n");
+		builder.append(" ".repeat(20)).append("properties:\n");
+		builder.append(" ".repeat(22)).append("clientId:\n");
+		builder.append(" ".repeat(24)).append("type: integer\n");
+		builder.append(" ".repeat(24)).append("description: Tenant identifier\n");
+		builder.append(" ".repeat(24)).append("example: 1000000\n");
+		builder.append(" ".repeat(22)).append("roleId:\n");
+		builder.append(" ".repeat(24)).append("type: integer\n");
+		builder.append(" ".repeat(24)).append("description: Role identifier\n");
+		builder.append(" ".repeat(24)).append("example: 1000000\n");
+		builder.append(" ".repeat(22)).append("organizationId:\n");
+		builder.append(" ".repeat(24)).append("type: integer\n");
+		builder.append(" ".repeat(24)).append("description: Organization identifier\n");
+		builder.append(" ".repeat(24)).append("example: 1000000\n");
+		builder.append(" ".repeat(22)).append("language:\n");
+		builder.append(" ".repeat(24)).append("type: string\n");
+		builder.append(" ".repeat(24)).append("description: Language code\n");
+		builder.append(" ".repeat(24)).append("example: en_US\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("userId:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: User identifier\n");
+		builder.append(" ".repeat(18)).append("language:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Language code\n");
+		builder.append(" ".repeat(20)).append("example: en_US\n");
+		builder.append(" ".repeat(18)).append("menuTreeId:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: Menu tree identifier\n");
+		builder.append(" ".repeat(18)).append("token:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
+		builder.append(" ".repeat(18)).append("refresh_token:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
+		
+		builder.append(" ".repeat(2)).append("/auth/refresh:\n");
+		builder.append(" ".repeat(4)).append("post:\n");
+		builder.append(" ".repeat(6)).append("summary: Refresh authorization token\n");
+		builder.append(" ".repeat(6)).append("requestBody:\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("refresh_token:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
+		builder.append(" ".repeat(18)).append("clientId:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: clientId from the source /auth/tokens or /auth/refresh call\n");
+		builder.append(" ".repeat(18)).append("userId:\n");
+		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: userId from the /auth/tokens response\n");
+		builder.append(" ".repeat(6)).append("responses:\n");
+		builder.append(" ".repeat(8)).append("'200':\n");
+		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema:\n");
+		builder.append(" ".repeat(16)).append("type: object\n");
+		builder.append(" ".repeat(16)).append("properties:\n");
+		builder.append(" ".repeat(18)).append("token:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
+		builder.append(" ".repeat(18)).append("refresh_token:\n");
+		builder.append(" ".repeat(20)).append("type: string\n");
+		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
 	}
 }
