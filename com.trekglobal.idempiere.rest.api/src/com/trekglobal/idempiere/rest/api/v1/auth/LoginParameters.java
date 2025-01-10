@@ -32,44 +32,44 @@ package com.trekglobal.idempiere.rest.api.v1.auth;
  */
 public class LoginParameters {
 	
-	private int roleId;
-	private int clientId;
-	private int organizationId;
-	private int warehouseId;
+	private String roleId;
+	private String clientId;
+	private String organizationId;
+	private String warehouseId;
 	private String language;
 
 	public LoginParameters() {
 	}
 
-	public int getRoleId() {
+	public String getRoleId() {
 		return roleId;
 	}
 
-	public void setRoleId(int roleId) {
+	public void setRoleId(String roleId) {
 		this.roleId = roleId;
 	}
 
-	public int getClientId() {
+	public String getClientId() {
 		return clientId;
 	}
 
-	public void setClientId(int clientId) {
+	public void setClientId(String clientId) {
 		this.clientId = clientId;
 	}
 
-	public int getOrganizationId() {
+	public String getOrganizationId() {
 		return organizationId;
 	}
 
-	public void setOrganizationId(int organizationId) {
+	public void setOrganizationId(String organizationId) {
 		this.organizationId = organizationId;
 	}
 
-	public int getWarehouseId() {
+	public String getWarehouseId() {
 		return warehouseId;
 	}
 
-	public void setWarehouseId(int warehouseId) {
+	public void setWarehouseId(String warehouseId) {
 		this.warehouseId = warehouseId;
 	}
 
