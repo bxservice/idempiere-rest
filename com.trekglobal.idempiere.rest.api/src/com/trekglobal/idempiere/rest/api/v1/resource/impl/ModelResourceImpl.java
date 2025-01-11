@@ -59,6 +59,7 @@ import org.compiere.process.ProcessInfo;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.MimeType;
 import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
@@ -885,7 +886,8 @@ public class ModelResourceImpl implements ModelResource {
 							zipFile = entry.getFile(zipFile);
 							if (asJson == null) {
 								FileStreamingOutput fso = new FileStreamingOutput(zipFile);
-								return Response.ok(fso).build();
+								String contentType = MimeType.getMimeType(zipFile.getName());
+								return Response.ok(fso).header("Content-Type", contentType).build();
 							} else {
 								JsonObject json = new JsonObject();
 								byte[] binaryData = Files.readAllBytes(zipFile.toPath());

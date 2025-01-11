@@ -40,6 +40,7 @@ import javax.ws.rs.core.Response.Status;
 import org.compiere.model.MUser;
 import org.compiere.util.CLogger;
 import org.compiere.util.Env;
+import org.compiere.util.MimeType;
 import org.compiere.util.Util;
 import org.idempiere.distributed.IClusterMember;
 import org.idempiere.distributed.IClusterService;
@@ -132,8 +133,7 @@ public class FileResourceImpl implements FileResource {
 						} else if (lfn.endsWith(".csv") || lfn.endsWith(".ssv") || lfn.endsWith(".log")) {
 							contentType = MediaType.TEXT_PLAIN;
 						} else {
-							MimetypesFileTypeMap map = new MimetypesFileTypeMap();
-							contentType = map.getContentType(file);
+							contentType = MimeType.getMimeType(file.getName());
 						}
 						if (Util.isEmpty(contentType, true))
 							contentType = MediaType.APPLICATION_OCTET_STREAM;
