@@ -481,7 +481,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			MTable childTable = MTable.get(Env.getCtx(), childTableName);
 			if (childTable != null && childTable.getAD_Table_ID() > 0) {
-				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(field, MTable.getClass(childTableName));
+				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(childTableName, MTable.getClass(childTableName));
 				JsonArray fieldArray = fieldElement.getAsJsonArray();
 				JsonArray savedArray = new JsonArray();
 				try {
