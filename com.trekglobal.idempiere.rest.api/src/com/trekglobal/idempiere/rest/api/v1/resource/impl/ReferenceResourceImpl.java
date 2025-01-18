@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -61,7 +62,11 @@ public class ReferenceResourceImpl implements ReferenceResource {
 	@Override
 	public Response getList(String refID) {
 
-		MReference ref = (MReference) RestUtils.getPO(MReference.Table_Name, refID, false, false);
+		MReference ref = null;
+		if (Pattern.matches("\\d+", refID) || RestUtils.isUUID(refID))
+			ref = (MReference) RestUtils.getPO(MReference.Table_Name, refID, false, false);
+		else
+			ref = new Query(Env.getCtx(), MReference.Table_Name, "Name=?", null).setParameters(refID).first();
 
 		if (ref == null) {
 			return Response.status(Status.NOT_FOUND)
