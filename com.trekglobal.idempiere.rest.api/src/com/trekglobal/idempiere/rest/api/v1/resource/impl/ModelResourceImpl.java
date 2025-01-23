@@ -211,6 +211,9 @@ public class ModelResourceImpl implements ModelResource {
 	private void autoExpandRelated(StringBuilder expands, MRestViewRelated related) {
 		expands.append(related.getName());		
 		MRestView view = MRestView.get(related.getREST_RelatedRestView_ID());
+		//check tree, avoid infinite loop
+		if (view.getREST_View_ID() == related.getREST_View_ID())
+			return;
 		MRestViewRelated[] relateds = view.getRelatedViews();
 		if (relateds != null && relateds.length > 0) {
 			StringBuilder childs = new StringBuilder();

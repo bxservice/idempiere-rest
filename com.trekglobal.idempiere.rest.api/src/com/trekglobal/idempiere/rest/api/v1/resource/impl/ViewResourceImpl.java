@@ -261,8 +261,11 @@ public class ViewResourceImpl implements ViewResource {
 		MRestViewRelated[] relatedViews = view.getRelatedViews();
 		for (MRestViewRelated relatedView : relatedViews) {
 			if (relatedView.isRestAutoExpand()) {
+				//check tree, avoid infinite loop
+				if (view.getREST_View_ID() == relatedView.getREST_View_ID())
+					continue;
 				MRestView childView = MRestView.get(relatedView.getREST_RelatedRestView_ID()); 
-				buildYAMLForView(childView, header);
+				buildYAMLForView(childView, header);				
 				addRelatedViews(childView, header);
 			}
 		}

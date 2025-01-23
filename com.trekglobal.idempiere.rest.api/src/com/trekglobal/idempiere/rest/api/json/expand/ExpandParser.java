@@ -207,6 +207,11 @@ public class ExpandParser {
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {childKeyColumn, "model-name"});
 				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject, detailView);
+				//expand tree
+				if (po.get_Table_ID() == child.get_Table_ID()) {
+					ExpandParser expandParser = new ExpandParser(child, view, expandParameter);
+					ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), childJsonObject);
+				}
 				childArray.add(childJsonObject);
 			}
 			tableNameChildArrayMap.put(restViewRelated != null ? restViewRelated.getName() : detailEntity, childArray);

@@ -303,9 +303,27 @@ public class RestUtils {
 		MTable cTable = MTable.get(Env.getCtx(), childTable);
 		if (cTable == null || cTable.getAD_Table_ID()==0) {
 			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + childTable, Status.NOT_FOUND);
-		}
+		}		
 		MColumn[] cColumns = cTable.getColumns(false);
 		String[] parentKeys = pTable.getKeyColumns();
+		
+		//handle tree
+		if (pTable.getAD_Table_ID() == cTable.getAD_Table_ID())
+		{
+			if (cTable.getColumn("Parent_ID") != null)
+				return parentKeys[0]+":Parent_ID";
+			for(MColumn col : cColumns) {
+				if (col.isKey())
+					continue;
+				if (col.getColumnName().endsWith("_ID")) {
+					if (parentTable.equalsIgnoreCase(col.getReferenceTableName())) {
+						return parentKeys[0]+":"+col.getColumnName();
+					}
+				}
+			}
+			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has no column that links to the parent table: " + childTable, Status.INTERNAL_SERVER_ERROR);
+		}
+		
 		//check parent keys
 		if (parentKeys.length == 1) {
 			if (cTable.getColumnIndex(parentKeys[0]) >= 0) {
