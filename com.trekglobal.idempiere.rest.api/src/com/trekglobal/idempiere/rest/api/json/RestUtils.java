@@ -310,8 +310,14 @@ public class RestUtils {
 		//handle tree
 		if (pTable.getAD_Table_ID() == cTable.getAD_Table_ID())
 		{
-			if (cTable.getColumn("Parent_ID") != null)
-				return parentKeys[0]+":Parent_ID";
+			if (cTable.getColumn("Parent_ID") != null) {
+				if (parentKeys.length == 2 
+					&& "AD_Tree_ID".equals(parentKeys[0]) 
+					&& "Node_ID".equals(parentKeys[1]))
+					return parentKeys[1]+":Parent_ID";
+				else
+					return parentKeys[0]+":Parent_ID";
+			}
 			for(MColumn col : cColumns) {
 				if (col.isKey())
 					continue;
