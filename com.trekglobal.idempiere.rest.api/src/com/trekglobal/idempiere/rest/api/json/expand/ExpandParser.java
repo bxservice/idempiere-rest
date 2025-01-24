@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
+import org.compiere.model.MTree_Base;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
@@ -112,6 +113,13 @@ public class ExpandParser {
 		if (columnIndex < 0)
 			return false;
 		
+		//check expand tree node
+		if ("Node_ID".equalsIgnoreCase(columnName)) {
+			MTable masterTable = MTable.get(Env.getCtx(), masterTableName);
+			if (masterTable.getColumn("AD_Tree_ID") != null && masterTable.getColumn("AD_Table_ID") != null) 
+				return true;
+		}
+		
 		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
 		if (column == null || Util.isEmpty(column.getReferenceTableName())) {
 			throw new IDempiereRestException("Expand error", "Column " + relatedResource + " cannot be expanded", Status.BAD_REQUEST);
@@ -147,6 +155,10 @@ public class ExpandParser {
 		}
 		MColumn column = MColumn.get(Env.getCtx(), masterTableName, columnName);
 		String tableName = referenceView != null ? MTable.getTableName(Env.getCtx(), referenceView.getAD_Table_ID()) : column.getReferenceTableName();
+		//handle ad_treenode and ad_tree
+		if ("Node_ID".equalsIgnoreCase(columnName) && po.get_ValueAsInt("AD_Tree_ID") > 0) {
+			tableName = MTree_Base.get(po.get_ValueAsInt("AD_Tree_ID")).getSourceTableName(true);
+		}
 		String foreignTableID = po.get_ValueAsString(columnName);
 		
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
@@ -207,6 +219,11 @@ public class ExpandParser {
 			for (PO child : childPOs) {
 				JsonObject childJsonObject = serializer.toJson(child, detailView, includes, new String[] {childKeyColumn, "model-name"});
 				expandChildDetails(child, ExpandUtils.getExpandClause(operators), childJsonObject, detailView);
+				//expand tree
+				if (po.get_Table_ID() == child.get_Table_ID()) {
+					ExpandParser expandParser = new ExpandParser(child, view, expandParameter);
+					ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), childJsonObject);
+				}
 				childArray.add(childJsonObject);
 			}
 			tableNameChildArrayMap.put(restViewRelated != null ? restViewRelated.getName() : detailEntity, childArray);
