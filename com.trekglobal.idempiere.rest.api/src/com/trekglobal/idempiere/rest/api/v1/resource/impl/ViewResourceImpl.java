@@ -224,6 +224,8 @@ public class ViewResourceImpl implements ViewResource {
 	@Override
 	public Response getModelYAML(String tableName) {
 		MRestView view = MRestView.get(tableName);
+		if (view == null)
+			return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid view name", "No match found for view name: ", tableName);
 		
 		StringBuilder header = new StringBuilder();
 		header.append("openapi: 3.0.0\n");
