@@ -1157,6 +1157,7 @@ public class ModelResourceImpl implements ModelResource {
 		
 		buildYAMLForTable(table, body);
 		
+		YAMLSchema.addErrorResponseReference(header);
 		if (body.indexOf("#/components/schemas/Image") > 0) {
 			YAMLSchema.addImageReference(header);
 		}
@@ -1178,10 +1179,12 @@ public class ModelResourceImpl implements ModelResource {
 		builder.append(" ".repeat(6)).append("properties:\n");
 		builder.append(" ".repeat(8)).append("id:\n");
 		builder.append(" ".repeat(10)).append("type: integer\n");
-		builder.append(" ".repeat(10)).append("description: table id\n");
+		builder.append(" ".repeat(10)).append("readOnly: true\n");
+		builder.append(" ".repeat(10)).append("description: record id\n");
 		builder.append(" ".repeat(8)).append("uid:\n");
 		builder.append(" ".repeat(10)).append("type: string\n");
-		builder.append(" ".repeat(10)).append("description: table uuid\n");
+		builder.append(" ".repeat(10)).append("readOnly: true\n");
+		builder.append(" ".repeat(10)).append("description: record uuid\n");
 		
 		YAMLSchema.addTableProperties(table, builder, 8);
 	}

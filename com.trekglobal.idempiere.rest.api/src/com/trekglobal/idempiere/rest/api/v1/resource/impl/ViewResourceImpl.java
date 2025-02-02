@@ -239,6 +239,7 @@ public class ViewResourceImpl implements ViewResource {
 		StringBuilder body = new StringBuilder();		
 		buildYAMLForView(view, body);
 		
+		YAMLSchema.addErrorResponseReference(header);
 		if (body.indexOf("#/components/schemas/Image") > 0) {
 			YAMLSchema.addImageReference(header);
 		}
@@ -281,11 +282,13 @@ public class ViewResourceImpl implements ViewResource {
 			body.append(" ".repeat(8)).append("id:\n");
 			body.append(" ".repeat(10)).append("type: integer\n");
 			body.append(" ".repeat(10)).append("description: record id\n");
+			body.append(" ".repeat(10)).append("readOnly: true\n");
 		}
 		body.append(" ".repeat(8)).append("uid:\n");
 		body.append(" ".repeat(10)).append("type: string\n");
 		body.append(" ".repeat(10)).append("description: record uuid\n");
-				
+		body.append(" ".repeat(10)).append("readOnly: true\n");
+		
 		YAMLSchema.addViewProperties(view, body, 8);
 	}	
 }

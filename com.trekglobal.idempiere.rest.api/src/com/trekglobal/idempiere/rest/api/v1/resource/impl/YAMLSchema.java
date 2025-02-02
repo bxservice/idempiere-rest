@@ -25,7 +25,9 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MLocation;
@@ -48,6 +50,8 @@ import com.trekglobal.idempiere.rest.api.model.MRestViewRelated;
  */
 public class YAMLSchema {
 
+	private final static List<String> readonlyColumns = Arrays.asList("ad_client_id","created","createdby","updated","updatedby");
+	
 	private YAMLSchema() {
 	}
 
@@ -188,10 +192,12 @@ public class YAMLSchema {
 				builder.append(" ".repeat(offset+6)).append("description: record identifier\n");
 				builder.append(" ".repeat(offset+4)).append("model-name:\n");
 				builder.append(" ".repeat(offset+6)).append("type: string\n");
+				builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
 				builder.append(" ".repeat(offset+6)).append("enum:\n");
 				builder.append(" ".repeat(offset+8)).append(" - '").append("c_location").append("'\n");
 				builder.append(" ".repeat(offset+4)).append("view-name:\n");
 				builder.append(" ".repeat(offset+6)).append("type: string\n");
+				builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
 				builder.append(" ".repeat(offset+6)).append("enum:\n");
 				builder.append(" ".repeat(offset+8)).append(" - '").append(locationView.getName()).append("'\n");
 				addViewProperties(locationView, builder, offset+4);
@@ -201,6 +207,7 @@ public class YAMLSchema {
 				addLookupProperty(builder, column, offset+2);
 			} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: byte\n");
 				builder.append(" ".repeat(offset+2)).append("description: base64 encoded binary content\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.YesNo) {
 				builder.append(" ".repeat(offset+2)).append("type: boolean\n");
@@ -216,18 +223,21 @@ public class YAMLSchema {
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.Date) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: date\n");
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 				builder.append(" ".repeat(offset+2)).append("example: ")
 					.append(new DateTypeConverter().toJsonValue(DisplayType.Date, new Date())).append("\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.Time) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: time\n");
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 				builder.append(" ".repeat(offset+2)).append("example: ")
 					.append(new DateTypeConverter().toJsonValue(DisplayType.Time, new Date())).append("\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.DateTime || column.getAD_Reference_ID() == DisplayType.TimestampWithTimeZone) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: date-time\n");
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 				builder.append(" ".repeat(offset+2)).append("example: ")
@@ -237,6 +247,10 @@ public class YAMLSchema {
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 			}
+			
+			//readonly columns
+			if (readonlyColumns.contains(column.getColumnName().toLowerCase()))
+				builder.append(" ".repeat(offset+2)).append("readOnly: true\n");
 		}
 		
 		MRestViewRelated[] relatedViews = view.getRelatedViews();
@@ -271,6 +285,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(10)).append("description: image file name\n");
 		builder.append(" ".repeat(8)).append("data:\n");
 		builder.append(" ".repeat(10)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("format: byte\n");
 		builder.append(" ".repeat(10)).append("description: base64 encoded image content\n");
 	}
 	
@@ -286,6 +301,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(offset+2)).append("properties:\n");
 		builder.append(" ".repeat(offset+4)).append("propertyLabel: \n");
 		builder.append(" ".repeat(offset+6)).append("type: string\n");
+		builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+6)).append("enum:\n");
 		builder.append(" ".repeat(offset+8)).append(" - '").append(label).append("'\n");
 		builder.append(" ".repeat(offset+4)).append("id:\n");
@@ -296,6 +312,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(offset+6)).append("description: record identifier\n");
 		builder.append(" ".repeat(offset+4)).append("model-name:\n");
 		builder.append(" ".repeat(offset+6)).append("type: string\n");
+		builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+6)).append("enum:\n");
 		builder.append(" ".repeat(offset+8)).append(" - '").append("c_location").append("'\n");
 		
@@ -305,6 +322,25 @@ public class YAMLSchema {
 		builder.append(locationYaml.toString());
 	}
 
+	/**
+	 * Add error response schema to builder
+	 * @param builder
+	 */
+	public static void addErrorResponseReference(StringBuilder builder) {
+		builder.append(" ".repeat(4)).append("errorResponse").append(":\n");
+		builder.append(" ".repeat(6)).append("type: object\n");
+		builder.append(" ".repeat(6)).append("properties:\n");
+		builder.append(" ".repeat(8)).append("title:\n");
+		builder.append(" ".repeat(10)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("description: error summary text\n");
+		builder.append(" ".repeat(8)).append("status:\n");
+		builder.append(" ".repeat(10)).append("type: integer\n");
+		builder.append(" ".repeat(10)).append("description: http status\n");
+		builder.append(" ".repeat(8)).append("detail:\n");
+		builder.append(" ".repeat(10)).append("type: string\n");
+		builder.append(" ".repeat(10)).append("description: error detail text\n");
+	}
+	
 	/**
 	 * Add column lookup reference property to builder 
 	 * @param builder
@@ -317,6 +353,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(offset)).append("properties:\n");
 		builder.append(" ".repeat(offset+2)).append("propertyLabel: \n");
 		builder.append(" ".repeat(offset+4)).append("type: string\n");
+		builder.append(" ".repeat(offset+4)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+4)).append("enum:\n");
 		builder.append(" ".repeat(offset+6)).append(" - '").append(label).append("'\n");
 		builder.append(" ".repeat(offset+2)).append("id:\n");
@@ -327,6 +364,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(offset+4)).append("description: record identifier\n");
 		builder.append(" ".repeat(offset+2)).append("model-name:\n");
 		builder.append(" ".repeat(offset+4)).append("type: string\n");
+		builder.append(" ".repeat(offset+4)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+4)).append("enum:\n");
 		builder.append(" ".repeat(offset+6)).append(" - '").append(column.getReferenceTableName().toLowerCase()).append("'\n");
 	}
@@ -344,6 +382,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(offset)).append("properties:\n");
 		builder.append(" ".repeat(offset+2)).append("propertyLabel: \n");
 		builder.append(" ".repeat(offset+4)).append("type: string\n");
+		builder.append(" ".repeat(offset+4)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+4)).append("enum:\n");
 		builder.append(" ".repeat(offset+6)).append(" - '").append(label).append("'\n");
 		builder.append(" ".repeat(offset+2)).append("id:\n");
@@ -368,6 +407,7 @@ public class YAMLSchema {
 		}
 		builder.append(" ".repeat(offset+2)).append("model-name:\n");
 		builder.append(" ".repeat(offset+4)).append("type: string\n");
+		builder.append(" ".repeat(offset+4)).append("readOnly: true\n");
 		builder.append(" ".repeat(offset+4)).append("enum:\n");
 		builder.append(" ".repeat(offset+6)).append(" - '").append("ad_ref_list").append("'\n");
 	}
@@ -407,6 +447,7 @@ public class YAMLSchema {
 				addLookupProperty(builder, column, offset+2);
 			} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: byte\n");
 				builder.append(" ".repeat(offset+2)).append("description: base64 encoded binary content\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.YesNo) {
 				builder.append(" ".repeat(offset+2)).append("type: boolean\n");
@@ -422,6 +463,7 @@ public class YAMLSchema {
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.Date) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: date\n");
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 				builder.append(" ".repeat(offset+2)).append("example: ")
@@ -434,6 +476,7 @@ public class YAMLSchema {
 					.append(new DateTypeConverter().toJsonValue(DisplayType.Time, new Date())).append("\n");
 			} else if (column.getAD_Reference_ID() == DisplayType.DateTime || column.getAD_Reference_ID() == DisplayType.TimestampWithTimeZone) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
+				builder.append(" ".repeat(offset+2)).append("format: date-time\n");
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 				builder.append(" ".repeat(offset+2)).append("example: ")
@@ -443,6 +486,10 @@ public class YAMLSchema {
 				if (!Util.isEmpty(columnDescription))
 					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
 			}
+			
+			//readonly columns
+			if (readonlyColumns.contains(column.getColumnName().toLowerCase()))
+				builder.append(" ".repeat(offset+2)).append("readOnly: true\n");
 		}
 	}
 	
@@ -502,9 +549,11 @@ public class YAMLSchema {
 		builder.append(" ".repeat(8)).append("- name: id\n");
 		builder.append(" ".repeat(10)).append("in: path\n");
 		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(12)).append("oneOf: \n");
+		builder.append(" ".repeat(14)).append("- type: string\n");
+		builder.append(" ".repeat(14)).append("- type: integer\n");
 		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/expand'\n");
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/select'\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
@@ -513,6 +562,11 @@ public class YAMLSchema {
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'404':\n");
+		builder.append(" ".repeat(10)).append("description: Not found response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
 		//update by id
 		builder.append(" ".repeat(4)).append("put:\n");
 		builder.append(" ".repeat(6)).append("requestBody:\n");
@@ -523,24 +577,38 @@ public class YAMLSchema {
 		builder.append(" ".repeat(8)).append("- name: id\n");
 		builder.append(" ".repeat(10)).append("in: path\n");
 		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(12)).append("oneOf: \n");
+		builder.append(" ".repeat(14)).append("- type: string\n");
+		builder.append(" ".repeat(14)).append("- type: integer\n");
 		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
 		builder.append(" ".repeat(10)).append("description: Successful response\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'404':\n");
+		builder.append(" ".repeat(10)).append("description: Not found response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(8)).append("'500':\n");
+		builder.append(" ".repeat(10)).append("description: Error response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
 		//delete by id
 		builder.append(" ".repeat(4)).append("delete:\n");
 		builder.append(" ".repeat(6)).append("parameters:\n");
 		builder.append(" ".repeat(8)).append("- name: id\n");
 		builder.append(" ".repeat(10)).append("in: path\n");
 		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(12)).append("oneOf: \n");
+		builder.append(" ".repeat(14)).append("- type: string\n");
+		builder.append(" ".repeat(14)).append("- type: integer\n");
 		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: Record id\n");
+		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
 		builder.append(" ".repeat(10)).append("description: Successful response\n");
@@ -553,6 +621,16 @@ public class YAMLSchema {
 		builder.append(" ".repeat(20)).append("type: string\n");
 		builder.append(" ".repeat(20)).append("description: info or error message\n");
 		builder.append(" ".repeat(20)).append("example: 'Deleted'\n");
+		builder.append(" ".repeat(8)).append("'404':\n");
+		builder.append(" ".repeat(10)).append("description: Not found response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(8)).append("'500':\n");
+		builder.append(" ".repeat(10)).append("description: Error response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
 		addQueryRequest(name, view, builder);
 		//create record
 		builder.append(" ".repeat(4)).append("post:\n");
@@ -566,6 +644,11 @@ public class YAMLSchema {
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'500':\n");
+		builder.append(" ".repeat(10)).append("description: Error response\n");
+		builder.append(" ".repeat(10)).append("content:\n");
+		builder.append(" ".repeat(12)).append("application/json:\n");
+		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
 	}
 	
 	/**
@@ -592,16 +675,28 @@ public class YAMLSchema {
 		builder.append(" ".repeat(20)).append("type: object\n");
 		builder.append(" ".repeat(20)).append("properties:\n");
 		builder.append(" ".repeat(22)).append("clientId:\n");
-		builder.append(" ".repeat(24)).append("type: integer\n");
-		builder.append(" ".repeat(24)).append("description: Tenant identifier\n");
+		builder.append(" ".repeat(24)).append("oneOf:\n");
+		builder.append(" ".repeat(26)).append("- type: integer\n");
+		builder.append(" ".repeat(26)).append("- type: string\n");
+		builder.append(" ".repeat(24)).append("description: Tenant integer id or tenant search key\n");
 		builder.append(" ".repeat(24)).append("example: 1000000\n");
 		builder.append(" ".repeat(22)).append("roleId:\n");
-		builder.append(" ".repeat(24)).append("type: integer\n");
-		builder.append(" ".repeat(24)).append("description: Role identifier\n");
+		builder.append(" ".repeat(24)).append("oneOf:\n");
+		builder.append(" ".repeat(26)).append("- type: integer\n");
+		builder.append(" ".repeat(26)).append("- type: string\n");
+		builder.append(" ".repeat(24)).append("description: Role integer id or role name\n");
 		builder.append(" ".repeat(24)).append("example: 1000000\n");
 		builder.append(" ".repeat(22)).append("organizationId:\n");
-		builder.append(" ".repeat(24)).append("type: integer\n");
-		builder.append(" ".repeat(24)).append("description: Organization identifier\n");
+		builder.append(" ".repeat(24)).append("oneOf:\n");
+		builder.append(" ".repeat(26)).append("- type: integer\n");
+		builder.append(" ".repeat(26)).append("- type: string\n");
+		builder.append(" ".repeat(24)).append("description: Organization integer id or organization name\n");
+		builder.append(" ".repeat(24)).append("example: 1000000\n");
+		builder.append(" ".repeat(22)).append("warehouseId:\n");
+		builder.append(" ".repeat(24)).append("oneOf:\n");
+		builder.append(" ".repeat(26)).append("- type: integer\n");
+		builder.append(" ".repeat(26)).append("- type: string\n");
+		builder.append(" ".repeat(24)).append("description: Warehouse integer id or warehouse name\n");
 		builder.append(" ".repeat(24)).append("example: 1000000\n");
 		builder.append(" ".repeat(22)).append("language:\n");
 		builder.append(" ".repeat(24)).append("type: string\n");
