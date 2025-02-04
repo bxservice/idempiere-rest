@@ -548,7 +548,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				name = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + name, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + name, Status.NOT_FOUND), "Not found");
 		}
 		
 		String tableName = name;
@@ -700,7 +700,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		POParser poParser = new POParser(tableName, id, true, true);
@@ -731,7 +731,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		JsonArray array = new JsonArray();
@@ -764,7 +764,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
@@ -872,7 +872,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
@@ -983,7 +983,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
@@ -1015,7 +1015,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
 		POParser poParser = new POParser(tableName, id, true, false);
@@ -1058,7 +1058,7 @@ public class ModelResourceImpl implements ModelResource {
 			if (view != null)
 				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 			else
-				throw new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND);
+				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		} 
 		
 		POParser poParser = new POParser(tableName, id, true, false);
