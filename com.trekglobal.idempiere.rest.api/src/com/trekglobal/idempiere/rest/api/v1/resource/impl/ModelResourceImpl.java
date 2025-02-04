@@ -155,7 +155,7 @@ public class ModelResourceImpl implements ModelResource {
 						return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for table name: ", original);
 				}
 				MTable table = MTable.get(Env.getCtx(), tableName);
-				if (!table.columnExists(singleProperty)) {
+				if (table.getColumnIndex(singleProperty) < 0) {
 					return ResponseUtils.getResponseError(Status.NOT_FOUND, "Invalid property name", "No match found for column name: ", singleProperty);
 				}
 				includes = new String[] {singleProperty};
