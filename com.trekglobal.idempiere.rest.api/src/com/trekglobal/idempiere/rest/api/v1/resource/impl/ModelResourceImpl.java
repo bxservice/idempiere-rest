@@ -484,6 +484,10 @@ public class ModelResourceImpl implements ModelResource {
 					return null;
 			}
 			MTable childTable = MTable.get(Env.getCtx(), childTableName);
+			if (!RestUtils.isValidDetailTable(childTable, RestUtils.getKeyColumnName(po.get_TableName()))) {
+				throw new IDempiereRestException("Wrong detail", "Cannot create detail records for the table because it has no column that links to the parent table: " + childTableName, Status.INTERNAL_SERVER_ERROR);
+			}
+
 			if (childTable != null && childTable.getAD_Table_ID() > 0) {
 				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(childTableName, MTable.getClass(childTableName));
 				JsonArray fieldArray = fieldElement.getAsJsonArray();
@@ -609,6 +613,10 @@ public class ModelResourceImpl implements ModelResource {
 					}
 					String childTableName = childView != null ? MTable.getTableName(Env.getCtx(), childView.getAD_Table_ID()) : field;
 					MTable childTable = MTable.get(Env.getCtx(), childTableName);
+					if (!RestUtils.isValidDetailTable(childTable, RestUtils.getKeyColumnName(po.get_TableName()))) {
+						throw new IDempiereRestException("Wrong detail", "Cannot create/update detail records for the table because it has no column that links to the parent table: " + childTableName, Status.INTERNAL_SERVER_ERROR);
+					}
+
 					if (childTable != null && childTable.getAD_Table_ID() > 0) {									
 						IPOSerializer childSerializer = IPOSerializer.getPOSerializer(childTableName, MTable.getClass(childTableName));
 						JsonArray fieldArray = fieldElement.getAsJsonArray();
