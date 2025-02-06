@@ -25,6 +25,8 @@ package com.trekglobal.idempiere.rest.api.model;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.adempiere.exceptions.AdempiereException;
@@ -227,4 +229,41 @@ public class MAuthToken extends X_REST_AuthToken implements ImmutablePOSupport {
 		return this;
 	}
 
+	/**
+	 * Deactivate server token by user, role or tenant
+	 * @param userId AD_User_ID
+	 * @param roleId AD_Role_ID
+	 * @param clientId AD_Client_ID
+	 * @param trxName
+	 * @return Number of auth token deactivated
+	 */
+	public static int deactivateTokens(int userId, int roleId, int clientId, String trxName) {
+		if (userId < 0 && roleId < 0 && clientId < 0)
+			return 0;
+		
+		List<Object> parameters = new ArrayList<Object>();
+		StringBuilder whereClause = new StringBuilder("(IsExpired='N' AND IsActive='Y')");
+		if (userId >= 0) {
+			whereClause.append(" AND (AD_User_ID=?)");
+			parameters.add(userId);
+		}
+		if (roleId >= 0) {
+			whereClause.append(" AND (AD_Role_ID=?)");
+			parameters.add(roleId);
+		}
+		if (clientId >= 0) {
+			whereClause.append(" AND (AD_Client_ID=?)");
+			parameters.add(clientId);
+		}
+		Query query = new Query(Env.getCtx(), Table_Name, whereClause.toString(), trxName);		
+		query.setParameters(parameters);
+		List<MAuthToken> list = query.list();
+		int cnt = 0;
+		for(MAuthToken authToken : list) {
+			authToken.setIsActive(false);
+			authToken.saveEx();
+			cnt++;
+		}
+		return cnt;
+	}
 }

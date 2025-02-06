@@ -30,6 +30,8 @@ import java.util.Arrays;
 
 import org.adempiere.base.event.AbstractEventHandler;
 import org.adempiere.base.event.IEventTopics;
+import org.compiere.model.MClient;
+import org.compiere.model.MRole;
 import org.compiere.model.MUser;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
@@ -53,6 +55,8 @@ public class RESTEventHandler extends AbstractEventHandler {
 		log.info("");
 
 		registerTableEvent(IEventTopics.PO_AFTER_CHANGE, MUser.Table_Name);
+		registerTableEvent(IEventTopics.PO_AFTER_CHANGE, MRole.Table_Name);
+		registerTableEvent(IEventTopics.PO_AFTER_CHANGE, MClient.Table_Name);
 	} // initialize
 
 	/**
@@ -72,9 +76,28 @@ public class RESTEventHandler extends AbstractEventHandler {
 			if (po.is_ValueChanged(MUser.COLUMNNAME_Password)) {
 				MUser user = (MUser) po;
 				expireTokens(user);
+			} else if (po.is_ValueChanged(MUser.COLUMNNAME_IsActive)) {
+				MUser user = (MUser) po;
+				if (!user.isActive()) {
+					MAuthToken.deactivateTokens(user.getAD_User_ID(), -1, -1, user.get_TrxName());
+					expireTokens(user);
+				}
 			}
-		}
-
+		} else if (po instanceof MRole && type.equals(IEventTopics.PO_AFTER_CHANGE)) {
+			if (po.is_ValueChanged(MRole.COLUMNNAME_IsActive)) {
+				MRole role = (MRole) po;
+				if (!role.isActive())
+					MAuthToken.deactivateTokens(-1, role.getAD_Role_ID(), -1, role.get_TrxName());
+			}
+		} else if (po instanceof MClient && type.equals(IEventTopics.PO_AFTER_CHANGE)) {
+			if (po.is_ValueChanged(MClient.COLUMNNAME_IsActive)) {
+				MClient client = (MClient) po;
+				if (!client.isActive()) {
+					MAuthToken.deactivateTokens(-1, -1, client.getAD_Client_ID(), client.get_TrxName());
+					MRefreshToken.expireTokens("AD_Client_ID=?", MRefreshToken.REST_REVOKECAUSE_ManualExpire, new ArrayList<>(Arrays.asList(client.getAD_Client_ID())));
+				}
+			}
+		}		
 	} // doHandleEvent
 
 	/**
