@@ -75,12 +75,12 @@ public class RESTEventHandler extends AbstractEventHandler {
 		if (po instanceof MUser && type.equals(IEventTopics.PO_AFTER_CHANGE)) {
 			if (po.is_ValueChanged(MUser.COLUMNNAME_Password)) {
 				MUser user = (MUser) po;
-				expireTokens(user);
+				expireTokens(user, MRefreshToken.REST_REVOKECAUSE_PasswordChange);
 			} else if (po.is_ValueChanged(MUser.COLUMNNAME_IsActive)) {
 				MUser user = (MUser) po;
 				if (!user.isActive()) {
 					MAuthToken.deactivateTokens(user.getAD_User_ID(), -1, -1, user.get_TrxName());
-					expireTokens(user);
+					expireTokens(user, MRefreshToken.REST_REVOKECAUSE_ManualExpire);
 				}
 			}
 		} else if (po instanceof MRole && type.equals(IEventTopics.PO_AFTER_CHANGE)) {
@@ -97,16 +97,17 @@ public class RESTEventHandler extends AbstractEventHandler {
 					MRefreshToken.expireTokens("AD_Client_ID=?", MRefreshToken.REST_REVOKECAUSE_ManualExpire, new ArrayList<>(Arrays.asList(client.getAD_Client_ID())));
 				}
 			}
-		}		
+		}
 	} // doHandleEvent
 
 	/**
 	 * Expire all user tokens because of password change
 	 * @param user
+	 * @param cause
 	 */
-	public void expireTokens(MUser user) {
+	public void expireTokens(MUser user, String cause) {
 		log.info("");
-		MRefreshToken.expireTokens("CreatedBy=?", MRefreshToken.REST_REVOKECAUSE_PasswordChange, new ArrayList<>(Arrays.asList(user.getAD_User_ID())));
+		MRefreshToken.expireTokens("CreatedBy=?", cause, new ArrayList<>(Arrays.asList(user.getAD_User_ID())));
 	} // expireTokens
 
 }
