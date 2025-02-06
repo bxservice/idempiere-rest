@@ -372,6 +372,10 @@ public class RestUtils {
 		return keyColumns[0];
 	}
 	
+	public static boolean isValidDetailTable(MTable childTable, String parentKeyColumnName) {
+		return childTable != null && childTable.getColumnIndex(parentKeyColumnName) > 0;
+	}
+	
 	/**
 	 * Defines whether the UUID value of a lookup record is returned in the response  
 	 * @param tableName
