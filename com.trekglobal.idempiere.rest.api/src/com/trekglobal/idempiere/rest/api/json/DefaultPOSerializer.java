@@ -388,25 +388,24 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				String columnName = jsonField;
 				if (view != null) {
 					columnName = view.toColumnName(jsonField);
-					if (columnName == null)
-						throw new AdempiereException("Column " + jsonField + " does not exist");
+					if (columnName == null) {
+						Optional<MRestViewColumn> optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(jsonField)).findFirst();
+						if (optional.isPresent()) {
+							StringBuilder error = new StringBuilder("Wrong name for column ")
+									.append(jsonField).append(", you must use ")
+									.append(optional.get().getName());
+							throw new AdempiereException(error.toString());
+						} else {
+							throw new AdempiereException("Column " + jsonField + " does not exist");
+						}
+					}
 				}
 				int colIdx = po.get_ColumnIndex(columnName);
 				if (colIdx < 0)
 					throw new AdempiereException("Column " + jsonField + " does not exist");
 				columnName = po.get_ColumnName(colIdx);
 				if (view != null) {
-					Optional<MRestViewColumn> optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equals(jsonField)).findFirst();
-					if (!optional.isPresent() && !jsonField.equals(columnName)) {						
-						StringBuilder error = new StringBuilder("Wrong name for column ")
-								.append(jsonField).append(", you must use ");
-						optional = Arrays.stream(view.getColumns()).filter(e -> MColumn.get(e.getAD_Column_ID()).getColumnName().equalsIgnoreCase(jsonField))
-								.findFirst();
-						if (optional.isPresent())
-							error.append(optional.get().getName()).append(" or ");
-						error.append(columnName);
-						throw new AdempiereException(error.toString());
-					}
+					//already validated in view.toColumnName(jsonField) call above
 					continue;
 				}
 				
