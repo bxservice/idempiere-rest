@@ -1,0 +1,6190 @@
+openapi: 3.0.0
+info:
+  title: iDempiere REST endpoints
+  description: >-
+    iDempiere REST endpoints.
+  version: 1.0.0
+servers:
+  - url: '{base_url}'
+    variables:
+      base_url:
+        enum:
+          - 'http://localhost:8080/api/v1'
+          - 'https://localhost:8443/api/v1'
+          - 'https://test.idempiere.org/api/v1'
+        default: 'http://localhost:8080/api/v1'
+tags:
+  - name: Authentication
+    description: Endpoints to get authorization token from server
+  - name: Models
+    description: Endpoints for working with AD_Table models
+  - name: Views
+    description: Endpoints for working with REST_View
+  - name: Windows
+    description: Endpoints for working with AD_Window
+  - name: Forms
+    description: Endpoints for AD_Form
+  - name: Process
+    description: Endpoints for AD_Process
+  - name: Tasks
+    description: Endpoints for AD_Task
+  - name: Files
+    description: Endpoints to download server files
+  - name: References
+    description: Endpoints for AD_Reference
+  - name: Caches
+    description: Endpoints for working with server cache
+  - name: Nodes
+    description: Endpoints for working with server nodes
+  - name: ServerJobs
+    description: Endpoints for server jobs
+  - name: Schedulers
+    description: Endpoints for AD_Scheduler
+  - name: InfoWindows
+    description: Endpoints for AD_InfoWindow
+  - name: Workflows
+    description: Endpoints for working with workflow activity nodes
+  - name: StatusLines
+    description: Endpoints for AD_StatusLine
+  - name: Charts
+    description: Endpoints for AD_Chart
+  - name: Menutree
+    description: Endpoints to get menu tree
+components:
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT # optional, arbitrary value for documentation purposes  
+  parameters:
+    locale:
+      in: query
+      name: locale
+      required: false
+      schema:
+        type: string
+      description: set locale of request
+      examples:
+        useDefault:
+          value: ''
+        english_US:
+          value: en_US
+        spanish_Columnbia:
+          value: es_CO
+    expand:
+      in: query
+      name: $expand
+      required: false
+      schema:
+        type: string
+      description: expand of parent or child entities
+    filter:
+      in: query
+      name: $filter
+      required: false
+      schema:
+        type: string
+      description: query filter
+    orderby:
+      in: query
+      name: $orderby
+      required: false
+      schema:
+        type: string
+      description: ordering of query result
+    select:
+      in: query
+      name: $select
+      required: false
+      schema:
+        type: string
+      description: comma separated list of properties to be included in the json result object
+    top:
+      in: query
+      name: $top
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: first n items to return from query result
+    skip:
+      in: query
+      name: $skip
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: first n items to skip
+    valrule:
+      in: query
+      name: $valrule
+      required: false
+      schema:
+        type: integer
+        description: validation rule (AD_Val_Rule) id
+    context:
+      in: query
+      name: $context
+      required: false
+      schema:
+        type: string
+        description: inject context variable values for validation rule
+  responses:
+    NotFound:
+      description: The specified resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    ServerError:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BinaryResponse:
+      description: Successful response
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+  schemas:
+    AuthenticationParameters:
+      description: authentication parameters
+      type: object
+      properties:
+        clientId:
+          type: string
+          description: Tenant id or Tenant search key
+          example: 11 or GardenWorld
+        roleId:
+          type: string
+          description: Role id or Role name
+          example: 102 or GardenWorld Admin
+        organizationId:
+          type: string
+          description: Organization id or Organization name
+          example: 11 or HQ
+        warehouseId:
+          type: string
+          description: Warehouse identifier
+          example: 103 or HQ Warehouse
+        language:
+          type: string
+          description: Language code
+          example: en_US
+    AuthenticationRequest:
+      type: object
+      properties:
+        userName:
+          type: string
+          description: Username for authentication
+        password:
+          type: string
+          description: Password for authentication
+        parameters:
+          $ref: '#/components/schemas/AuthenticationParameters'
+    AuthenticationResponse:
+      description: authentication response
+      type: object
+      properties:
+         clients:
+           description: clients accessible.
+           type: array
+           items:
+             properties:
+               id:
+                 type: integer
+               name:
+                 type: string
+         userId:
+            type: integer
+            description: User identifier
+            example: 100
+         language:
+            type: string
+            description: Language code (e.g., en_US)
+            example: en_US
+         menuTreeId:
+            type: integer
+            description: Menu tree identifier
+            example: 10
+         token:
+            type: string
+            description: Authentication token (JWT)
+            example: "eyJraWQiOiJpZ..."
+         refresh_token:
+            type: string
+            description: Refresh token (JWT)
+            example: "eyJraWQiOiJpZ..."
+    JWKS:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: object
+            properties:
+              alg:
+                type: string
+                description: Algorithm used for the key.
+              k:
+                type: string
+                description: The key value (base64url encoded for 'oct' key type).
+              kid:
+                type: string
+                description: Key ID.
+              kty:
+                type: string
+                description: Key type.
+                enum: # Recommended to include possible values
+                  - oct
+                  - RSA # Add other possible values as needed
+                  - EC
+      description: The JSON Web Key Set (JWKS) is a set of keys containing the public keys used to verify JSON Web Token (JWT)
+    ErrorResponse:
+      description: Error response from server
+      type: object
+      properties:
+        title:
+          type: string
+          description: error summary
+          example: Save error
+        status:
+          type: integer
+          description: http status code
+          example: 500
+        detail:
+          type: string
+          description: error details
+          example: 'Could not save record - Require unique data'
+    Models:
+      type: object
+      properties:
+        models:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: The unique numeric identifier for the model.
+              uid:
+                type: string
+                format: uuid # Recommended to specify UUID format
+                description: The unique UUID identifier for the model.
+              model-name:
+                type: string
+                description: The machine-readable name of the model (e.g., database table name).
+              name:
+                type: string
+                description: The human-readable name of the model.
+              description:
+                type: string
+                description: A description of the model.
+          description: An array of model definitions.
+      description: A collection of models (AD_Table).
+    Attachments:
+      type: object
+      properties:
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: attachment name
+              contentType:
+                type: string
+                description: attachment content type
+                example: image/png
+      description: An array of attachment entries
+    TabField:
+      description: tab field description
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Record identifier. Auto generate.
+          example: 2211
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier. Auto generate.
+          example: e9347fba-ff00-4a2f-8f81-d7cbe9f879a2
+        Name:
+          type: string
+          description: field name
+          example: 'Name'
+        Description:
+          type: string
+          description: field description
+        Help:
+          type: string
+          description: field help text
+        AD_Column_ID:
+          type: object
+          properties:
+            propertyLabel:
+              type: string
+              enum:
+                - 'Column'
+            id:
+              type: integer
+              description: column id
+              example: 3039
+            identifier:
+              type: string
+              description: column identifier
+              example: 'Name_Name'
+            model-name: 
+              type: string
+              enum:
+               - ad_column
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - ad_field
+    WindowTab:
+      description: window tab definition
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Record identifier. Auto generate.
+          example: 227
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier. Auto generate.
+          example: 3984419c-9ea4-4c41-8309-324edd53bc45
+        Name:
+          type: string
+          description: tab name
+          example: 'Bank/Cash'
+        Description:
+          type: string
+          description: tab description
+        Help:
+          type: string
+          description: tab help text
+        SeqNo:
+          type: integer
+          description: tab sequence number
+        TabLevel:
+          type: integer
+          description: hierarchical tab level (starting from zero)
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - 'ad_tab'
+        slug:
+          type: string
+          description: slugify window name
+          example: 'bank-cash'
+    Window:
+      description: window definition
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Record identifier. Auto generate.
+          example: 158
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier. Auto generate.
+          example: bcf74ac0-959e-41e2-9e58-4269abab3788
+        Name:
+          type: string
+          description: window name
+          example: 'Bank/Cash'
+        Description:
+          type: string
+          description: window description
+        Help:
+          type: string
+          description: window help text
+        WindowType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Window Type'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'M'
+                - 'Q'
+                - 'T'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'Maintain'
+                - 'Query Only'
+                - 'Transaction'
+            model-name:
+              type: string
+              enum:
+                 - 'ad_ref_list'
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - 'ad_window'
+        slug:
+          type: string
+          description: slugify window name
+          example: 'bank-cash'
+        tabs:
+          type: array
+          items:
+            $ref: '#/components/schemas/WindowTab'
+    Form:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: View identifier
+          example: 100
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier for the view
+          example: a08a9a0f-ec92-426c-96a3-4a988c709c77
+        Name:
+          type: string
+          description: form name
+          example: Generate Invoices (manual)
+        Description:
+          type: string
+          description: form description
+        Help:
+          type: string
+          description: form help text
+        Classname:
+          type: string
+          description: Java class name or OSGi component name
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - ad_form
+        slug:
+          type: string
+          description: slugify form name
+          example: generate-invoices-manual
+    Forms:
+      type: object
+      properties:
+        forms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Form'
+    ProcessParameter:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: process parameter identifier
+          example: 617
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier for the process parameter
+          example: 763e446d-7031-43b4-9916-c29823953130
+        Name:
+          type: string
+          description: process parameter name
+          example: Business Partner
+        Description:
+          type: string
+          description: process parameter description
+        Help:
+          type: string
+          description: process parameter help text
+        SeqNo:
+          type: integer
+          description: process parameter sequence number
+          example: 10
+        AD_Reference_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Reference'
+            id:
+              type: integer
+              description: reference id
+              example: 200163
+            identifier:
+              type: string
+              description: reference identifier
+              example: Chosen Multiple Selection Search
+            model-name:
+              type: string
+              enum:
+                 - 'ad_reference'
+        AD_Reference_Value_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Reference Key'
+            id:
+              type: integer
+              description: reference id
+              example: 138
+            identifier:
+              type: string
+              description: reference identifier
+              example: C_BPartner (Trx)
+            model-name:
+              type: string
+              enum:
+                 - 'ad_reference'
+        AD_FieldGroup_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Field Group'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_fieldgroup'
+        IsRange:
+          type: boolean
+          description: true for range parameter, false otherwise
+        IsMandatory:
+          type: boolean
+          description: true for mandatory parameter, false otherwise
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: entity type id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        IsAutocomplete:
+          type: boolean
+        DateRangeOption:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Date Range Option'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'D'
+                - 'T'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'Date Editor and Range Picker'
+                - 'Text and Range Picker'
+            model-name:
+              type: string
+              enum:
+                - 'ad_ref_list'
+        DefaultValue:
+          type: string
+          description: Default value hierarchy, separated by ;
+        DefaultValue2:
+          type: string
+          description: Default value hierarchy, separated by ;
+        DisplayLogic:
+          type: string
+          description: If the Field is displayed, the result determines if the field is actually displayed                            
+        IsShowNegateButton:
+          type: boolean
+        MandatoryLogic:
+          type: string
+        Placeholder:
+          type: string
+        Placeholder2:
+          type: string
+        Query:
+          type: string
+          description: SQL
+        ReadOnlyLogic:
+          type: string
+          description: Logic to determine if field is read only (applies only when field is read-write)
+        ValueMax:
+          type: string
+          description: Maximum Value for a field
+        ValueMin:
+          type: string
+          description: Minimum Value for a field
+        VFormat:
+          type: string
+          description: 'Format of the value; Can contain fixed format elements, Variables: "_lLoOaAcCa09", or ~regex'
+        model-name:
+          type: string
+          enum:
+            - ad_process_para
+        parameterName:
+          type: string
+          description: parameter name
+          example: C_BPartner_ID
+    Process:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: process id
+          example: 200034
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier for process
+          example: 5577f73c-ca99-43b6-8ad6-272739305b60
+        Name:
+          type: string
+          description: process name
+          example: 1099 Extract
+        Description:
+          type: string
+          description: process description
+        Help:
+          type: string
+          description: process help text
+        IsReport:
+          type: boolean
+          description: true for report process, false otherwise
+        Value:
+          type: string
+          description: process search key
+          example: 1099 Extract
+        AD_ReportView_ID:
+          type: object
+          properties:
+            propertyLabel:
+              type: string
+              example: Report View
+            id:
+              type: integer
+              description: report view id
+              example: 200000
+            identifier:
+              type: integer
+              description: report view identifier
+              example: RV_T_1099Extract
+            model-name:
+              type: string
+              enum:
+                - ad_reportview
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: entity type id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        AD_PrintFormat_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Print Format'
+            id:
+              type: integer
+              description: print format id
+            identifier:
+              type: string
+              description: print format identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_printformat'
+        AD_Workflow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Workflow'
+            id:
+              type: integer
+              description: workflow id
+              example: 50020
+            identifier:
+              type: string
+              description: workflow identifier
+              example: Process_Asset_Adition
+            model-name:
+              type: string
+              enum:
+                 - 'ad_workflow'
+        model-name:
+          type: string
+          enum:
+            - ad_process
+        slug:
+          type: string
+          description: slugify process name
+          example: 1099-extract
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProcessParameter'
+    Processes:
+      type: object
+      properties:
+        processes :
+          type: array
+          items:
+            $ref: '#/components/schemas/Process'
+    ProcessInfo:
+      description: response for process and report
+      type: object
+      properties:
+        AD_PInstance_ID:
+          type: integer
+          description: process instance id
+        process:
+          type: string
+          description: process name
+          example: rv_orderdetail
+        summary:
+          type: string
+          description: process message text
+        isError:
+          type: boolean
+          description: true if run process fail with error, false otherwise
+        reportFile:
+          type: string
+          format: byte
+          description: base64 encoded process output (report or export file)
+        reportFileName:
+          type: string
+          example: Invoice_Header.pdf
+        reportFileLength:
+          type: integer
+          description: report file length
+        exportFile:
+          type: string
+          format: byte
+          description: base64 encoded process output (report or export file)
+        exportFileName:
+          type: string
+          example: Order_Detail.html
+        exportFileLength:
+          type: integer
+          description: export file length
+        nodeId:
+          type: string
+          description: server node id
+          format: uuid
+          example: c428b889-6ab1-4fd5-9730-641cc0ceca6b
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Task identifier
+        uid:
+          type: string
+          format: uuid
+          description: Unique identifier for the task
+        Name:
+          type: string
+          description: task name
+        Description:
+          type: string
+          description: task description
+        Help:
+          type: string
+          description: task help text
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: entity type id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - ad_task
+        slug:
+          type: string
+          description: slugify task name
+    Tasks:
+      type: object
+      properties:
+        tasks :
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'    
+    Reference:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: reference id
+        uid:
+          type: string
+          format: uuid
+          description: reference uuid
+        Name:
+          type: string
+          description: reference name
+        Description:
+          type: string
+          description: reference description
+        ValidationType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Validation type'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'D'
+                - 'L'
+                - 'T'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'DataType'
+                - 'List Validation'
+                - 'Table Validation'
+            model-name:
+              type: string
+              enum:
+                 - 'ad_ref_list'
+        VFormat:
+          type: string
+          description: 'Format of the value; Can contain fixed format elements, Variables: "_lLoOaAcCa09", or ~regex'
+        model-name:
+          type: string
+          enum:
+             - 'ad_reference'
+        reflist:
+          type: array
+          description: items for List validation reference
+          items:
+            type: object
+            properties:
+              value:
+                type: string
+                description: Identifier of reference list item
+              name:
+                type: string
+                description: Name of reference list item
+        reftable:
+          type: array
+          description: items for Table validation reference
+          items:
+            type: object
+    Cache:
+      type: object
+      properties: 
+        name:
+          type: string
+          description: cache name
+        tableName:
+          type: string
+          description: cache table name
+        size:
+          type: integer
+          description: cache size
+        expireMinutes:
+          type: integer
+          description: expire duration in minutes. 0 for no expire duration.
+        maxSize:
+          type: integer
+          description: maximum cache size. 0 for no maximum
+        distributed:
+          type: boolean
+          description: true for distributed cache, false otherwise
+    Caches:
+      type: object
+      properties:
+        caches:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cache'
+    ServerNode:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: server node id
+        hostName:
+          type: string
+          description: server host name
+        port:
+          type: integer
+          description: hazelcast port number
+          example: 5701
+    ServerNodes:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerNode'
+    ServerNodeInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Server node id
+          format: uuid
+        hostName:
+          type: string
+          description: Hostname of the server
+        home:
+          type: string
+          description: iDempiere home directory
+        os:
+          type: string
+          description: Operating system information
+        jvm:
+          type: string
+          description: Java Virtual Machine information
+        databaseDescription:
+          type: string
+          description: Database driver description
+        databaseConnectionURL:
+          type: string
+          description: Database connection URL
+        databaseStatus:
+          type: string
+          description: Database connection pool status
+        availableProcessors:
+          type: integer
+          description: Number of available processors
+        averageSystemLoad:
+          type: number
+          format: float
+          description: Average system load
+        memoryUsage:
+          type: string
+          description: Memory usage statistics
+        heapMemoryUsage:
+          type: string
+          description: Heap memory usage statistics
+        runtime:
+          type: string
+          description: Runtime information
+        runtimeUptime:
+          type: string
+          description: Runtime uptime
+        threadCount:
+          type: integer
+          description: Current thread count
+        peakThreadCount:
+          type: integer
+          description: Peak thread count
+        daemonThreadCount:
+          type: integer
+          description: Daemon thread count
+        totalStartedThreadCount:
+          type: integer
+          description: Total started thread count
+        logLevel:
+          type: string
+          description: Current log level
+        currentLogFile:
+          type: string
+          description: Path to the current log file
+        sessionCount:
+          type: integer
+          description: Number of active sessions
+        garbageCollectionCount:
+          type: integer
+          description: Number of garbage collection cycles
+        garbageCollectionTime:
+          type: integer
+          description: Total time spent in garbage collection (milliseconds or seconds, specify in description)
+    ServerJob:
+      type: object
+      properties:
+        id:
+          type: string
+          description: server job id
+        name:
+          type: string
+          description: server job name
+        nodeId:
+          type: string
+          description: server node id
+        hostName:
+          type: string
+          description: server node host name
+        port:
+          type: string
+          description: server node port
+        started:
+          type: boolean
+          description: true if server job has been started, false otherwise
+    ServerJobs:
+      type: object
+      properties:
+        servers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerJob'
+    ServerJobInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the server job
+          example: Scheduler100
+        name:
+          type: string
+          description: Name of the server job
+          example: Delete Old Notes
+        nodeId:
+          type: string
+          format: uuid
+          description: ID of the node where the server job runs
+          example: 1a27b1ca-7c3c-4de9-ba1c-6b58f216b959
+        hostName:
+          type: string
+          description: Hostname where the server job runs
+          example: fedora
+        port:
+          type: integer
+          description: server node port number
+          example: 5701
+        lastRun:
+          type: string
+          description: Timestamp of the last server job run
+          example: Feb 4, 2025, 3:32:02 PM MYT
+          format: date-time
+        info:
+          type: string
+          description: Information about the last run
+          example: "#1 - Last=MScheduler[100-Delete Old Notes] - Deleted = 0 Logs deleted=0"
+        nextRun:
+          type: string
+          description: Timestamp of the next server job run
+          example: Feb 11, 2025, 3:32:02 PM MYT
+          format: date-time
+        statistics:
+          type: string
+          description: Statistics about the server job runs
+          example: "Run #1 - Last=0'00:00:00.806 - Total=0'00:00:00.806 - Next 6'18:51:10.853"
+        started:
+          type: boolean
+          description: Indicates if the server job is started
+          example: true
+        sleeping:
+          type: boolean
+          description: Indicates if the server job is sleeping
+          example: true
+        interruptd:
+          type: boolean
+          description: Indicates if the server job was interrupted
+          example: false
+    ServerJobLog:
+      type: object
+      properties:
+        created:
+          type: string
+          format: date-time
+          description: created timestamp
+        summary:
+          type: string
+          description: log summary text
+        description:
+          type: string
+          description: log description text
+        reference:
+          type: string
+          description: log reference text
+        textMessage:
+          type: string
+          description: log message text
+        error:
+          type: boolean
+          description: true if this is error log, false otherwise
+    ServerJobLogs:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerJobLog'
+    SchedulerServerJob:
+      type: object
+      properties:
+        server-id:
+          type: string
+          description: server job id
+        scheduler-state:
+          type: string
+          description: state of scheduler
+        node-id:
+          type: string
+          description: server node id
+        node-host-name:
+          type: string
+          description: server node name
+        node-port:
+          type: integer
+          description: server node hazelcast port
+    AD_Scheduler:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: table id
+        uid:
+          type: string
+          description: table uuid
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_client'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_org'
+        AD_PrintFormat_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Print Format'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_printformat'
+        AD_Process_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Process'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_process'
+        AD_Schedule_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Schedule'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_schedule'
+        AD_Table_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Table'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_table'
+        Created:
+          type: string
+          description: Date this record was created
+          example: 2025-02-04T08:44:28Z
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_user'
+        DateLastRun:
+          type: string
+          description: Date the process was last run.
+          example: 2025-02-04T08:44:28Z
+        DateNextRun:
+          type: string
+          description: Date the process will run next
+          example: 2025-02-04T08:44:28Z
+        Description:
+          type: string
+          description: Optional short description of the record
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        KeepLogDays:
+          type: integer
+          description: Number of days to keep the log entries
+        Name:
+          type: string
+          description: Alphanumeric identifier of the entity
+        Record_ID:
+          type: string
+          description: Direct internal record ID
+        ReportOutputType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Report Output Type'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'CSV'
+                - 'HTML'
+                - 'PDF'
+                - 'XLS'
+                - 'XLSX'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'CSV'
+                - 'HTML'
+                - 'PDF'
+                - 'XLS'
+                - 'XLSX'
+            model-name:
+              type: string
+              enum:
+                 - 'ad_ref_list'
+        R_MailText_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Mail Template'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'r_mailtext'
+        SchedulerState:
+          type: string
+          description: State of this scheduler record (not scheduled, started or stopped)
+        Supervisor_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Supervisor'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_user'
+        Updated:
+          type: string
+          description: Date this record was updated
+          example: 2025-02-04T08:44:28Z
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_user'
+    AD_InfoWindow:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: table id
+        uid:
+          type: string
+          description: table uuid
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_client'
+        AD_CtxHelp_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Context Help'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_ctxhelp'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_org'
+        AD_Table_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Table'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_table'
+        AD_Window_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_window'
+        Created:
+          type: string
+          description: Date this record was created
+          example: 2025-02-04T09:50:55Z
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_user'
+        Description:
+          type: string
+          description: Optional short description of the record
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        FromClause:
+          type: string
+          description: SQL FROM clause
+        Help:
+          type: string
+          description: Comment or Hint
+        ImageURL:
+          type: string
+          description: URL of  image
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        IsDefault:
+          type: boolean
+          description: Default value
+        IsDistinct:
+          type: boolean
+          description: Select Distinct
+        isLoadPageNum:
+          type: boolean
+          description: When load data for info window, also load number of paging
+        IsShowInDashboard:
+          type: boolean
+          description: Show the dashlet in the dashboard
+        IsValid:
+          type: boolean
+          description: Element is valid
+        MaxQueryRecords:
+          type: integer
+          description: If defined, you cannot query more records as defined - the query criteria needs to be changed to query less records
+        Name:
+          type: string
+          description: Alphanumeric identifier of the entity
+        OrderByClause:
+          type: string
+          description: Fully qualified ORDER BY clause
+        OtherClause:
+          type: string
+          description: Other SQL Clause
+        PagingSize:
+          type: integer
+        PO_Window_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'PO Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_window'
+        SeqNo:
+          type: integer
+          description: Method of ordering records; lowest number comes first
+        Updated:
+          type: string
+          description: Date this record was updated
+          example: 2025-02-04T09:50:55Z
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_user'
+        WhereClause:
+          type: string
+          description: Fully qualified SQL WHERE clause
+    AD_InfoColumn:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: record id
+        uid:
+          type: string
+          readOnly: true
+          description: record uuid
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_client'
+          readOnly: true
+        AD_Element_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'System Element'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_element'
+        AD_FieldStyle_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Field Style'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_style'
+        AD_InfoWindow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Info Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infowindow'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_org'
+        AD_Reference_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Reference'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_reference'
+        AD_Reference_Value_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Reference Key'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_reference'
+        AD_Val_Rule_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Dynamic Validation'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_val_rule'
+        ColumnName:
+          type: string
+          description: Name of the column in the database
+        Created:
+          type: string
+          format: date-time
+          description: Date this record was created
+          example: 2025-02-04T10:46:35Z
+          readOnly: true
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+        DefaultValue:
+          type: string
+          description: Default value hierarchy, separated by ;
+        DefaultValue2:
+          type: string
+          description: Default value hierarchy, separated by ;
+        Description:
+          type: string
+          description: Optional short description of the record
+        DisplayLogic:
+          type: string
+          description: If the Field is displayed, the result determines if the field is actually displayed
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_entitytype'
+        Help:
+          type: string
+          description: Comment or Hint
+        InputFieldValidation:
+          type: string
+          description: Input field validation query
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        IsAutocomplete:
+          type: boolean
+          description: Automatic completion for text fields
+        IsCentrallyMaintained:
+          type: boolean
+          description: Information maintained in System Element table
+        IsDisplayed:
+          type: boolean
+          description: Determines, if this field is displayed
+        IsIdentifier:
+          type: boolean
+          description: This column is part of the record identifier
+        IsKey:
+          type: boolean
+          description: This column is the key in this table
+        IsMandatory:
+          type: boolean
+          description: Data entry is required in this column
+        IsQueryAfterChange:
+          type: boolean
+          description: Issues a query request after the user has made changes to the field
+        IsQueryCriteria:
+          type: boolean
+          description: The column is also used as a query criteria
+        IsRange:
+          type: boolean
+          description: The parameter is a range of values
+        IsReadOnly:
+          type: boolean
+          description: Field is read only
+        Name:
+          type: string
+          description: Alphanumeric identifier of the entity
+        Placeholder:
+          type: string
+        Placeholder2:
+          type: string
+        QueryFunction:
+          type: string
+          description: Database function for query
+        QueryOperator:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Query Operator'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - '!='
+                - '<'
+                - '<='
+                - '='
+                - '>'
+                - '>='
+                - 'LIKE'
+                - 'Like'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - '!='
+                - '<'
+                - '<='
+                - '='
+                - '>'
+                - '>='
+                - 'Full Like'
+                - 'Like'
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_ref_list'
+        SelectClause:
+          type: string
+          description: SQL SELECT clause
+        SeqNo:
+          type: integer
+          description: Method of ordering records; lowest number comes first
+        SeqNoSelection:
+          type: integer
+          description: Selection Column Sequence
+        Updated:
+          type: string
+          format: date-time
+          description: Date this record was updated
+          example: 2025-02-04T10:46:35Z
+          readOnly: true
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+    AD_InfoProcess:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: record id
+        uid:
+          type: string
+          readOnly: true
+          description: record uuid
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_client'
+          readOnly: true
+        AD_InfoColumn_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Info Column'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infocolumn'
+        AD_InfoWindow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Info Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infowindow'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_org'
+        AD_Process_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Process'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_process'
+        Created:
+          type: string
+          format: date-time
+          description: Date this record was created
+          example: 2025-02-04T10:51:56Z
+          readOnly: true
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+        DisplayLogic:
+          type: string
+          description: If the Field is displayed, the result determines if the field is actually displayed
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_entitytype'
+        ImageURL:
+          type: string
+          description: URL of  image
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        LayoutType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Layout Type'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'B'
+                - 'L'
+                - 'M'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'Button'
+                - 'List'
+                - 'Menu'
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_ref_list'
+        SeqNo:
+          type: integer
+          description: Method of ordering records; lowest number comes first
+        Updated:
+          type: string
+          format: date-time
+          description: Date this record was updated
+          example: 2025-02-04T10:51:56Z
+          readOnly: true
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+    AD_InfoRelated:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: record id
+        uid:
+          type: string
+          readOnly: true
+          description: record uuid
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_client'
+          readOnly: true
+        AD_InfoWindow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Info Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infowindow'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_org'
+        Created:
+          type: string
+          format: date-time
+          description: Date this record was created
+          example: 2025-02-04T10:57:58Z
+          readOnly: true
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+        Description:
+          type: string
+          description: Optional short description of the record
+        DisplayLogic:
+          type: string
+          description: If the Field is displayed, the result determines if the field is actually displayed
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_entitytype'
+        Help:
+          type: string
+          description: Comment or Hint
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        Name:
+          type: string
+          description: Alphanumeric identifier of the entity
+        ParentRelatedColumn_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Parent Related Column'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infocolumn'
+        RelatedColumn_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Related Info Column'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infocolumn'
+        RelatedInfo_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Related Info Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infowindow'
+        SeqNo:
+          type: integer
+          description: Method of ordering records; lowest number comes first
+        Updated:
+          type: string
+          format: date-time
+          description: Date this record was updated
+          example: 2025-02-04T10:57:58Z
+          readOnly: true
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+    WorkflowActivityNode:
+      type: object
+      properties:
+        id: 
+          type: integer
+          description: workflow activity record id
+        uid:
+          type: string
+          description: workflow activity record uuid
+        model-name:
+          type: string
+          enum:
+            - 'ad_wf_activity'
+        node-name:
+          type: string
+          description: workflow activity node nam
+        priority:
+          type: integer
+        summary:
+          type: string
+        node-description:
+          type: string
+        node-help:
+          type: string
+        history-records:
+          type: string
+          description: html formatted timestamp history
+          example: '<p>Feb 8, 2025, 6:50:33 AM MYT <b>Business Partner</b>: </p>'
+        table-name:
+          type: string
+          description: table name of PO that trigger this workflow activity
+        ad_table_id:
+          type: integer
+          description: table id of PO that trigger this workflow activity
+        record_id:
+          type: integer
+          description: record id of PO that trigger this workflow activity
+        node-approval:
+          type: boolean
+        node-confirmation:
+          type: boolean
+        created:
+          type: string
+          format: date-time
+    WorkflowActivityResponse:
+      type: object
+      properties:
+        msg:
+          type: string
+          description: update message
+        summary:
+          type: string
+        history-records:
+          type: string
+          description: html formatted timestamp record history
+    StatusLine:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: status line record id
+        uid:
+          type: string
+          description: status line record uuid
+        Name:
+          type: string
+          description: status line name
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              enum:
+                 - 'ad_entitytype'
+        model-name:
+          type: string
+          enum:
+            - ad_statusline
+        message:
+          type: string
+          description: output message from parsing of status line
+    StatusLines:
+      type: object
+      properties:
+        statusLines:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusLine'
+    ChartData:
+      oneOf:
+        - type: object
+          description: category data set
+          properties:
+            id:
+              type: integer
+              description: chart record id
+            name:
+              type: string
+            domainLabel:
+              type: string
+            rangeLabel:
+              type: string
+            displayLegend:
+              type: boolean
+            chartOrientation:
+              type: string
+              enum:
+                - H
+                - V
+            chartType:
+              type: string
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  row:
+                    type: string
+                  column:
+                    type: string
+                  value:
+                    type: string
+        - type: object
+          description: xy data set
+          properties:
+            id:
+              type: integer
+              description: chart record id
+            name:
+              type: string
+            domainLabel:
+              type: string
+            rangeLabel:
+              type: string
+            displayLegend:
+              type: boolean
+            chartOrientation:
+              type: string
+              enum:
+                - H
+                - V
+            chartType:
+              type: string
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  series:
+                    type: string
+                  x:
+                    type: string
+                  y:
+                    type: string
+        - type: object
+          description: pie data set
+          properties:
+            id:
+              type: integer
+              description: chart record id
+            name:
+              type: string
+            displayLegend:
+              type: boolean
+            chartType:
+              type: string
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  value:
+                    type: string
+    AD_Menu:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          description: record id
+        uid:
+          type: string
+          readOnly: true
+          description: record uuid
+        Action:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Action'
+            id:
+              type: string
+              description: list item id
+              enum:
+                - 'D'
+                - 'X'
+                - 'I'
+                - 'P'
+                - 'R'
+                - 'T'
+                - 'W'
+                - 'F'
+            identifier:
+              type: string
+              description: list item identifier
+              enum:
+                - 'Detail'
+                - 'Form'
+                - 'Info'
+                - 'Process'
+                - 'Report'
+                - 'Task'
+                - 'Window'
+                - 'WorkFlow'
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_ref_list'
+        AD_Client_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Tenant'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_client'
+          readOnly: true
+        AD_Form_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Special Form'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_form'
+        AD_InfoWindow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Info Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_infowindow'
+        AD_Org_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Organization'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_org'
+        AD_Process_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Process'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_process'
+        AD_Task_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'OS Task'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_task'
+        AD_Window_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Window'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_window'
+        AD_Workflow_ID:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Workflow'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_workflow'
+        Created:
+          type: string
+          format: date-time
+          description: Date this record was created
+          example: 2025-02-09T10:52:34Z
+          readOnly: true
+        CreatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Created By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+        Description:
+          type: string
+          description: Optional short description of the record
+        EntityType:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Entity Type'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_entitytype'
+        IsActive:
+          type: boolean
+          description: The record is active in the system
+        IsCentrallyMaintained:
+          type: boolean
+          description: Information maintained in System Element table
+        IsReadOnly:
+          type: boolean
+          description: Field is read only
+        IsSOTrx:
+          type: boolean
+          description: This is a Sales Transaction
+        IsSummary:
+          type: boolean
+          description: This is a summary entity
+        Name:
+          type: string
+          description: Alphanumeric identifier of the entity
+        PredefinedContextVariables:
+          type: string
+          description: Predefined context variables to inject when opening a menu entry or a window
+        Updated:
+          type: string
+          format: date-time
+          description: Date this record was updated
+          example: 2025-02-09T10:52:34Z
+          readOnly: true
+        UpdatedBy:
+          type: object
+          properties:
+            propertyLabel: 
+              type: string
+              readOnly: true
+              enum:
+                 - 'Updated By'
+            id:
+              type: integer
+              description: record id
+            identifier:
+              type: string
+              description: record identifier
+            model-name:
+              type: string
+              readOnly: true
+              enum:
+                 - 'ad_user'
+          readOnly: true
+    MenuTree:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            oneOf:
+              - type: array
+                items:
+                  type: object
+                  description: '#/components/schemas/MenuTree'
+              - $ref: '#/components/schemas/AD_Menu'
+security:
+    - bearerAuth: [] # use the same name as above          
+paths:
+  /auth/tokens:
+    post:
+      tags:
+        - Authentication
+      summary: Login for authorization token
+      description: >-
+        Login with tenant, user name, password and role. The return
+        token is use as Authorization request header (Bearer {token}) for
+        subsequent api call
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationRequest'              
+            examples:
+              gardenAdminUserNameWithoutParameters:
+                summary: GardenAdmin UserName authentication without parameters. Follow with PUT api/v1/auth/tokens to set login parameters.
+                value:
+                  userName: "GardenAdmin"
+                  password: "GardenAdmin"
+              gardenAdminEmailWithoutParameters:
+                summary: GardenAdmin Email authentication without parameters. Follow with PUT api/v1/auth/tokens to set login parameters.
+                value:
+                  userName: "admin @ gardenworld.com"
+                  password: "GardenAdmin"
+              gardenAdminUserNameOneStepLogin:
+                summary: GardenAdmin UserName authentication with integer id login parameters.
+                value:
+                  userName: "GardenAdmin"
+                  password: "GardenAdmin"
+                  parameters:
+                    clientId: 11
+                    roleId: 102
+                    organizationId: 11
+                    warehouseId: 103
+                    language: en_US
+              gardenAdminEmailOneStepLogin:
+                summary: GardenAdmin Email authentication with integer id login parameters.
+                value:
+                  userName: "admin @ gardenworld.com"
+                  password: "GardenAdmin"
+                  parameters:
+                    clientId: 11
+                    roleId: 102
+                    organizationId: 11
+                    warehouseId: 103
+                    language: en_US
+              gardenAdminUserNameOneStepLoginWithStringIdentifier:
+                summary: GardenAdmin UserName authentication with string identifier login parameters.
+                value:
+                  userName: "GardenAdmin"
+                  password: "GardenAdmin"
+                  parameters:
+                    clientId: GardenWorld
+                    roleId: GardenWorld Admin
+                    organizationId: HQ
+                    warehouseId: HQ Warehouse
+                    language: en_US
+              gardenAdminEmailOneStepLoginWithStringIdentifier:
+                summary: GardenAdmin Email authentication with string identifier login parameters.
+                value:
+                  userName: "admin @ gardenworld.com"
+                  password: "GardenAdmin"
+                  parameters:
+                    clientId: GardenWorld
+                    roleId: GardenWorld Admin
+                    organizationId: HQ
+                    warehouseId: HQ Warehouse
+                    language: en_US
+              gardenAdminUserNameOneStepLoginWithDefaults:
+                summary: GardenAdmin UserName authentication with partial login parameters.
+                value:
+                  userName: "GardenAdmin"
+                  password: "GardenAdmin"
+                  parameters:
+                    roleId: GardenWorld Admin
+                    organizationId: HQ
+                    warehouseId: HQ Warehouse
+              gardenAdminEmailOneStepLoginWithDefaults:
+                summary: GardenAdmin Email authentication with partial login parameters.
+                value:
+                  userName: "admin @ gardenworld.com"
+                  password: "GardenAdmin"
+                  parameters:
+                    roleId: GardenWorld Admin
+                    organizationId: HQ
+                    warehouseId: HQ Warehouse
+              superUserUserNameSystemTenant:
+                summary: SuperUser UserName authentication for System tenant.
+                value:
+                  userName: "SuperUser"
+                  password: "System"
+                  parameters:
+                    clientId: 0
+                    roleId: 0 #Need to change System Administrator role type to null
+                    organizationId: 0
+                    language: en_US
+              superUserEmailSystemTenant:
+                summary: SuperUser Email authentication for System tenant.
+                value:
+                  userName: "superuser @ idempiere.com"
+                  password: "System"
+                  parameters:
+                    clientId: 0
+                    roleId: 0 #Need to change System Administrator role type to null
+                    organizationId: 0
+                    language: en_US
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+              examples:
+                withAuthenticationParameters:
+                  value:
+                    userId: 100
+                    language: en_US
+                    menuTreeId: 10
+                    token: "eyJraWQiOiJpZ..."
+                    refresh_token: "eyJraWQiOiJpZ..."
+                withoutAuthenticationParameters:
+                  value:
+                    clients:
+                      - id: 11
+                        name: GardenWorld
+                    token: "eyJraWQiOiJpZ..."
+        '401':
+          description: authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidUserNameOrPassword:
+                  value:
+                    title: 'Authenticate error'
+                    status: 401
+                    detail: 'Invalid User ID or Password'
+    put:
+      tags:
+        - Authentication
+      summary: Set login parameters
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticationParameters'
+            examples:
+              withId:
+                summary: integer id login parameters.
+                value:
+                  clientId: 11
+                  roleId: 102
+                  organizationId: 11
+                  warehouseId: 103
+                  language: en_US
+              withStringIdentifier:
+                summary: string identifier login parameters.
+                value:
+                  clientId: GardenWorld
+                  roleId: GardenWorld Admin
+                  organizationId: HQ
+                  warehouseId: HQ Warehouse
+                  language: en_US
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationResponse'
+              example:
+                userId: 100
+                language: en_US
+                menuTreeId: 10
+                token: "eyJraWQiOiJpZ..."
+                refresh_token: "eyJraWQiOiJpZ..."
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh authorization token
+      description: >-
+        The authorization token expires in 1 hour and the refresh_token expires in 24 hours.
+        After the authorization token expires, you can get a new authorization token using the refresh token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token: 
+                  type: string
+                  description: Refresh token from /auth/tokens or /auth/refresh call
+                clientId:
+                  type: integer
+                  description: clientId from the source /auth/tokens or /auth/refresh call
+                userId:
+                  type: integer
+                  description: userId from the /auth/tokens response
+            example:
+              refresh_token: 'eyJraWQiOiJpZGVtcG...'
+              clientId: 11
+              userId: 101
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                      type: string
+                      description: Authentication token (JWT)
+                      example: "eyJraWQiOiJpZ..."
+                  refresh_token:
+                      type: string
+                      description: Refresh token (JWT)
+                      example: "eyJraWQiOiJpZ..."
+              example:
+                token: "eyJraWQiOiJpZ..."
+                refresh_token: "eyJraWQiOiJpZ..."
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout the session related to a token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: 
+                  type: string
+                  description: token from /auth/tokens or /auth/refresh call
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+                    description: info or error message from server
+  /auth/jwk:
+    get:
+      tags:
+        - Authentication
+      summary: Get the signing key for integration with gateway API. 
+      description: This requires the SysConfig IDEMPIERE_REST_EXPOSE_JWK=Y.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWKS'
+  /auth/roles:
+    get:
+      tags:
+        - Authentication
+      summary: Get list of roles avalable
+      parameters:
+        - name: client
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: client id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  roles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The unique identifier for the role.
+                        name:
+                          type: string
+                          description: The name of the role.
+                    description: An array of roles.
+                description: A collection of roles.
+  /auth/organizations:
+    get:
+      tags:
+        - Authentication
+      summary: Get list of organizations avalable
+      parameters:
+        - name: client
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: client id
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: role id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  organizations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The unique identifier for the organization.
+                        name:
+                          type: string
+                          description: The name of the organization.
+                    description: An array of organization.
+                description: A collection of organization.
+  /auth/warehouses:
+    get:
+      tags:
+        - Authentication
+      summary: Get list of warehouse avalable
+      parameters:
+        - name: client
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: client id
+        - name: role
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: role id
+        - name: organization
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: organization id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  warehouses:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          description: The unique identifier for the warehouse.
+                        name:
+                          type: string
+                          description: The name of the warehouse.
+                    description: An array of warehouse.
+                description: A collection of warehouse.
+  /auth/language:
+    get:
+      tags:
+        - Authentication
+      summary: Get default client language
+      parameters:
+        - name: client
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: client id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  AD_Language:
+                    type: string
+                    description: language code
+                    example: en_US
+  /models:
+    get:
+      tags:
+        - Models
+      summary: Get list of model
+      parameters:
+        - $ref: '#/components/parameters/filter'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Models'
+  /models/{tableName}/yaml:
+    get:
+      tags:
+        - Models
+      summary: Get model yaml schema by table name
+      parameters:
+        - name: tableName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: table name
+          example: 'ad_user'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/yaml:
+              schema:
+                type: string
+                description: yaml schema of table
+  /models/{tableName}:
+    parameters:
+      - name: tableName
+        in: path
+        schema:
+          type: string
+        description: table name
+        required: true
+        examples: 
+          C_Tax:
+            value: 'c_tax'
+          C_BPartner:
+            value: 'c_bpartner'
+          C_UOM:
+            value: 'c_uom'
+          C_Order:
+            value: 'c_order'
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get records for table.
+      description: Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100.
+      parameters:                
+        - name: $expand
+          in: query
+          schema:
+            $ref: '#/components/parameters/expand'
+          examples:
+            noExpand:
+              value: ''
+            C_OrderTax_C_OrderLine:
+              value: C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)            
+        - name: $filter
+          in: query
+          schema:
+            $ref: '#/components/parameters/filter'
+          examples:
+            noFilter:
+              value: ''
+            inOperator_C_Tax:
+              value: Name in ('106','PST','Exempt') AND C_Tax_ID in (106,107)
+            equalOperator_C_Tax:
+              value: Name eq 'Exempt'
+            C_Tax_C_TaxCategory_ID_107:
+              value: C_TaxCategory_ID eq 107
+        - $ref: '#/components/parameters/orderby'
+        - name: $select
+          in: query
+          schema:
+            $ref: '#/components/parameters/select'
+          examples:
+            noSelect:
+              value: ''
+            name:
+              value: Name
+            C_Order_DocumentNo_Description:
+              value: DocumentNo,Description
+        - $ref: '#/components/parameters/top'
+        - $ref: '#/components/parameters/skip'
+        - name: $valrule
+          in: query
+          schema:
+            $ref: '#/components/parameters/valrule'
+          examples:
+            noValRule:
+              value: 
+            valRule_C_UOM:
+              value: 210
+        - name: $context
+          in: query
+          schema:
+            $ref: '#/components/parameters/context'
+          examples:
+            noContext: 
+              value:
+            valRule_C_UOM_210:
+              value: 'M_Product_ID:124'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Models
+      summary: Create new record for table
+      requestBody:
+        content:
+          application/json:
+            examples:
+              C_Tax:
+                value:
+                  {
+                    "AD_Org_ID": {
+                        "id": 0,
+                        "tableName": "AD_Org"
+                    },
+                    "isActive": true,
+                    "name": "MyGST",
+                    "description": "MyCanadian Federal Sales Tax",
+                    "Parent_Tax_ID": {
+                        "identifier": "GST/PST",
+                        "tableName": "C_Tax"
+                    },
+                    "C_Country_ID": {
+                        "identifier": "Canada",
+                        "tableName": "C_Country"
+                    },
+                    "To_Country_ID": {
+                        "identifier": "Canada",
+                        "tableName": "C_Country"
+                    },
+                    "C_TaxCategory_ID": {
+                        "identifier": "Standard",
+                        "tableName": "C_TaxCategory"
+                    },
+                    "isDocumentLevel": false,
+                    "validFrom": "2001-01-01",
+                    "isSummary": false,
+                    "rate": "7.0",
+                    "requiresTaxCertificate": false,
+                    "taxIndicator": "GST",
+                    "isDefault": false,
+                    "isTaxExempt": false,
+                    "sOPOType": {
+                        "id": "B"
+                    },
+                    "isSalesTax": false,
+                    "tableName": "C_Tax"
+                }
+              C_BPartner_User_ContactInterest:
+                value:
+                  {
+                      "name":"Test creating BP with User and Interest Area from REST",
+                       "AD_User": [
+                           {
+                               "Name":"Test User with Interest area",
+                               "R_ContactInterest": [
+                                   {
+                                       "R_InterestArea_ID":101
+                                   }
+                               ]
+                           }
+                       ]
+                  }
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /models/{tableName}/{id}:
+    parameters:
+      - name: tableName
+        in: path
+        schema:
+          type: string
+        description: table name
+        required: true
+        examples:
+          AD_User:
+            value: 'ad_user'
+          C_Invoice:
+            value: 'c_invoice'
+          C_BPartner:
+            value: 'c_bpartner'
+          C_Tax:
+            value: 'c_tax'
+          C_Tax_Acct:
+            value: 'c_tax_acct'
+          M_Product:
+            value: 'm_product'
+          C_BPartner_Location:
+            value: 'c_bpartner_location'
+          C_Cash:
+            value: 'C_Cash'
+      - name: id
+        in: path
+        schema:
+          oneOf:
+            - type: integer
+            - type: string
+        description: integer record id or string record uuid
+        required: true
+        examples:
+          AD_User_100:
+            value: 100
+          AD_User_102:
+            value: 102
+          C_Invoice_104:
+            value: 104
+          C_BPartner_119:
+            value: 119
+          C_BPartner_Location_117:
+            value: 117
+          C_Tax_106:
+            value: 106
+          C_Tax_1000000:
+            value: 1000000
+          M_Product_122:
+            value: 122
+          C_Tax_Acct_UUID:
+            value: 7df64952-88e0-4ebf-9f56-9cb899b555f8
+          C_Cash_101:
+            value: 101
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get record by id.
+      parameters:                
+        - name: $expand
+          in: query
+          schema:
+            $ref: '#/components/parameters/expand'
+          examples:
+            noExpand:
+              value: ''
+            AD_User_100_C_Order.SalesRep:
+              value: C_Order.salesrep_id($select=documentno)
+            C_Invoice_104_FactAcct_InvoiceLine:
+              value: fact_acct.record_id($select=fact_acct_id),c_invoiceline
+            C_BPartner_119_AD_User_R_ContactInterest:
+              value: AD_User($select=Name ; $expand=R_ContactInterest($select=IsActive ; $filter=IsActive eq true))
+            C_Tax_106_C_Tax_Acct:
+              value: c_tax_acct
+            M_Product_122_ProductCategoryID_ProductPrice:
+              value: m_product_category_id($select=Name,IsDefault),M_ProductPrice
+        - name: $select
+          in: query
+          schema:
+            $ref: '#/components/parameters/select'
+          examples:
+            noSelect:
+              value: ''
+            name:
+              value: Name
+        - name: showsql
+          in: query
+          schema:
+            type: string
+          description: show sql command
+          examples:
+            noShowSQL:
+              value: ''
+            showSQLAndData:
+              value: 'y'
+            showSQLNoData::
+              value: 'nodata'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Models
+      summary: update record by id
+      requestBody:
+        content:
+          application/json:
+            examples:
+              C_Tax_1000000:
+                value:
+                  {
+                      "id": 1000000,
+                      "name": "MyGST",
+                      "description": "My Sales Tax",
+                      "validFrom": "2019-01-01",
+                      "rate": "6.0",
+                      "isSalesTax": true,
+                      "taxIndicator": "GST",
+                      "tableName": "C_Tax"
+                  }
+              C_BPartner_Location_117_Location:
+                value:
+                  {
+                      "Name": "Monroe",
+                      "C_Location_ID": {
+                          "id": 125,  # if id = 0 a new C_Location is created an linked to the record
+                          "Address1": "address 1",
+                          "Address2": "address 2",
+                          "Address3": "address 3",
+                          "Address4": "address 4",
+                          "Address5": "address 5",
+                          "Postal": "postal",
+                          "Postal_Add": "add",
+                          "C_Country_ID": 100,
+                          "C_Region_ID": 102,
+                          "RegionName": "RN",
+                          "City": "Near Village",
+                          "Comments": "comments",
+                          "IsActive": true
+                      }
+                  }
+              AD_User_102_Image:
+                value:
+                  {
+                     "AD_Image_ID":{
+                        "file_name":"idempiereLogo.jpg",
+                        "url":"org/idempiere/idempiereLogo.jpg",
+                        "data":"/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxITEhUSExEVFhMWGCAXGRcWGBgZFxodHBgeGBobHx8fHiggHR8mHh0YJTEjJikrLi4uICAzODMuQygtLisBCgoKDg0OGxAQGy0lHyUtLzcrNS0tNzcyNjcrLS0tNTUtNzctKy0vMjUtLTgvMjYtLS01MS4tMDc3LS0tKystK//AABEIAIUAjgMBIgACEQEDEQH/xAAcAAEAAwADAQEAAAAAAAAAAAAABQYHAQMEAgj/xAA/EAACAQMCAwUFBQUGBwAAAAABAgMABBEFEgYhMRNBUWFxByIygZEUcqGx0TVCUsHhJDM2g7PxI2Jjc4Ky8P/EABoBAQADAQEBAAAAAAAAAAAAAAACAwQGAQX/xAAjEQEAAgICAgICAwAAAAAAAAAAAQIDBBEhE0ESMWGRBSJR/9oADAMBAAIRAxEAPwDcaUpQKUpQKUpQK8t1ak80co/j1U/eU8j+B869VKCCOvmFgl2nZ55LKuTC3z6ofI/WptHBAIIIPMEcwa+Lq3SRSjqGVuRB6VRtQtLnTG7W3YyWpPvRtz2fp94fPzC/UqJ4f4ghu1yhw4+JD8Q/UedS1ApSlApSlApSlApSlApSlArqublIxud1RfFiAPqa4u7hY0eRvhRSx9AM1iuv6y9y5kkPovco8BWrV1ZzTPfEQwb29GtEdczLZbPU4JTiKaNyOoRlY/ga9dfmqa4aNg6MVdTkMpwQfI1t/s94iN7aCR8dqjdnJjvIAIb5gj55psa3i7ieYT1NvzR3HErNXDqCCCAQeRB6GuaVlbGb8QaC1nMJ7clUJ5EfuH+H0P8ASrfw5rguEwcCVfiHj5jy/KpO8tlkRo2GVYY/rVBjge3m5HDIfr/Qig0SldFjdCRA47+7wPeK76BSlKBSlKBSlKBSlKDxa3aGa3liHV42UepHL8a/O9xOykowIZSQQeoI5EV+laqvFPAVpet2jbo5T1ePA3feBGD69fOtetseLmJ+pYtvUjNxPuGA3dzW0+xfTHisWkcEdvJvUH+EAKD88E+mK+NI9klnE4eV5J8HIVsKnzA5n0zirdrOuW1mgMzhBj3UHNjjuVR/sK9z5vL/AFqlgwRhjmyUpWUar7XHzi3tRjuMpJJ/8V/WrLw3c6zMBJOtrCh5hGSQyY9A/u/Pn5VRbDasc26XVzVvPFe1yqv8Q2o3q3iMH5f71Ow7se9jP/LnH41EcSy4CfP+VVLXTw/Ltcxno3Meo/p+VWCqVb3eJEbwYfnzq60ClKUClKUClKUClKUClKieJNaW1hLnm55Ivif0HfUqUm9orH3KGTJXHWb2nqEfxlxUtomxMNOw5L3KP4m/kO+sZ1O4kmcySuXdupP/ANyHlUrfSPI7SOSzsckmo2ZK+9h1a4a/n25bN/IW2L/j1C5eyvhVXY3kq5VDiIHoWHV/l0HnnwrV68Gg2Qht4ogPgQA+uMsfmc176+JmyfO8y6bXx+PHEfsqk8WagDNsB5IMfM8z/KrFxFrC20Jc43Hki+J/QdTWVNeliWJySck+JNVLkx9o5j1rUayDSCZJ4kH7zgfLPP8ADNa/QKUpQKUpQKUpQKUpQcE1VNR4Ze8czTSmMdI4wM7V8W8z1I9BmrZSrMeW2Oea/anNgpmj437j/GHatbNDK8T/ABIcevgfmMVEyPzzVr9p1uY7zfjlIgYHzA2n8h9apUstdBTL88cWn3Dk763iy2rHqX6Nt5QyKw6MAR6EZFRmu8RQWq5dsv3RrzY/oPM1QOG9U+2Wy2n2gw3UQxGdxUSp3KcdSOnyB8ahdQ0W5iYiSGTPjgsD8xkGufyUmlprLrsWSMlItBrmsy3UpkkPkqjoo8B+teAOa9dvpNw5wkEh9Eb9Kl9P4eVZUjuGzK3w20ZDSt5uRyjQd7E+nOocJpn2a6OzMbpx7q5WPzJ5MfkOXzPhWiV128KoqoqhVUYAHQeQrsrx6UpSgUpSgUpSgUpSgUpSggOM+HBewbAQsqe9Gx6Z7wfI/pWGazp81s5jmjZG8+h8wehHmK/SVee+sYpl2SxpIvg4BH41pw7NscfH0yZ9SuWfl9S/L8k3eDzqSh461GJdqXkmB/EQ/wCLAmtku/ZjprnPZOme5JGA+hJr7sPZrpkR3fZ95/6jM4+hO38Ktvs0t6Qxa1qe2U6LNreqNsS4n7POGkLFIh6lcZ9Bk1sfBvCEGnxlU9+V/wC8lb4mPh5L5fXNT8MKooVFCqOQCgAD0Ar7rLfJ8uo6hrrXgpSlVplKUoFKUoFVbRuLmuL2a0FswWJnUy7srlG2jI28s+tWms14d1+4l1maBnxDG0wWNQFXk2Nxx8Td+TQd997UkjmkhFpIxjdkyGHPaSM4x5V7uG/aPb3UogaN4ZGOF3YKk+GR0PqKqHBX7dm+/P8Am1c+16ARX0EyDazKGJHLLI/JvXp9KDY6VnnH/FVylxDY2ZCyy7cvgEgucKoyCB4k+lR8Wu6hp9/FbXc4nil288dAzbcg4BBB7umKDU6VlWt8UaiNVe0t5AQWCIjKu0Fowck4zgEluvdXhXiLVrS++yySrPI+FCnGwlx7jA4BGCR4d9BsdKyJdf1Oy1GKC6nEokZdyjBQq7bcj3QQQc/SvVxZxVfxap9mt5AVJRVjKrtLOg6nGfiOetBqdVPUuM+yv0sfs5bcyDtN2AN/fjb3etVCLiDUrC/jgvJxKkhXOMFdrnbuU7QQQc8vKpPXeJbqPWYrVJsQM8QKbU5hsbuZGefrQaRSs04l4kvJ9QGnWUgi2nDPgZJC7mOcHAA5YHfXPC/EN5BqJ068lEueSvjmDt3rg4GQR3HvoNKpWNji7VJLy4toGMjF3SMbUGwB/izgdFGMscc6keIOJr+1gtbPd/bZQTI52sRukKoB+7k+Pdig1OlZRc61qWmXUKXdwJ4pcbuXQZw2DgEEZz4GtXoFZFwf+37n78//ALmtdqs6XwZDDeSXqySGSQuSp27RvOTjln8aCgcGMBrs2Tj35+vq1c+1W4W4v4IIiHZVCHac+879OXfjH1qQ1Hg/T5buUPNcqzO5L4j7LcFEzqDjPJWzzGOvOpXhrh/SbQrdLcCQ7tiPIykBsc8AADOOeT0HOgq3Htpu1mNGdo1k7IB1OCoPu5B7uYNe7VuHLGC7himvLqSclSgID9XwoJPTmKtnE+hWWpSdkZsXMQPNCNwGeYYHqASPMZ86heGeG7SG8kkklnmkt85lkAESlVUnJ3FshWGC2ByOM45BESf4k/zB/oV9cS/4hh+/D+QqzDR7BrxdTF2dzEuBldh2gRN3Z5ErnzIpqulWD3v297va8MiKy7l2B16KeWc8jnn3Ggq/tH/bNr6Q/wCq1fHEsqrxDGzHAEkOSfuqKuOscOWd5fLKblu3hCHs0K4wrbwTkZ/eHf0I8apPF9kk2uiGQEpI0atg4ODGooO/2ssH1G2jU5YIgIHcWkOBX1xN/iGH/uQ/yqR0XhK0tr87nnmkhAk5hAi+6WUk7tzH3TjA64rtuUsp7lNS/tPaLJEBEBHzJTfH34wVGT72aCsyaZ22uTQNK8W+R8Ohw3wlgAfMVN6ZollFqkcX2q5lukbPvAMvJN2C3XktSXGGh2dykWoCSWN5NgRowMsWwEyGIAI8dw/KvRwfw9Z2knbGZ2uZFH9/7rrvDN8PUEhWyST0NBWfZ9+2rn/O/wBUV1+1aDOpwbmKKyRjeORUdowJB8R1qz6FpthBeC6iuXke6aRFHulMn/iN0AI5Yx6ivVxda6bfQq8tyqhWKpKrDkcbivPkRjB9OYNBVOJuGLK3lijub27d35oMByPex39Mn8q12qBwvwLa9ot19qe62HCkkbQUOBnmSdp6DOKv9ApSlBVtZ4dUfaLjtGxslkEeBgO8HZM2epG0dPEmvNacILLbxFpmLEiQnauCGhSIrt6fCq8/GlKCbstBWOczh2JJkODjH/FKE/Tsx9a8l5woksssjyse1jePAVQQJAAQWAywGMqD0yaUoOi44NV1UGd9252dgq+/2jo7DH7vONennXquOGQVwszI3bvOG2qcGUMrDB5HkxxnyrmlB22PDyR3L3IckuPhIXkSqKTnrjCLy5d/liKv+ChJqK3/AG5BVlbs9mfgUD4t3fjwpSgk5uHg1y9z2mC6BGUohOArL7rEbl+LnjrXkt+DIFUR5zGHicoVXaxij7PmMY97kT50pQS2raYJoeyDBBy5bVZSB+6VIwVx3VXLXRkW+hgDMfs9mQGOCW3MUGRjHugvjr8X1UoJCx4UWNYl7Zj2cjOOQAw8XZFAP3Rjny6HPpXRHwTGIRD2rYBbmFUHDQG3GfEhTnPj5cqUoJzSNMWBXVWJ3yGTn3Fscvwr3UpQf//Z"
+                     }
+                  }
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Models
+      summary: delete record by id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}        
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /models/{tableName}/{id}/{columnName}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get property value of a record
+      parameters:
+        - name: tableName
+          in: path
+          schema:
+            type: string
+          description: table name
+          required: true
+          examples:
+            AD_Client:
+              value: 'ad_client'
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+          examples:
+            AD_Client_11:
+              value: 11
+        - name: columnName
+          in: path
+          schema:
+            type: string
+          description: column name
+          required: true
+          examples:
+            AD_Client_AD_Language:
+              value: AD_Language
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /models/{tableName}/{id}/attachments:
+    parameters:
+      - name: tableName
+        in: path
+        schema:
+          type: string
+        description: table name
+        required: true
+        examples:
+          C_Order:
+            value: 'c_order'
+      - name: id
+        in: path
+        schema:
+          oneOf:
+            - type: string
+            - type: integer
+        description: integer record id or string record uuid
+        required: true
+        examples:
+          C_Order_1000000:
+            value: 1000000
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get list of attachment of a record      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachments'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Models
+      summary: add/update attachment by record id and file name
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: file name
+                data:
+                  type: string
+                  format: byte
+                  description: base64 encoded file content
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Models
+      summary: Delete attachment of a record
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /models/{tableName}/{id}/attachments/zip:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get attachment of a record as zip archive
+      parameters:
+        - name: tableName
+          in: path
+          schema:
+            type: string
+          description: table name
+          required: true
+          examples:
+            C_Order:
+              value: 'c_order'
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+          examples:
+            C_Order_1000000:
+              value: 1000000
+      responses:
+        '200':
+          $ref: '#/components/responses/BinaryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /models/{tableName}/{id}/attachments/{fileName}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Get attachment of a record by file name
+      parameters:
+        - name: tableName
+          in: path
+          schema:
+            type: string
+          description: table name
+          required: true
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+        - name: fileName
+          in: path
+          schema:
+            type: string
+          description: file name
+          required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/BinaryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /models/{tableName}/{id}/print:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Models
+      summary: Print document of a record
+      parameters:
+        - name: tableName
+          in: path
+          schema:
+            type: string
+          description: table name
+          required: true
+          examples:
+            C_Order:
+              value: 'c_order'
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+          examples:
+            C_Order_102:
+              value: 102
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get list of window
+      parameters:
+        - name: $filter
+          in: query
+          schema:
+            $ref: '#/components/parameters/filter'
+          examples:
+            noFilter:
+              value: ''
+            Bank_Cash:
+              value: name eq 'Bank/Cash'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Window'
+  /windows/{windowSlug}/tabs:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get list of tab of a window
+      parameters:
+        - name: windowSlug
+          in: path
+          required: true
+          description: slugify window name
+          schema:
+            type: string
+          examples:
+            bankCashWindow:
+              value: 'bank-cash'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Window'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows/{windowSlug}/tabs/{tabSlug}/fields:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get list of field of a window tab
+      parameters:
+        - name: windowSlug
+          in: path
+          required: true
+          description: slugify window name
+          schema:
+            type: string
+          examples:
+            bankCashWindow:
+              value: 'bank-cash'
+        - name: tabSlug
+          in: path
+          required: true
+          description: slugify window tab name
+          schema:
+            type: string
+          examples:
+            bankCashWindow_bankCashTab:
+              value: 'bank-cash'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fields:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TabField'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows/{windowSlug}:
+    parameters:
+      - name: windowSlug
+        in: path
+        required: true
+        description: slugify window name
+        schema:
+          type: string
+        examples:
+          bankCashWindow:
+            value: 'bank-cash'
+          salesOrderWindow:
+            value: 'sales-order'
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get records of a window
+      parameters:        
+        - name: $filter
+          in: query
+          description: SQL filter clause
+          schema:
+            type: string
+          examples:
+            noFilter:
+              value: ''
+            BankCash_Name:
+              value: Name='MoneyBank'
+        - name: $sort_column
+          in: query
+          description: Column to sort by, use ! prefix for descending sort
+          schema:
+            type: string
+          examples:
+            noSortColumn:
+              value: ''
+            SortByName:
+              value: 'Name'
+            SortByNameDescending:
+              value: '!Name'
+        - name: $page_no
+          in: query
+          description: Current page no
+          schema:
+            type: integer
+          example: 0
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page-count:
+                      type: integer
+                      description: number of page
+                      example: 1
+                  page-size:
+                    type: integer
+                    description: number of records per page
+                    example: 100
+                  page-number:
+                    type: integer
+                    description: current page number
+                    example: 0
+                  row-count:
+                    type: integer
+                    description: total row count
+                    example: 2
+                  window-records:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Windows
+      summary: Create window record
+      requestBody:
+        content:
+          application/json:
+            examples:
+              salesOrderWindow:
+                value:
+                  {
+                    "isSOTrx": true,
+                    "C_DocTypeTarget_ID": { "identifier": "Standard Order" },
+                    "C_BPartner_ID" : { "identifier": "C&W Construction" },
+                    "deliveryViaRule": "P",
+                    "order-line": [{
+                      "M_Product_ID": { "identifier": "Azalea Bush"},
+                      "qtyEntered": 1
+                    }],
+                    "doc-action": "CO"
+                  }
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /windows/{windowSlug}/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get record by id
+      parameters:
+        - name: windowSlug
+          in: path
+          required: true
+          description: slugify window name
+          schema:
+            type: string
+          examples:
+            bankCashWindow:
+              value: 'bank-cash'
+        - name: id
+          in: path
+          required: true
+          description: record id
+          schema:
+            type: integer
+          examples:
+            bankCash_100:
+              value: 100
+        - name: $expand
+          in: query
+          schema:
+            type: string
+            description: comma separated list of child tabs to load
+          examples:
+            noExpand:
+              value: ''
+            bankCash_Account:
+              value: 'account'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows/{windowSlug}/{id}/print:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: print document of a record
+      parameters:
+        - name: windowSlug
+          in: path
+          required: true
+          description: slugify window name
+          schema:
+            type: string
+          examples:
+            salesOrderWindow:
+              value: 'sales-order'
+        - name: id
+          in: path
+          required: true
+          description: record id
+          schema:
+            type: integer
+          examples:
+            salesOrderWindow_102:
+              value: 102
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows/{windowSlug}/tabs/{tabSlug}/{id}:
+    parameters:
+      - name: windowSlug
+        in: path
+        required: true
+        description: slugify window name
+        schema:
+          type: string
+        examples:
+          bankCashWindow:
+            value: 'bank-cash'
+      - name: tabSlug
+        in: path
+        required: true
+        description: slugify window tab name
+        schema:
+          type: string
+        examples:
+          bankCashWindow_accountDocumentTab:
+            value: 'bank-account-document'
+      - name: id
+        in: path
+        required: true
+        description: tab record id
+        schema:
+          type: integer
+        examples:
+          bankCashWindow_accountDocumentTab_100:
+            value: 100
+          bankCashWindow_accountDocumentTab_1000001:
+            value: 1000001
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get tab record by id      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Windows
+      summary: Update tab record by id
+      requestBody:
+        content:
+          application/json:
+            examples:
+              bankCashWindow_accountDocumentTab_100:
+                value:
+                  {
+                      "Name": "My Check Book"
+                  }
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Windows
+      summary: Update tab record by id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /windows/{windowSlug}/tabs/{tabSlug}/{id}/{childTabSlug}:
+    parameters:
+      - name: windowSlug
+        in: path
+        required: true
+        description: slugify window name
+        schema:
+          type: string
+        examples:
+          bankCashWindow:
+            value: 'bank-cash'
+      - name: tabSlug
+        in: path
+        required: true
+        description: slugify window tab name
+        schema:
+          type: string
+        examples:
+          bankCashWindow_accountTab:
+            value: 'account'
+      - name: id
+        in: path
+        required: true
+        description: tab record id
+        schema:
+          type: integer
+        examples:
+          bankCashWindow_accountTab_100:
+            value: 100
+      - name: childTabSlug
+        in: path
+        required: true
+        description: slugify child tab name
+        schema:
+          type: string
+        examples:
+          bankCashWindow_accountTab_bankAccountDoc:
+            value: 'bank-account-document'
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Windows
+      summary: Get child tab records      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page-count:
+                      type: integer
+                      description: number of page
+                      example: 1
+                  page-size:
+                    type: integer
+                    description: number of records per page
+                    example: 100
+                  page-number:
+                    type: integer
+                    description: current page number
+                    example: 0
+                  row-count:
+                    type: integer
+                    description: total row count
+                    example: 2
+                  childtab-records:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Windows
+      summary: create child tab record
+      requestBody:
+        content:
+          application/json:
+            examples:
+              bankCashWindow_accountTab_bankAccountDoc:
+                value:
+                  {
+                      "AD_Org_ID": {
+                          "identifier": "HQ"
+                      },
+                      "name": "My Check Book 2",
+                      "isActive": true,
+                      "paymentRule": {
+                          "id": "S"
+                      },
+                      "currentNext": 1000,
+                      "Check_PrintFormat_ID": {
+                          "id": 124
+                      }
+                  }
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /forms:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Forms
+      summary: Get list of form
+      parameters:
+        - name: $filter
+          in: query
+          schema:
+            type: string
+          examples: 
+            noFilter:
+              value: ''
+            notDictionaryEntityType:
+              value: entityType neq 'D'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+               schema:
+                  $ref: '#/components/schemas/Forms'
+  /processes:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Process
+      summary: Get list of process
+      parameters:
+        - name: $filter
+          in: query
+          schema:
+            type: string
+          examples: 
+            noFilter:
+              value: ''
+            containBPName:
+              value: contains(name,'Business Partner')
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Processes'
+  /processes/{processSlug}:
+    parameters:
+      - name: processSlug
+        in: path
+        required: true
+        schema:
+          type: string
+        examples:
+          bpartnerOpen:
+            value: 'rv_bpartneropen'
+          orderDetail:
+            value: 'rv_orderdetail'
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Process
+      summary: Get process definition by slugify process name      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+               schema:
+                  $ref: '#/components/schemas/Process'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Process
+      summary: Run process
+      requestBody:
+        content:
+          application/json:
+            examples:
+              orderDetail:
+                value:
+                  {
+                    "C_BPartner_ID": "117,114",
+                    "DateOrdered": "2022-01-01",
+                    "DateOrdered_to": "2022-12-31",
+                    "report-type" : "HTML"
+                  }
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tasks:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Tasks
+      summary: Get list of task
+      parameters:
+        - name: $filter
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tasks'
+  /tasks/{taskSlug}:
+    parameters:
+      - name: taskSlug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: slugify task name
+        examples:
+          javaVersion:
+            value: java-version
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Tasks
+      summary: Get task definition      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+               schema:
+                  $ref: '#/components/schemas/Task'
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Tasks
+      summary: Run task
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+               schema:
+                  type: object
+                  properties:
+                    exitValue:
+                      type: integer
+                      description: OS task exit value
+                      example: 0
+                    stdOut:
+                      type: string
+                      description: OS task standard output text
+                    stdErr:
+                      type: string
+                      description: OS task standard error text
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /files:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Files
+      parameters:
+        - name: fileName
+          in: query
+          required: true
+          schema:
+            type: string
+          description: file name
+        - name: length
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: file size
+        - name: node_id
+          in: query
+          schema:
+            type: string
+          description: server node id
+        - name: json
+          in: query
+          schema:
+            type: string
+          description: 'not empty to get file content as base64 encoded data ("data": "base64 content")'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/html:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    format: byte
+                    description: base64 encoded file content
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /reference/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - References
+      summary: get reference definition by integer reference id, string reference uuid or reference name
+      parameters:
+        - name: id
+          in: path          
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer reference id, string reference uuid or reference name
+          required: true
+          examples:
+            menuActionUUID:
+              value: 'c4b63f2f-51da-49fe-9a10-83b9d8cb332f'
+            menuActionId:
+              value: 104
+            menuActionName:
+              value: 'AD_Menu Action'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reference'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /caches:
+    parameters:
+      - name: table_name
+        in: query
+        schema:
+          type: string
+        description: optional table name filter
+    get:
+      tags:
+        - Caches
+      summary: get list of active cache (accessible by administrator only)
+      parameters:        
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: optional name filter
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Caches'
+    delete:
+      tags:
+        - Caches
+      summary: reset cache
+      parameters:
+        - name: record_id
+          in: query
+          schema:
+            type: integer
+          description: optional record id filter
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entriesReset:
+                    type: integer
+                    description: number of cache entries reset
+  /nodes:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Nodes
+      summary: get list of server node
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerNodes'
+  /nodes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Nodes
+      summary: get server node by node id
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: server node id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerNodeInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /nodes/{id}/logs:
+    parameters:
+      - name: id
+        in: path
+        schema:
+          type: string
+          format: uuid
+        required: true
+        description: server node id
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Nodes
+      summary: get list of log file by server node id      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        fileName: 
+                          type: string
+                          description: log file name
+                        fileSize:
+                          type: integer
+                          description: log file size
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Nodes
+      summary: remove server log files
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentLogFile:
+                    type: string
+                    description: current server log file name after removal of existing log files
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /nodes/{id}/logs/{fileName}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Nodes
+      summary: get server log file
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: server node id
+        - name: fileName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: log file name
+        - name: json
+          in: query
+          schema:
+            type: string
+          description: 'not empty to get file content as base64 encoded data ("data": "base64 content")'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/html:
+              schema:
+                type: string
+            text/plain:
+              schema:
+                type: string
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    format: byte
+                    description: base64 encoded file content
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /nodes/{id}/logs/rotate:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    post:
+      tags:
+        - Nodes
+      summary: rotate server log
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+            format: uuid
+          required: true
+          description: server node id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /servers:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - ServerJobs
+      summary: get server jobs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobs'
+  /servers/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - ServerJobs
+      summary: get server jobs
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: server job id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /servers/{id}/logs:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - ServerJobs
+      summary: get server job logs
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: server job id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobLogs'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /servers/{id}/state:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    post:
+      tags:
+        - ServerJobs
+      summary: toggle server job state (stop to start and vice versa)
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: server job id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /servers/{id}/run:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    post:
+      tags:
+        - ServerJobs
+      summary: run server job
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: server job id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /servers/reload:
+    post:
+      tags:
+        - ServerJobs
+      summary: reload all server jobs
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerJobs'
+        '401':
+          description: Not authorize response
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /servers/schedulers/{id}:
+    parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+        description: scheduler id
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Schedulers
+      summary: Get scheduler details by id      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AD_Scheduler'
+                  - $ref: '#/components/schemas/SchedulerServerJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      tags:
+        - Schedulers
+      summary: Create new server job for scheduler
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AD_Scheduler'
+                  - $ref: '#/components/schemas/SchedulerServerJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Conflict response (server job exists for scheduler)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Schedulers
+      summary: Remove server job of a scheduler
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AD_Scheduler'
+                  - $ref: '#/components/schemas/SchedulerServerJob'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /infos:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - InfoWindows
+      summary: get info windows
+      parameters:
+        - $ref: '#/components/parameters/filter'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infowindows:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/AD_InfoWindow'
+                        - type: object
+                          properties:
+                            slug:
+                              type: string
+                              description: slugify info window name
+  /infos/{infoSlug}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - InfoWindows
+      summary: get records using info window
+      parameters:
+        - name: infoSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: slugify info window name
+        - name: $parameters
+          in: query
+          schema:
+            type: string
+          description: json for info window query parameters
+        - name: $where_clause
+          in: query
+          schema:
+            type: string
+          description: where clause for info window
+        - name: $order_by
+          in: query
+          schema:
+            type: string
+          description: order by clause for info window
+        - name: $page_no
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: current page number (starting from 0)
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Page:
+              schema:
+                type: integer
+              description: current page numnber
+            X-Per-Page:
+              schema:
+                type: integer
+              description: number of records page numnber
+            X-Next-Page:
+              schema:
+                type: integer
+              description: next page numnber
+            X-Prev-Page:
+              schema:
+                type: integer
+              description: previous page numnber                
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infowindow-records:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /infos/{infoSlug}/columns:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - InfoWindows
+      summary: get column definitions of an info window
+      parameters:
+        - name: infoSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: slugify info window name
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infowindowcolumns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AD_InfoColumn'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /infos/{infoSlug}/processes:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - InfoWindows
+      summary: get process definitions of an info window
+      parameters:
+        - name: infoSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: slugify info window name
+          examples:
+            support-users-vs-roles:
+              value: support-users-vs-roles
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infowindowprocesses:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AD_InfoProcess'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /infos/{infoSlug}/relateds:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - InfoWindows
+      summary: get related info windows of an info window
+      parameters:
+        - name: infoSlug
+          in: path
+          required: true
+          schema:
+            type: string
+          description: slugify info window name
+          examples:
+            businessPartnerInfo:
+              value: business-partner-info
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  infowindowrelateds:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/AD_InfoRelated'
+                        - type: object
+                          properties:
+                            slug:
+                              type: string
+                              description: slugify related info window name
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workflow:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Workflows
+      summary: Get workflow nodes for current user
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  row-count:
+                    type: integer
+                    description: number of rows
+                  nodes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowActivityNode'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /workflow/{userId}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Workflows
+      summary: Get workflow nodes for current user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: user integer id or user string uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  row-count:
+                    type: integer
+                    description: number of rows
+                  nodes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkflowActivityNode'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /workflow/approve/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    put:
+      tags:
+        - Workflows
+      summary: Approve a pending workflow activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: workflow activity string uuid or integer record id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: approval message
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActivityResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workflow/reject/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    put:
+      tags:
+        - Workflows
+      summary: Reject a pending workflow activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: workflow activity string uuid or integer record id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: reject message
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActivityResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workflow/forward/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    put:
+      tags:
+        - Workflows
+      summary: Forward a pending workflow activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: workflow activity string uuid or integer record id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: forward message
+                userTo:
+                  oneOf:
+                    - type: string
+                    - type: integer
+                  description: integer user record id or string user record uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActivityResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /workflow/acknowledge/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    put:
+      tags:
+        - Workflows
+      summary: Acknowledge a pending workflow activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: workflow activity string uuid or integer record id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: acknowledge message
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActivityResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workflow/setuserchoice/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    put:
+      tags:
+        - Workflows
+      summary: Set user selection value
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: workflow activity string uuid or integer record id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  description: forward message
+                value:
+                  type: string
+                  description: value to set
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkflowActivityResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /statuslines:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - StatusLines
+      summary: Get list of status lines
+      parameters:
+        - $ref: '#/components/parameters/filter'
+        - name: with_messages
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: true to include output message from parsing of status line
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusLines'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /statuslines/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - StatusLines
+      summary: Get output message of a status line
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: status line integer record id or status line string record uuid
+          examples:
+            statusLine_200024:
+              value: 200024
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: output message from parsing of status line
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /charts/data:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Charts
+      summary: Get multiple chart data
+      parameters:
+        - $ref: '#/components/parameters/filter'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  charts:
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/ChartData'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /charts/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Charts
+      summary: Get chart as image or json data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: chart integer record id or string uuid
+        - name: width
+          in: query
+          schema:
+            type: integer
+          description: chart width
+        - name: height
+          in: query
+          schema:
+            type: integer
+          description: chart height
+        - name: json
+          in: query
+          schema:
+            type: string
+          description: if present, return chart as json data, otherwise as image
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: string
+                    format: byte
+                    description: base64 encoded chart image
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /charts/{id}/data:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Charts
+      summary: Get chart data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: chart integer record id or string uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChartData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /menutree/{id}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Menutree
+      summary: get menu tree by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: menu tree integer record id or string uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuTree'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /views:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get REST_View schema by name
+      parameters:
+        - name: $filter
+          in: query
+          schema:
+            type: string
+          example: name eq '{view name}' #Replace {view name} with REST view definition name, for e.g tenants
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+               schema:
+                  type: object
+                  properties:
+                    views:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            description: View identifier
+                            example: 1000000
+                          uid:
+                            type: string
+                            format: uuid
+                            description: Unique identifier for the view
+                            example: 5066d4da-963d-4cc6-8e95-fafa39ab8987
+                          name:
+                            type: string
+                            description: Name of the view
+                            example: tenants
+                          tableName:
+                            type: string
+                            description: Name of the database table
+                            example: ad_client
+                          whereClause:
+                            type: string
+                            description: SQL WHERE clause for the view
+                            example: AD_Client.IsActive='Y' AND AD_Client.AD_Client_ID=@#AD_Client_ID@
+                          columns:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  description: Column identifier
+                                  example: 1000030
+                                uid:
+                                  type: string
+                                  format: uuid
+                                  description: Unique identifier for the column
+                                  example: fe346dce-6a56-4918-a831-247505b48bc2
+                                name:
+                                  type: string
+                                  description: Name of the column
+                                  example: value
+                                columnName:
+                                  type: string
+                                  description: Name of the column in the database
+                                  example: Value
+                                help:
+                                  type: string
+                                  description: Help text for the column
+                                  example: >-
+                                    A search key allows you a fast method of finding a
+                                    particular record. If you leave the search key empty, the
+                                    system automatically creates a numeric number. The document
+                                    sequence used for this fallback number is defined in the
+                                    "Maintain Sequence" window with the name
+                                    "DocumentNo_<TableName>", where TableName is the actual name
+                                    of the table (e.g. C_Order).
+                          relatedViews:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: integer
+                                  description: Related view identifier
+                                  example: 1000000
+                                uid:
+                                  type: string
+                                  format: uuid
+                                  description: Unique identifier for the related view
+                                  example: 1b52d9c1-9669-4fd0-b282-528658af8c9d
+                                name:
+                                  type: string
+                                  description: Name of the related view
+                                  example: organizations
+                                view:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: integer
+                                      description: View identifier within the related view
+                                      example: 1000003
+                                    uid:
+                                      type: string
+                                      format: uuid
+                                      description: Unique identifier for the view within the related view
+                                      example: cb1bcbd4-0a58-4682-84a0-28797e80261f
+                                    name:
+                                      type: string
+                                      description: Name of the view within the related view
+                                      example: organizations
+                                autoExpand:
+                                  type: boolean
+                                  description: Flag indicating if the related view should be auto-expanded
+                                  example: true
+  /views/{viewName}/yaml:
+    get:
+      tags:
+        - Views
+      summary: Get REST_View yaml schema by name
+      parameters:
+        - name: viewName
+          in: path
+          schema:
+            type: string
+          required: true
+          description: view name
+          example: 'users'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/yaml:
+              schema:
+                type: string
+                description: yaml schema of view
+  /views/{viewName}:
+    parameters:
+      - name: viewName
+        in: path
+        schema:
+          type: string
+        description: REST_View name
+        required: true
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get records for table.
+      description: Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100.
+      parameters:                
+        - $ref: '#/components/parameters/expand'
+        - $ref: '#/components/parameters/filter'
+        - $ref: '#/components/parameters/orderby'
+        - $ref: '#/components/parameters/select'
+        - $ref: '#/components/parameters/top'
+        - $ref: '#/components/parameters/skip'
+        - $ref: '#/components/parameters/valrule'
+        - $ref: '#/components/parameters/context'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Views
+      summary: Create new record for table
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /views/{viewName}/{id}:
+    parameters:
+      - name: viewName
+        in: path
+        schema:
+          type: string
+        description: REST_View name
+        required: true
+      - name: id
+        in: path
+        schema:
+          oneOf:
+            - type: integer
+            - type: string
+        description: integer record id or string record uuid
+        required: true
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get record by id.
+      parameters:                
+        - $ref: '#/components/parameters/expand'
+        - $ref: '#/components/parameters/select'
+        - name: showsql
+          in: query
+          schema:
+            type: string
+          description: show sql command
+          examples:
+            noShowSQL:
+              value: ''
+            showSQLAndData:
+              value: 'y'
+            showSQLNoData::
+              value: 'nodata'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Views
+      summary: update record by id
+      requestBody:
+        content:
+          application/json: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Views
+      summary: delete record by id
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}        
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /views/{viewName}/{id}/{viewColumnName}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get property value of a record
+      parameters:
+        - name: viewName
+          in: path
+          schema:
+            type: string
+          description: REST_View name
+          required: true
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+        - name: viewColumnName
+          in: path
+          schema:
+            type: string
+          description: REST_ViewColumn name
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /views/{viewName}/{id}/attachments:
+    parameters:
+      - name: viewName
+        in: path
+        schema:
+          type: string
+        description: REST_View name
+        required: true
+      - name: id
+        in: path
+        schema:
+          oneOf:
+            - type: string
+            - type: integer
+        description: integer record id or string record uuid
+        required: true
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get list of attachment of a record      
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          description: attachment name
+                        contentType:
+                          type: string
+                          description: attachment content type
+                          example: image/png
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Views
+      summary: add/update attachment by record id and file name
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: file name
+                data:
+                  type: string
+                  format: byte
+                  description: base64 encoded file content
+      responses:
+        '201':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      tags:
+        - Views
+      summary: Delete attachment of a record
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /views/{viewName}/{id}/attachments/zip:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get attachment of a record as zip archive
+      parameters:
+        - name: viewName
+          in: path
+          schema:
+            type: string
+          description: REST_View name
+          required: true
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /views/{viewName}/{id}/attachments/{fileName}:
+    parameters:
+      - $ref: '#/components/parameters/locale'
+    get:
+      tags:
+        - Views
+      summary: Get attachment of a record by file name
+      parameters:
+        - name: viewName
+          in: path
+          schema:
+            type: string
+          description: REST_View name
+          required: true
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+        - name: fileName
+          in: path
+          schema:
+            type: string
+          description: file name
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /views/{viewName}/{id}/print:
+    get:
+      tags:
+        - Views
+      summary: Print document of a record
+      parameters:
+        - name: viewName
+          in: path
+          schema:
+            type: string
+          description: REST_View name
+          required: true
+        - name: id
+          in: path
+          schema:
+            oneOf:
+              - type: string
+              - type: integer
+          description: integer record id or string record uuid
+          required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
