@@ -198,10 +198,10 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 				MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
 				String columnName = viewColumn != null ? MColumn.get(viewColumn.getAD_Column_ID()).getColumnName() : poInfo.getColumnName(i);
 				String propertyName = viewColumn != null ? viewColumn.getName() : TypeConverterUtils.toPropertyName(columnName);
-				if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
+				if (!jsonFields.contains(propertyName) && (viewColumn != null || !jsonFields.contains(columnName)))
 					continue;
 				JsonElement field = json.get(propertyName);
-				if (field == null)
+				if (field == null && viewColumn == null)
 					field = json.get(columnName);
 				if (field == null)
 					continue;

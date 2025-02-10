@@ -101,9 +101,6 @@ public class ExpandParser {
 					columnName = viewColumn;
 					found = true;
 					break;
-				} else if (columnName.equalsIgnoreCase(viewColumn)) {
-					found = true;
-					break;
 				}
 			}
 			if (!found)
@@ -139,12 +136,6 @@ public class ExpandParser {
 				String viewColumn = MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
 				if (column.getName().equals(columnName)) {
 					columnName = viewColumn;
-					if (column.getREST_ReferenceView_ID() > 0) {
-						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
-					}
-					restViewColumn = column;
-					break;
-				} else if (columnName.equalsIgnoreCase(viewColumn)) {
 					if (column.getREST_ReferenceView_ID() > 0) {
 						referenceView = new MRestView(Env.getCtx(), column.getREST_ReferenceView_ID(), null);
 					}

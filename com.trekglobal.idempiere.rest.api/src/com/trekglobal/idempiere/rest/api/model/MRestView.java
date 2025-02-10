@@ -236,7 +236,7 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 		MRestViewColumn[] columns = getColumns();
 		for(MRestViewColumn column : columns) {
 			String columnName = MColumn.getColumnName(Env.getCtx(), column.getAD_Column_ID());
-			if (column.getName().equals(name) || columnName.equalsIgnoreCase(name)) {
+			if (column.getName().equals(name)) {
 				return columnName;
 			}
 		}
