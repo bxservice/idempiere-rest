@@ -25,9 +25,11 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.TreeMap;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MLocation;
@@ -152,11 +154,13 @@ public class YAMLSchema {
 	 * @param view
 	 * @param builder
 	 * @param offset
+	 * @return nested value objects
 	 */
-	public static void addViewProperties(MRestView view, StringBuilder builder, int offset) {
+	public static List<String> addViewProperties(MRestView view, StringBuilder builder, int offset) {
 		MTable table = MTable.get(view.getAD_Table_ID());
 		String uidColumn = PO.getUUIDColumnName(table.getTableName());
 		MRestViewColumn[] viewColumns = view.getColumns();
+		List<String> valueObjectNames = new ArrayList<String>();
 		for(MRestViewColumn viewColumn : viewColumns ) {
 			MColumn column = MColumn.get(viewColumn.getAD_Column_ID());
 			if (column.isKey())
@@ -168,89 +172,22 @@ public class YAMLSchema {
 			if (column.getAD_Reference_ID() == DisplayType.Chart)
 				continue;
 			
-			builder.append(" ".repeat(offset)).append(viewColumn.getName()).append(":");
-			
-			if (column.getAD_Reference_ID() == DisplayType.Image) {
-				builder.append(" { $ref: '#/components/schemas/Image' }\n");
+			String propertyName = viewColumn.getName();
+			String jsonPath[] = propertyName.split("[.]");
+			if (jsonPath.length > 1) {
+				propertyName = jsonPath[0];
+				if(valueObjectNames.contains(propertyName))
+					continue;
+				builder.append(" ".repeat(offset)).append(propertyName).append(":\n");
+				builder.append(" ".repeat(offset+2)).append("$ref: ").append("'#/components/schemas/")
+					.append(view.getName()).append("_").append(propertyName).append("'\n");
+				valueObjectNames.add(propertyName);
 				continue;
-			}
-			if (column.getAD_Reference_ID() == DisplayType.Location && viewColumn.getREST_ReferenceView_ID() == 0) {
-				builder.append(" { $ref: '#/components/schemas/Location' }\n");
-				continue;
-			}
-			builder.append("\n");
-			String columnDescription = column.get_Translation("Description");
-			if (column.getAD_Reference_ID() == DisplayType.Location && viewColumn.getREST_ReferenceView_ID() > 0) {
-				MRestView locationView = MRestView.get(viewColumn.getREST_ReferenceView_ID());
-				builder.append(" ".repeat(offset+2)).append("type: object\n");
-				builder.append(" ".repeat(offset+2)).append("properties:\n");
-				builder.append(" ".repeat(offset+4)).append("id:\n");
-				builder.append(" ".repeat(offset+6)).append("type: integer\n");
-				builder.append(" ".repeat(offset+6)).append("description: record id\n");
-				builder.append(" ".repeat(offset+4)).append("identifier:\n");
-				builder.append(" ".repeat(offset+6)).append("type: string\n");
-				builder.append(" ".repeat(offset+6)).append("description: record identifier\n");
-				builder.append(" ".repeat(offset+4)).append("model-name:\n");
-				builder.append(" ".repeat(offset+6)).append("type: string\n");
-				builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
-				builder.append(" ".repeat(offset+6)).append("enum:\n");
-				builder.append(" ".repeat(offset+8)).append(" - '").append("c_location").append("'\n");
-				builder.append(" ".repeat(offset+4)).append("view-name:\n");
-				builder.append(" ".repeat(offset+6)).append("type: string\n");
-				builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
-				builder.append(" ".repeat(offset+6)).append("enum:\n");
-				builder.append(" ".repeat(offset+8)).append(" - '").append(locationView.getName()).append("'\n");
-				addViewProperties(locationView, builder, offset+4);
-			} else if (DisplayType.isList(column.getAD_Reference_ID())) {
-				addListProperty(builder, column, offset+2);
-			} else if (DisplayType.isLookup(column.getAD_Reference_ID())) {
-				addLookupProperty(builder, column, offset+2);
-			} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
-				builder.append(" ".repeat(offset+2)).append("type: string\n");
-				builder.append(" ".repeat(offset+2)).append("format: byte\n");
-				builder.append(" ".repeat(offset+2)).append("description: base64 encoded binary content\n");
-			} else if (column.getAD_Reference_ID() == DisplayType.YesNo) {
-				builder.append(" ".repeat(offset+2)).append("type: boolean\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-			} else if (column.getAD_Reference_ID() == DisplayType.Integer) {
-				builder.append(" ".repeat(offset+2)).append("type: integer\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-			} else if (DisplayType.isNumeric(column.getAD_Reference_ID())) {
-				builder.append(" ".repeat(offset+2)).append("type: number\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-			} else if (column.getAD_Reference_ID() == DisplayType.Date) {
-				builder.append(" ".repeat(offset+2)).append("type: string\n");
-				builder.append(" ".repeat(offset+2)).append("format: date\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-				builder.append(" ".repeat(offset+2)).append("example: ")
-					.append(new DateTypeConverter().toJsonValue(DisplayType.Date, new Date())).append("\n");
-			} else if (column.getAD_Reference_ID() == DisplayType.Time) {
-				builder.append(" ".repeat(offset+2)).append("type: string\n");
-				builder.append(" ".repeat(offset+2)).append("format: time\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-				builder.append(" ".repeat(offset+2)).append("example: ")
-					.append(new DateTypeConverter().toJsonValue(DisplayType.Time, new Date())).append("\n");
-			} else if (column.getAD_Reference_ID() == DisplayType.DateTime || column.getAD_Reference_ID() == DisplayType.TimestampWithTimeZone) {
-				builder.append(" ".repeat(offset+2)).append("type: string\n");
-				builder.append(" ".repeat(offset+2)).append("format: date-time\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
-				builder.append(" ".repeat(offset+2)).append("example: ")
-					.append(new DateTypeConverter().toJsonValue(DisplayType.DateTime, new Date())).append("\n");
 			} else {
-				builder.append(" ".repeat(offset+2)).append("type: string\n");
-				if (!Util.isEmpty(columnDescription))
-					builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+				builder.append(" ".repeat(offset)).append(propertyName).append(":\n");
 			}
-			
-			//readonly columns
-			if (readonlyColumns.contains(column.getColumnName().toLowerCase()))
-				builder.append(" ".repeat(offset+2)).append("readOnly: true\n");
+						
+			addViewColumnProperty(viewColumn, column, builder, offset);			
 		}
 		
 		MRestViewRelated[] relatedViews = view.getRelatedViews();
@@ -264,8 +201,140 @@ public class YAMLSchema {
 					.append("'\n");
 			}
 		}
+		return valueObjectNames;
 	}
 
+	private static void addViewColumnProperty(MRestViewColumn viewColumn, MColumn column, StringBuilder builder, int offset) {
+		String columnDescription = column.get_Translation("Description");
+		if (column.getAD_Reference_ID() == DisplayType.Image) {
+			builder.append(" ".repeat(offset+2)).append("$ref: '#/components/schemas/Image'\n");			
+		} else if (column.getAD_Reference_ID() == DisplayType.Location && viewColumn.getREST_ReferenceView_ID() == 0) {
+			builder.append(" ".repeat(offset+2)).append("$ref: '#/components/schemas/Location'\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.Location && viewColumn.getREST_ReferenceView_ID() > 0) {
+			MRestView locationView = MRestView.get(viewColumn.getREST_ReferenceView_ID());
+			builder.append(" ".repeat(offset+2)).append("type: object\n");
+			builder.append(" ".repeat(offset+2)).append("properties:\n");
+			builder.append(" ".repeat(offset+4)).append("id:\n");
+			builder.append(" ".repeat(offset+6)).append("type: integer\n");
+			builder.append(" ".repeat(offset+6)).append("description: record id\n");
+			builder.append(" ".repeat(offset+4)).append("identifier:\n");
+			builder.append(" ".repeat(offset+6)).append("type: string\n");
+			builder.append(" ".repeat(offset+6)).append("description: record identifier\n");
+			builder.append(" ".repeat(offset+4)).append("model-name:\n");
+			builder.append(" ".repeat(offset+6)).append("type: string\n");
+			builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
+			builder.append(" ".repeat(offset+6)).append("enum:\n");
+			builder.append(" ".repeat(offset+8)).append(" - '").append("c_location").append("'\n");
+			builder.append(" ".repeat(offset+4)).append("view-name:\n");
+			builder.append(" ".repeat(offset+6)).append("type: string\n");
+			builder.append(" ".repeat(offset+6)).append("readOnly: true\n");
+			builder.append(" ".repeat(offset+6)).append("enum:\n");
+			builder.append(" ".repeat(offset+8)).append(" - '").append(locationView.getName()).append("'\n");
+			addViewProperties(locationView, builder, offset+4);
+		} else if (DisplayType.isList(column.getAD_Reference_ID())) {
+			addListProperty(builder, column, offset+2);
+		} else if (DisplayType.isLookup(column.getAD_Reference_ID())) {
+			addLookupProperty(builder, column, offset+2);
+		} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
+			builder.append(" ".repeat(offset+2)).append("type: string\n");
+			builder.append(" ".repeat(offset+2)).append("format: byte\n");
+			builder.append(" ".repeat(offset+2)).append("description: base64 encoded binary content\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.YesNo) {
+			builder.append(" ".repeat(offset+2)).append("type: boolean\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.Integer) {
+			builder.append(" ".repeat(offset+2)).append("type: integer\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+		} else if (DisplayType.isNumeric(column.getAD_Reference_ID())) {
+			builder.append(" ".repeat(offset+2)).append("type: number\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.Date) {
+			builder.append(" ".repeat(offset+2)).append("type: string\n");
+			builder.append(" ".repeat(offset+2)).append("format: date\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+			builder.append(" ".repeat(offset+2)).append("example: ")
+				.append(new DateTypeConverter().toJsonValue(DisplayType.Date, new Date())).append("\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.Time) {
+			builder.append(" ".repeat(offset+2)).append("type: string\n");
+			builder.append(" ".repeat(offset+2)).append("format: time\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+			builder.append(" ".repeat(offset+2)).append("example: ")
+				.append(new DateTypeConverter().toJsonValue(DisplayType.Time, new Date())).append("\n");
+		} else if (column.getAD_Reference_ID() == DisplayType.DateTime || column.getAD_Reference_ID() == DisplayType.TimestampWithTimeZone) {
+			builder.append(" ".repeat(offset+2)).append("type: string\n");
+			builder.append(" ".repeat(offset+2)).append("format: date-time\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+			builder.append(" ".repeat(offset+2)).append("example: ")
+				.append(new DateTypeConverter().toJsonValue(DisplayType.DateTime, new Date())).append("\n");
+		} else {
+			builder.append(" ".repeat(offset+2)).append("type: string\n");
+			if (!Util.isEmpty(columnDescription))
+				builder.append(" ".repeat(offset+2)).append("description: ").append(columnDescription).append("\n");
+		}
+		
+		//readonly columns
+		if (readonlyColumns.contains(column.getColumnName().toLowerCase()))
+			builder.append(" ".repeat(offset+2)).append("readOnly: true\n");
+	}
+
+	/**
+	 * Add nested json value object properties
+	 * @param view
+	 * @param valueObjectName name of nested json value object
+	 * @param builder
+	 * @param offset
+	 */
+	public static void addValueObjectProperties(MRestView view, String valueObjectName, StringBuilder builder, int offset) {
+		TreeMap<String, List<MRestViewColumn>> treeMap = new TreeMap<>();
+		MRestViewColumn[] viewColumns = view.getColumns();
+		String prefix = valueObjectName+".";
+		for(MRestViewColumn viewColumn : viewColumns ) {
+			if (viewColumn.getName().startsWith(prefix)) {
+				int prefixIndex = viewColumn.getName().lastIndexOf(".");
+				String parentPath = viewColumn.getName().substring(0, prefixIndex);
+				List<MRestViewColumn> list = treeMap.get(parentPath);
+				if (list == null) {
+					list = new ArrayList<>();
+					treeMap.put(parentPath, list);
+				}
+				list.add(viewColumn);
+			}
+		}
+		List<String> added = new ArrayList<>();
+		for(String parentPath : treeMap.keySet()) {
+			int targetOffset = offset;
+			List<MRestViewColumn> list = treeMap.get(parentPath);
+			String[] jsonPath = parentPath.split("[.]");
+			if (jsonPath.length > 1) {
+				for(int i = 1; i < jsonPath.length; i++) {
+					String key = i+"."+jsonPath[i];
+					if (added.contains(key))
+						continue;
+					added.add(key);
+					targetOffset = offset+((i-1)*4);
+					builder.append(" ".repeat(targetOffset)).append(jsonPath[i]).append(":\n");
+					builder.append(" ".repeat(targetOffset+2)).append("type: object\n");
+					builder.append(" ".repeat(targetOffset+2)).append("properties: \n");
+				}
+				targetOffset = targetOffset+4;
+			}
+			for(MRestViewColumn viewColumn : list) {
+				String propertyName = viewColumn.getName();
+				int lastDotIndex = propertyName.lastIndexOf(".");
+				if (lastDotIndex > 0)
+					propertyName = propertyName.substring(lastDotIndex+1);
+				builder.append(" ".repeat(targetOffset)).append(propertyName).append(":\n");
+				addViewColumnProperty(viewColumn, MColumn.get(viewColumn.getAD_Column_ID()), builder, targetOffset);
+			}
+		}
+	}
+	
 	/**
 	 * Add Image schema to builder
 	 * @param builder
@@ -759,5 +828,5 @@ public class YAMLSchema {
 		builder.append(" ".repeat(18)).append("refresh_token:\n");
 		builder.append(" ".repeat(20)).append("type: string\n");
 		builder.append(" ".repeat(20)).append("description: Authentication token (JWT)\n");
-	}
+	}	
 }

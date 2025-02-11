@@ -291,6 +291,15 @@ public class ViewResourceImpl implements ViewResource {
 		body.append(" ".repeat(10)).append("description: record uuid\n");
 		body.append(" ".repeat(10)).append("readOnly: true\n");
 		
-		YAMLSchema.addViewProperties(view, body, 8);
+		List<String> valueObjectNames = YAMLSchema.addViewProperties(view, body, 8);
+		//nested json value object
+		if (valueObjectNames.size() > 0) {
+			for(String valueObjectName : valueObjectNames) {
+				body.append(" ".repeat(4)).append(view.getName()).append("_").append(valueObjectName).append(":\n");
+				body.append(" ".repeat(6)).append("type: object\n");
+				body.append(" ".repeat(6)).append("properties:\n");
+				YAMLSchema.addValueObjectProperties(view, valueObjectName, body, 8);				
+			}
+		}
 	}	
 }
