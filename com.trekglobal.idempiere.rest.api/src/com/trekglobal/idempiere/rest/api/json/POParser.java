@@ -25,13 +25,18 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json;
 
+import java.util.logging.Level;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.PO;
+import org.compiere.util.CLogger;
 
 public class POParser {
-	
+
+	private final static CLogger log = CLogger.getCLogger(POParser.class);
+
 	//TODO: Replace with Msg calls to make it translatable
 	private static final String ACCESS_DENIED_TITLE = "Access denied";
 	private static final String ACCESS_DENIED_MESSAGE = "Access denied for record with id: ";
@@ -83,7 +88,7 @@ public class POParser {
 		try {
 			po = RestUtils.getPO(tableName, recordID, false, false);
 		} catch (Exception e) {
-			return ResponseUtils.getResponseErrorFromException(e, "Exception reading " + recordID);
+			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 
 		if (po != null) {
