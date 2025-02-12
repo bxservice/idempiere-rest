@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.adempiere.exceptions.CrossTenantException;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
 
@@ -87,8 +88,10 @@ public class POParser {
 
 		try {
 			po = RestUtils.getPO(tableName, recordID, false, false);
+		} catch (CrossTenantException e) {
+			log.log(Level.WARNING, "Exception getting the PO -> " + e.getLocalizedMessage());
 		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
+			return ResponseUtils.getResponseErrorFromException(e, "Exception reading " + recordID);
 		}
 
 		if (po != null) {
