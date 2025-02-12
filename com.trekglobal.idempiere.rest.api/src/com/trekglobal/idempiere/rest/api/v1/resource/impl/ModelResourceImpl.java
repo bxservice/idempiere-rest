@@ -48,6 +48,7 @@ import org.adempiere.base.event.EventManager;
 import org.adempiere.base.event.EventProperty;
 import org.adempiere.base.event.IEventManager;
 import org.adempiere.exceptions.AdempiereException;
+import org.adempiere.exceptions.CrossTenantException;
 import org.compiere.model.MAttachment;
 import org.compiere.model.MAttachmentEntry;
 import org.compiere.model.MTable;
@@ -405,12 +406,13 @@ public class ModelResourceImpl implements ModelResource {
 			po.set_TrxName(trx.getTrxName());
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, true);
 			try {
-				if (! po.validForeignKeys()) {
-					String msg = CLogger.retrieveErrorString("Foreign key validation error");
-					throw new AdempiereException(msg);
-				}
+				po.validForeignKeysEx();
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
+			} catch (CrossTenantException e) {
+				trx.rollback();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Save Error", 
+						"No match found for " + e.getFKColumn() + " with id: ", String.valueOf(e.getFKValue()));
 			} catch (Exception ex) {
 				trx.rollback();
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -504,10 +506,7 @@ public class ModelResourceImpl implements ModelResource {
 							childPO.set_TrxName(trx.getTrxName());
 							childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
 							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
-							if (! childPO.validForeignKeys()) {
-								String msg = CLogger.retrieveErrorString("Foreign key validation error");
-								throw new AdempiereException(msg);
-							}
+							childPO.validForeignKeysEx();
 							childPO.saveEx();
 							fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, true);
 							childJsonObject = childSerializer.toJson(childPO, finalChildView);
@@ -537,6 +536,10 @@ public class ModelResourceImpl implements ModelResource {
 				} catch (Exception ex) {
 					trx.rollback();
 					log.log(Level.SEVERE, ex.getMessage(), ex);
+					
+					if (ex instanceof CrossTenantException) 
+						return "No match found for " + ((CrossTenantException) ex).getFKColumn() + " with id: " + String.valueOf(((CrossTenantException) ex).getFKValue());
+
 					return ex.getMessage();
 				}
 			}
@@ -576,13 +579,14 @@ public class ModelResourceImpl implements ModelResource {
 			po.set_TrxName(trx.getTrxName());
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
 			try {
-				if (! po.validForeignKeys()) {
-					String msg = CLogger.retrieveErrorString("Foreign key validation error");
-					throw new AdempiereException(msg);
-				}
+				po.validForeignKeysEx();
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
-			} catch (Exception ex) {
+			} catch (CrossTenantException e) {
+				trx.rollback();
+				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Save Error", 
+						"No match found for " + e.getFKColumn() + " with id: ", String.valueOf(e.getFKValue()));
+			}  catch (Exception ex) {
 				trx.rollback();
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 			}
@@ -636,10 +640,7 @@ public class ModelResourceImpl implements ModelResource {
 									}
 									childPO.set_TrxName(trx.getTrxName());
 									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
-									if (! childPO.validForeignKeys()) {
-										String msg = CLogger.retrieveErrorString("Foreign key validation error");
-										throw new AdempiereException(msg);
-									}
+									childPO.validForeignKeysEx();
 									childPO.saveEx();
 									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
 									childJsonObject = serializer.toJson(childPO, finalChildView);
@@ -650,6 +651,11 @@ public class ModelResourceImpl implements ModelResource {
 								detailMap.put(field, savedArray);
 						} catch (Exception ex) {
 							trx.rollback();
+							
+							if (ex instanceof CrossTenantException) 
+								return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save Error", 
+										"No match found for " + ((CrossTenantException) ex).getFKColumn() + " with id: ", String.valueOf(((CrossTenantException) ex).getFKValue()));
+
 							return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 						}
 					}
