@@ -411,8 +411,8 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (CrossTenantException e) {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Save Error", 
-						"No match found for " + e.getFKColumn() + " with id: ", String.valueOf(e.getFKValue()));
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", 
+						"Foreign ID " + e.getFKValue() + " not found in ", String.valueOf(e.getFKColumn()));
 			} catch (Exception ex) {
 				trx.rollback();
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -538,7 +538,7 @@ public class ModelResourceImpl implements ModelResource {
 					log.log(Level.SEVERE, ex.getMessage(), ex);
 					
 					if (ex instanceof CrossTenantException) 
-						return "No match found for " + ((CrossTenantException) ex).getFKColumn() + " with id: " + String.valueOf(((CrossTenantException) ex).getFKValue());
+						return "Foreign ID " + ((CrossTenantException)ex).getFKValue() + " not found in " + String.valueOf(((CrossTenantException)ex).getFKColumn());
 
 					return ex.getMessage();
 				}
@@ -584,8 +584,8 @@ public class ModelResourceImpl implements ModelResource {
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (CrossTenantException e) {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.NOT_FOUND, "Save Error", 
-						"No match found for " + e.getFKColumn() + " with id: ", String.valueOf(e.getFKValue()));
+				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", 
+						"Foreign ID " + e.getFKValue() + " not found in ", String.valueOf(e.getFKColumn()));
 			}  catch (Exception ex) {
 				trx.rollback();
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -654,7 +654,7 @@ public class ModelResourceImpl implements ModelResource {
 							
 							if (ex instanceof CrossTenantException) 
 								return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save Error", 
-										"No match found for " + ((CrossTenantException) ex).getFKColumn() + " with id: ", String.valueOf(((CrossTenantException) ex).getFKValue()));
+										"Foreign ID " + ((CrossTenantException)ex).getFKValue() + " not found in ", String.valueOf(((CrossTenantException)ex).getFKColumn()));
 
 							return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 						}
