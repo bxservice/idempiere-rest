@@ -192,14 +192,12 @@ public class YAMLSchema {
 		
 		MRestViewRelated[] relatedViews = view.getRelatedViews();
 		for (MRestViewRelated relatedView : relatedViews) {
-			if (relatedView.isRestAutoExpand()) {
-				builder.append(" ".repeat(offset)).append(relatedView.getName()).append(":\n");
-				builder.append(" ".repeat(offset+2)).append("type: array\n");
-				builder.append(" ".repeat(offset+2)).append("items:\n");
-				builder.append(" ".repeat(offset+4)).append("$ref: '#/components/schemas/")
-					.append(MRestView.get(relatedView.getREST_RelatedRestView_ID()).getName())
-					.append("'\n");
-			}
+			builder.append(" ".repeat(offset)).append(relatedView.getName()).append(":\n");
+			builder.append(" ".repeat(offset+2)).append("type: array\n");
+			builder.append(" ".repeat(offset+2)).append("items:\n");
+			builder.append(" ".repeat(offset+4)).append("$ref: '#/components/schemas/")
+				.append(MRestView.get(relatedView.getREST_RelatedRestView_ID()).getName())
+				.append("'\n");
 		}
 		return valueObjectNames;
 	}
