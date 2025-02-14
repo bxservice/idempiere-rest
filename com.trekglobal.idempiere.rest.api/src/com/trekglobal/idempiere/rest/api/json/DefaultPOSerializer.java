@@ -451,14 +451,22 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					for(String path : paths) {
 						columnName = view.toColumnName(path);
 						if (columnName == null) {
+							String errorPath = path;
 							Optional<MRestViewColumn> optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(path)).findFirst();
+							//handle .id and .identifier for lookup
+							if (!optional.isPresent() && (path.endsWith(".id") || path.endsWith(".identifier"))) {
+								String p = path.endsWith(".id") ? path.substring(0, path.length()-".id".length()) : path.substring(0, path.length()-".identifier".length());
+								optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(p)).findFirst();
+								if (optional.isPresent()) 
+									errorPath = p;
+							}
 							if (optional.isPresent()) {
 								StringBuilder error = new StringBuilder("Wrong name for column ")
-										.append(path).append(", you must use ")
+										.append(errorPath).append(", you must use ")
 										.append(optional.get().getName());
 								throw new AdempiereException(error.toString());
 							} else {
-								throw new AdempiereException("Column " + path + " does not exist");
+								throw new AdempiereException("Column " + errorPath + " does not exist");
 							}
 						}
 						int colIdx = po.get_ColumnIndex(columnName);
