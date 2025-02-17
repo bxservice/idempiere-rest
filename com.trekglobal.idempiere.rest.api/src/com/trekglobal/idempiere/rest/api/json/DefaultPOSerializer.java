@@ -131,17 +131,38 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 						: MSysConfig.getBooleanValue("REST_COLUMNNAME_TOLOWERCASE", false) ? TypeConverterUtils.toPropertyName(columnName) : columnName;
 				Object jsonValue = TypeConverterUtils.toJsonValue(column, value, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0 
 						? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
-				if (jsonValue != null) {
+				if (jsonValue != null) {					
+					JsonObject target = json;
+					//rest view support json path mapping to nested json value object
+					String[] jsonPath = viewColumns != null ? propertyName.split("[.]") : null;
+					if (jsonPath != null && jsonPath.length > 1) {
+						for(int p = 0; p < jsonPath.length-1; p++) {
+							JsonElement tmp = target.get(jsonPath[p]);
+							if (tmp == null) {
+								tmp = new JsonObject();
+								target.add(jsonPath[p], tmp);
+								target = (JsonObject) tmp;
+							} else if (!tmp.isJsonObject()) {
+								target = null;
+								break;
+							} else {
+								target = tmp.getAsJsonObject();
+							}
+						}
+						if (target == null)
+							continue;
+						propertyName = jsonPath[jsonPath.length-1];
+					}
 					if (jsonValue instanceof Number)
-						json.addProperty(propertyName, (Number)jsonValue);
+						target.addProperty(propertyName, (Number)jsonValue);
 					else if (jsonValue instanceof Boolean)
-						json.addProperty(propertyName, (Boolean)jsonValue);
+						target.addProperty(propertyName, (Boolean)jsonValue);
 					else if (jsonValue instanceof String)
-						json.addProperty(propertyName, (String)jsonValue);
+						target.addProperty(propertyName, (String)jsonValue);
 					else if (jsonValue instanceof JsonElement)
-						json.add(propertyName, (JsonElement) jsonValue);
+						target.add(propertyName, (JsonElement) jsonValue);
 					else
-						json.addProperty(propertyName, jsonValue.toString());					
+						target.addProperty(propertyName, jsonValue.toString());					
 				}
 			}
 		}
@@ -178,17 +199,34 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			} else {
 				propertyName = TypeConverterUtils.toPropertyName(columnName);				
 			}
-			if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName)) {
+			//rest view support json path mapping to nested json value object
+			String[] jsonPath = viewColumns != null ? propertyName.split("[.]") : null;
+			if (jsonPath != null && jsonPath.length > 1)
+				propertyName = jsonPath[0];
+			if (!jsonFields.contains(propertyName) && (viewColumns != null || !jsonFields.contains(columnName))) {
 				setDefaultValue(po, column);
 				continue;
 			}
-
+			
 			JsonElement field = json.get(propertyName);
-			if (field == null)
+			if (field == null && viewColumns == null)
 				field = json.get(columnName);
 			if (field == null) {
 				setDefaultValue(po, column);
 				continue;
+			}
+			//nested json value object
+			if (jsonPath.length > 1) {				
+				for(int p = 1; p < jsonPath.length && field != null; p++) {
+					if (!field.isJsonObject()) {
+						field = null;
+						break;
+					}
+					JsonObject valueObject = field.getAsJsonObject();
+					field = valueObject.get(jsonPath[p]);
+				}
+				if (field == null)
+					continue;
 			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0 
 					? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
@@ -234,13 +272,30 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			} else {
 				propertyName = TypeConverterUtils.toPropertyName(columnName);				
 			}
-			if (!jsonFields.contains(propertyName) && !jsonFields.contains(columnName))
+			//rest view support json path mapping to nested json value object
+			String[] jsonPath = viewColumns != null ? propertyName.split("[.]") : null;
+			if (jsonPath != null && jsonPath.length > 1)
+				propertyName = jsonPath[0];
+			if (!jsonFields.contains(propertyName) && (viewColumns != null || !jsonFields.contains(columnName)))
 				continue;
 			JsonElement field = json.get(propertyName);
-			if (field == null)
+			if (field == null && viewColumns == null)
 				field = json.get(columnName);
 			if (field == null)
 				continue;
+			//nested json value object
+			if (jsonPath.length > 1) {				
+				for(int p = 1; p < jsonPath.length && field != null; p++) {
+					if (!field.isJsonObject()) {
+						field = null;
+						break;
+					}
+					JsonObject valueObject = field.getAsJsonObject();
+					field = valueObject.get(jsonPath[p]);
+				}
+				if (field == null)
+					continue;
+			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field);
 			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
 				continue;
@@ -387,27 +442,43 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					continue;
 				String columnName = jsonField;
 				if (view != null) {
-					columnName = view.toColumnName(jsonField);
-					if (columnName == null) {
-						Optional<MRestViewColumn> optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(jsonField)).findFirst();
-						if (optional.isPresent()) {
-							StringBuilder error = new StringBuilder("Wrong name for column ")
-									.append(jsonField).append(", you must use ")
-									.append(optional.get().getName());
-							throw new AdempiereException(error.toString());
-						} else {
-							throw new AdempiereException("Column " + jsonField + " does not exist");
-						}
+					List<String> paths = new ArrayList<String>();
+					if (jsonObj.isJsonObject()) {						
+						flatten(view, jsonObj, jsonField, paths);
+					} else {
+						paths.add(jsonField);
 					}
+					for(String path : paths) {
+						columnName = view.toColumnName(path);
+						if (columnName == null) {
+							String errorPath = path;
+							Optional<MRestViewColumn> optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(path)).findFirst();
+							//handle .id and .identifier for lookup
+							if (!optional.isPresent() && (path.endsWith(".id") || path.endsWith(".identifier"))) {
+								String p = path.endsWith(".id") ? path.substring(0, path.length()-".id".length()) : path.substring(0, path.length()-".identifier".length());
+								optional = Arrays.stream(view.getColumns()).filter(e -> e.getName().equalsIgnoreCase(p)).findFirst();
+								if (optional.isPresent()) 
+									errorPath = p;
+							}
+							if (optional.isPresent()) {
+								StringBuilder error = new StringBuilder("Wrong name for column ")
+										.append(errorPath).append(", you must use ")
+										.append(optional.get().getName());
+								throw new AdempiereException(error.toString());
+							} else {
+								throw new AdempiereException("Column " + errorPath + " does not exist");
+							}
+						}
+						int colIdx = po.get_ColumnIndex(columnName);
+						if (colIdx < 0)
+							throw new AdempiereException("Column " + jsonField + " does not exist");
+					}					
+					continue;
 				}
 				int colIdx = po.get_ColumnIndex(columnName);
 				if (colIdx < 0)
 					throw new AdempiereException("Column " + jsonField + " does not exist");
 				columnName = po.get_ColumnName(colIdx);
-				if (view != null) {
-					//already validated in view.toColumnName(jsonField) call above
-					continue;
-				}
 				
 				String propertyName = TypeConverterUtils.toPropertyName(columnName);
 				if (! jsonField.equals(propertyName) && !jsonField.equals(columnName))
@@ -417,6 +488,18 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		}
 	}
 
+	private static void flatten(MRestView view, JsonElement jsonElement, String currentPath, List<String> paths) {
+        if (jsonElement.isJsonPrimitive() || view.toColumnName(currentPath) != null) {
+            paths.add(currentPath);
+        } else if (jsonElement.isJsonObject()) {
+            JsonObject jsonObject = jsonElement.getAsJsonObject();
+            for (String key : jsonObject.keySet()) {
+                String newPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+                flatten(view, jsonObject.get(key), newPath, paths);
+            }
+        }
+    }
+	
 	private boolean exclude(String columnName, String[] excludes) {
 		if (excludes == null || excludes.length == 0)
 			return false;
