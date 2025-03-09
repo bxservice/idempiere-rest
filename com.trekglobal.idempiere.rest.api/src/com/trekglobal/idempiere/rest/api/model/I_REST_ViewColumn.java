@@ -23,7 +23,7 @@ import org.compiere.util.KeyNamePair;
 
 /** Generated Interface for REST_ViewColumn
  *  @author iDempiere (generated) 
- *  @version Release 11
+ *  @version Release 12
  */
 @SuppressWarnings("all")
 public interface I_REST_ViewColumn 
@@ -32,7 +32,7 @@ public interface I_REST_ViewColumn
     /** TableName=REST_ViewColumn */
     public static final String Table_Name = "REST_ViewColumn";
 
-    /** AD_Table_ID=1000006 */
+    /** AD_Table_ID=1000181 */
     public static final int Table_ID = MTable.getTable_ID(Table_Name);
 
     KeyNamePair Model = new KeyNamePair(Table_ID, Table_Name);
@@ -46,8 +46,8 @@ public interface I_REST_ViewColumn
     /** Column name AD_Client_ID */
     public static final String COLUMNNAME_AD_Client_ID = "AD_Client_ID";
 
-	/** Get Tenant.
-	  * Tenant for this installation.
+	/** Get Client.
+	  * Client/Tenant for this installation.
 	  */
 	public int getAD_Client_ID();
 
@@ -70,12 +70,12 @@ public interface I_REST_ViewColumn
     public static final String COLUMNNAME_AD_Org_ID = "AD_Org_ID";
 
 	/** Set Organization.
-	  * Organizational entity within tenant
+	  * Organizational entity within client
 	  */
 	public void setAD_Org_ID (int AD_Org_ID);
 
 	/** Get Organization.
-	  * Organizational entity within tenant
+	  * Organizational entity within client
 	  */
 	public int getAD_Org_ID();
 
@@ -95,6 +95,21 @@ public interface I_REST_ViewColumn
 	  */
 	public int getCreatedBy();
 
+    /** Column name DefaultValue */
+    public static final String COLUMNNAME_DefaultValue = "DefaultValue";
+
+	/** Set Default Logic.
+	  * Default value hierarchy, separated by ;
+
+	  */
+	public void setDefaultValue (String DefaultValue);
+
+	/** Get Default Logic.
+	  * Default value hierarchy, separated by ;
+
+	  */
+	public String getDefaultValue();
+
     /** Column name IsActive */
     public static final String COLUMNNAME_IsActive = "IsActive";
 
@@ -107,6 +122,15 @@ public interface I_REST_ViewColumn
 	  * The record is active in the system
 	  */
 	public boolean isActive();
+
+    /** Column name MandatoryLogic */
+    public static final String COLUMNNAME_MandatoryLogic = "MandatoryLogic";
+
+	/** Set Mandatory Logic	  */
+	public void setMandatoryLogic (String MandatoryLogic);
+
+	/** Get Mandatory Logic	  */
+	public String getMandatoryLogic();
 
     /** Column name Name */
     public static final String COLUMNNAME_Name = "Name";
@@ -160,6 +184,19 @@ public interface I_REST_ViewColumn
 	public int getREST_View_ID();
 
 	public I_REST_View getREST_View() throws RuntimeException;
+
+    /** Column name ReadOnlyLogic */
+    public static final String COLUMNNAME_ReadOnlyLogic = "ReadOnlyLogic";
+
+	/** Set Read Only Logic.
+	  * Logic to determine if field is read only (applies only when field is read-write)
+	  */
+	public void setReadOnlyLogic (String ReadOnlyLogic);
+
+	/** Get Read Only Logic.
+	  * Logic to determine if field is read only (applies only when field is read-write)
+	  */
+	public String getReadOnlyLogic();
 
     /** Column name SeqNo */
     public static final String COLUMNNAME_SeqNo = "SeqNo";
