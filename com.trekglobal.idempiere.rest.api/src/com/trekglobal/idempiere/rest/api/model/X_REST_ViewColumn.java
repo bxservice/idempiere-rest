@@ -23,7 +23,7 @@ import org.compiere.model.*;
 
 /** Generated Model for REST_ViewColumn
  *  @author iDempiere (generated)
- *  @version Release 11 - $Id$ */
+ *  @version Release 12 - $Id$ */
 @org.adempiere.base.Model(table="REST_ViewColumn")
 public class X_REST_ViewColumn extends PO implements I_REST_ViewColumn, I_Persistent
 {
@@ -31,7 +31,7 @@ public class X_REST_ViewColumn extends PO implements I_REST_ViewColumn, I_Persis
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20241209L;
+	private static final long serialVersionUID = 20250308L;
 
     /** Standard Constructor */
     public X_REST_ViewColumn (Properties ctx, int REST_ViewColumn_ID, String trxName)
@@ -153,6 +153,37 @@ public class X_REST_ViewColumn extends PO implements I_REST_ViewColumn, I_Persis
 		return ii.intValue();
 	}
 
+	/** Set Default Logic.
+		@param DefaultValue Default value hierarchy, separated by ;
+	*/
+	public void setDefaultValue (String DefaultValue)
+	{
+		set_Value (COLUMNNAME_DefaultValue, DefaultValue);
+	}
+
+	/** Get Default Logic.
+		@return Default value hierarchy, separated by ;
+	  */
+	public String getDefaultValue()
+	{
+		return (String)get_Value(COLUMNNAME_DefaultValue);
+	}
+
+	/** Set Mandatory Logic.
+		@param MandatoryLogic Mandatory Logic
+	*/
+	public void setMandatoryLogic (String MandatoryLogic)
+	{
+		set_Value (COLUMNNAME_MandatoryLogic, MandatoryLogic);
+	}
+
+	/** Get Mandatory Logic.
+		@return Mandatory Logic	  */
+	public String getMandatoryLogic()
+	{
+		return (String)get_Value(COLUMNNAME_MandatoryLogic);
+	}
+
 	/** Set Name.
 		@param Name Alphanumeric identifier of the entity
 	*/
@@ -257,6 +288,22 @@ public class X_REST_ViewColumn extends PO implements I_REST_ViewColumn, I_Persis
 		if (ii == null)
 			 return 0;
 		return ii.intValue();
+	}
+
+	/** Set Read Only Logic.
+		@param ReadOnlyLogic Logic to determine if field is read only (applies only when field is read-write)
+	*/
+	public void setReadOnlyLogic (String ReadOnlyLogic)
+	{
+		set_Value (COLUMNNAME_ReadOnlyLogic, ReadOnlyLogic);
+	}
+
+	/** Get Read Only Logic.
+		@return Logic to determine if field is read only (applies only when field is read-write)
+	  */
+	public String getReadOnlyLogic()
+	{
+		return (String)get_Value(COLUMNNAME_ReadOnlyLogic);
 	}
 
 	/** Set Sequence.

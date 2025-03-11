@@ -88,7 +88,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (!Util.isEmpty(uid, true)) {
 				json.addProperty("uid", uid);
 			}
-		}
+		}		
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), po.get_Table_ID());
@@ -186,6 +186,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
+		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		int count = view != null ? viewColumns.length : poInfo.getColumnCount(); 
@@ -204,7 +205,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (jsonPath != null && jsonPath.length > 1)
 				propertyName = jsonPath[0];
 			if (!jsonFields.contains(propertyName) && (viewColumns != null || !jsonFields.contains(columnName))) {
-				setDefaultValue(po, column);
+				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
 				continue;
 			}
 			
@@ -212,11 +213,11 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (field == null && viewColumns == null)
 				field = json.get(columnName);
 			if (field == null) {
-				setDefaultValue(po, column);
+				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
 				continue;
 			}
 			//nested json value object
-			if (jsonPath.length > 1) {				
+			if (jsonPath != null && jsonPath.length > 1) {				
 				for(int p = 1; p < jsonPath.length && field != null; p++) {
 					if (!field.isJsonObject()) {
 						field = null;
@@ -225,15 +226,25 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					JsonObject valueObject = field.getAsJsonObject();
 					field = valueObject.get(jsonPath[p]);
 				}
-				if (field == null)
+				if (field == null) {
+					setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
 					continue;
+				}
 			}
 			Object value = TypeConverterUtils.fromJsonValue(column, field, viewColumn != null && viewColumn.getREST_ReferenceView_ID() > 0 
 					? MRestView.get(viewColumn.getREST_ReferenceView_ID()) : null);
 			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
 				continue;
-			if (! isUpdatable(column, false, po))
+			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
+				if (viewColumn.isReadOnly(json)) {
+					setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+					continue;
+				}
+			}
+			else if (! isUpdatable(column, false, po)) {
+				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
 				continue;
+			}
 			if (   value != null
 				&& value instanceof Integer) {
 				if (((Integer)value).intValue() < 0 && DisplayType.isID(column.getAD_Reference_ID())) {
@@ -244,9 +255,36 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
+			if (value == null && viewColumn != null && viewColumn.isMandatory(json))
+				mandatoryColumns.add(propertyName);
+		}
+		
+		if (!mandatoryColumns.isEmpty()) {
+			StringBuilder error = new StringBuilder("Mandatory fields missing: ");
+			for(String mandatoryColumn : mandatoryColumns) {
+				error.append(mandatoryColumn).append(", ");
+			}
+			error.delete(error.length()-2, error.length());
+			throw new AdempiereException(error.toString());
 		}
 		
 		return po;
+	}
+
+	/**
+	 * Set default value for column
+	 * @param po
+	 * @param column
+	 * @param viewColumn
+	 * @param propertyName input property name
+	 * @param json input json object
+	 * @param mandatoryColumns list to store mandatory columns that are not filled
+	 */
+	private void setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn, String propertyName,
+			JsonObject json, List<String> mandatoryColumns) {
+		boolean set = setDefaultValue(po, column, viewColumn);
+		if (!set && viewColumn != null && viewColumn.isMandatory(json))
+			mandatoryColumns.add(propertyName);
 	}
 
 	@Override
@@ -260,6 +298,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
+		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		int count = view != null ? viewColumns.length : poInfo.getColumnCount();
@@ -284,7 +323,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (field == null)
 				continue;
 			//nested json value object
-			if (jsonPath.length > 1) {				
+			if (jsonPath != null && jsonPath.length > 1) {				
 				for(int p = 1; p < jsonPath.length && field != null; p++) {
 					if (!field.isJsonObject()) {
 						field = null;
@@ -299,7 +338,13 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			Object value = TypeConverterUtils.fromJsonValue(column, field);
 			if (! isValueUpdated(po.get_ValueOfColumn(column.getAD_Column_ID()), value))
 				continue;
-			if (! isUpdatable(column, true, po))
+			MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
+			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
+				if (viewColumn.isReadOnly(json)) {
+					continue;
+				}
+			}
+			else if (! isUpdatable(column, true, po))
 				continue;
 			if (   value != null
 				&& value instanceof Integer) {
@@ -310,7 +355,20 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 						value = null;
 				}
 			}
-			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
+			
+			if (value == null && viewColumn != null && viewColumn.isMandatory(json))
+				mandatoryColumns.add(propertyName);
+			else
+				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
+		}
+		
+		if (!mandatoryColumns.isEmpty()) {
+			StringBuilder error = new StringBuilder("Field is mandatory: ");
+			for(String mandatoryColumn : mandatoryColumns) {
+				error.append(mandatoryColumn).append(", ");
+			}
+			error.delete(error.length()-2, error.length());
+			throw new AdempiereException(error.toString());
 		}
 		
 		return po;
@@ -520,19 +578,21 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		return false;
 	}
 	
-	private void setDefaultValue(PO po, MColumn column) {
-		if (!column.isVirtualColumn() && !Util.isEmpty(column.getDefaultValue(), true)) {
+	private boolean setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn) {
+		if (!column.isVirtualColumn() && (!Util.isEmpty(column.getDefaultValue(), true) || (viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true)))) {
 			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), 0, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
 						: column.getAD_Reference_ID(), 0, false, false, "");
-			vo.DefaultValue = column.getDefaultValue();
+			vo.DefaultValue = viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true) ? viewColumn.getDefaultValue() : column.getDefaultValue();
 			GridField gridField = new GridField(vo);
 			Object defaultValue = gridField.getDefault();
 			if (defaultValue != null) {
 				po.set_ValueOfColumn(column.getAD_Column_ID(), defaultValue);
+				return true;
 			}
 		}		
+		return false;
 	}
 
 	@Override
