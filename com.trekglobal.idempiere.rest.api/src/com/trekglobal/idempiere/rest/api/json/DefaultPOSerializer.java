@@ -341,7 +341,10 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
 			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
 				if (viewColumn.isReadOnly(json)) {
-					continue;
+					if (MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true))
+						throw new AdempiereException("Cannot update column " + viewColumn.getName());
+					else
+						continue;
 				}
 			}
 			else if (! isUpdatable(column, true, po))
