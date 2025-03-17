@@ -4,6 +4,7 @@
     <stringAttribute key="application" value="org.eclipse.pde.junit.runtime.coretestapplication"/>
     <booleanAttribute key="askclear" value="false"/>
     <booleanAttribute key="automaticAdd" value="false"/>
+    <booleanAttribute key="automaticIncludeRequirements" value="true"/>
     <booleanAttribute key="automaticValidate" value="true"/>
     <stringAttribute key="bootstrap" value=""/>
     <stringAttribute key="checked" value="[NONE]"/>
@@ -399,7 +400,7 @@
         <setEntry value="zweb@default:default"/>
     </setAttribute>
     <setAttribute key="selected_workspace_bundles">
-        <setEntry value="com.trekglobal.idempiere.rest.api.test@default:default"/>
+        <setEntry value="com.trekglobal.idempiere.rest.api.test@5:true"/>
         <setEntry value="com.trekglobal.idempiere.rest.api@5:true"/>
         <setEntry value="org.adempiere.base.callout@default:default"/>
         <setEntry value="org.adempiere.base.process@default:default"/>
