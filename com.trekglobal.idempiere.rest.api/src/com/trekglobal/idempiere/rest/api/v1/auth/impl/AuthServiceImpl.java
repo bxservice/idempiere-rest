@@ -134,7 +134,7 @@ public class AuthServiceImpl implements AuthService {
 					.withSubject(credential.getUserName())
 					.withClaim(LoginClaims.Clients.name(), clientsSB.toString());
 			
-			//set client and role if user has access to 1 only
+			//set client, role and org if user has access to 1 only
 			boolean setLoginParameters = false;
 			if (clients.length == 1 ) {
 				int clientId = clients[0].getKey();
@@ -146,7 +146,7 @@ public class AuthServiceImpl implements AuthService {
 					MRole role = MRole.get(Env.getCtx(), roleId);
 					int orgId = getOrgIdFirstOnly(user, role);
 					int warehouseId = 0;
-					if (orgId > 0) {
+					if (orgId >= 0) {
 						warehouseId = MOrgInfo.get(orgId).getM_Warehouse_ID();
 					}
 					Env.setContext(Env.getCtx(), RequestFilter.LOGIN_NAME, userName);
@@ -188,10 +188,10 @@ public class AuthServiceImpl implements AuthService {
 	 * Get organization id if user or role has access to only 1 organization
 	 * @param user
 	 * @param role
-	 * @return organization id if user or role has access to only 1 organization, 0 otherwise
+	 * @return organization id if user or role has access to only 1 organization, -1 otherwise
 	 */
 	private int getOrgIdFirstOnly(MUser user, MRole role) {
-		int orgId = 0;
+		int orgId = -1;
 		if (!role.isUseUserOrgAccess()) {
 			MRoleOrgAccess[] roleOrgAccess = MRoleOrgAccess.getOfRole(Env.getCtx(), role.getAD_Role_ID());
 			if (roleOrgAccess.length == 1)
