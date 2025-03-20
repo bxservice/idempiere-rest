@@ -236,7 +236,7 @@ public class RestUtils {
 	
 	public static boolean hasAccess(MTable table, boolean isReadWrite) {
 		MRole role = MRole.getDefault();
-		if (role == null)
+		if (table == null || role == null)
 			return false;
 		
 		StringBuilder builder = new StringBuilder("SELECT DISTINCT a.AD_Window_ID FROM AD_Window a JOIN AD_Tab b ON a.AD_Window_ID=b.AD_Window_ID ");
@@ -364,6 +364,9 @@ public class RestUtils {
 	
 	public static String getKeyColumnName(String tableName) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
+		if (table == null)
+			throw new IDempiereRestException("Invalid Table Name", "The requested table name is invalid or does not exist. Please verify the table name and try again.", Status.BAD_REQUEST);
+		
 		String[] keyColumns = table.getKeyColumns();
 		
 		if (keyColumns.length <= 0 || keyColumns.length > 1)
