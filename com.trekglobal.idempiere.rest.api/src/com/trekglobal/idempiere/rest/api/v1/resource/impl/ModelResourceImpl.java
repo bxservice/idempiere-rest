@@ -631,20 +631,28 @@ public class ModelResourceImpl implements ModelResource {
 								if (e.isJsonObject()) {
 									JsonObject childJsonObject = e.getAsJsonObject();
 									PO childPO = loadPO(childTableName, childJsonObject);
+									boolean delete = childJsonObject.get("(delete)") != null
+											&& childJsonObject.get("(delete)").getAsBoolean();
+									if (delete && childPO == null)
+										throw new IDempiereRestException("Delete Error", "Cannot delete non-existing record", Status.NOT_FOUND);
 									
 									if (childPO == null) {
 										childPO = childSerializer.fromJson(childJsonObject, childTable, finalChildView);
 										childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(tableName), parentId);
-									} else {
+									} else  if (!delete){
 										childPO = childSerializer.fromJson(childJsonObject, childPO, finalChildView);
 									}
 									childPO.set_TrxName(trx.getTrxName());
-									fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
-									childPO.validForeignKeysEx();
-									childPO.saveEx();
-									fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
-									childJsonObject = serializer.toJson(childPO, finalChildView);
-									savedArray.add(childJsonObject);
+									if (delete) {
+										childPO.deleteEx(true);
+									} else {
+										fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
+										childPO.validForeignKeysEx();
+										childPO.saveEx();
+										fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
+										childJsonObject = serializer.toJson(childPO, finalChildView);
+										savedArray.add(childJsonObject);
+									}									
 								}
 							});
 							if (savedArray.size() > 0)
