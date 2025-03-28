@@ -352,6 +352,10 @@ public class AuthServiceImpl implements AuthService {
 	public Response getClientLanguage(int clientId) {
 		try {
 			MClient client = MClient.get(Env.getCtx(), clientId);
+			if (client == null || client.get_ID() <= 0) {
+				return Response.status(Status.BAD_REQUEST).build();
+			}
+			
 			JsonObject node = new JsonObject();
 			node.addProperty("AD_Language", client.getAD_Language());
 			return Response.ok(node.toString()).build();

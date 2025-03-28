@@ -20,9 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
@@ -81,12 +78,6 @@ public class AuthenticationTest extends AbstractTestCase {
 	void authenticateWithSingleClientRoleAndOrgSetsLoginParameters() {
 	    MRoleOrgAccess[] roleOrgAccess = MRoleOrgAccess.getOfRole(Env.getCtx(), 103); // GardenUser Role
 	    
-	    // Store original state
-	    Map<MRoleOrgAccess, Boolean> originalStates = new HashMap<>();
-	    for (MRoleOrgAccess access : roleOrgAccess) {
-	        originalStates.put(access, access.isActive());
-	    }
-
 	    try {
 	        // Deactivate all except the first one
 	        for (int i = 1; i < roleOrgAccess.length; i++) {
@@ -108,10 +99,11 @@ public class AuthenticationTest extends AbstractTestCase {
 	        assertTrue(response.getEntity().toString().contains("roleId"));
 
 	    } finally {
-	        // Restore original state
-	        for (Map.Entry<MRoleOrgAccess, Boolean> entry : originalStates.entrySet()) {
-	            entry.getKey().setIsActive(entry.getValue());
-	            entry.getKey().saveEx();
+	    	
+	        // Deactivate all except the first one
+	        for (int i = 1; i < roleOrgAccess.length; i++) {
+	            roleOrgAccess[i].setIsActive(true);
+	            roleOrgAccess[i].saveEx();
 	        }
 	    }
 	}
