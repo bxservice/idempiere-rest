@@ -980,5 +980,9 @@ public class AuthServiceImpl implements AuthService {
 		
 		return Response.ok(okResponse.toString()).build();
 	}
+	
+	public void setRequest(HttpServletRequest request) {
+	    this.request = request;
+	}
 
 }

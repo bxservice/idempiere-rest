@@ -18,9 +18,11 @@ package com.trekglobal.idempiere.rest.api.v1.auth.impl.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
 import org.compiere.util.Env;
@@ -30,11 +32,13 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
@@ -42,11 +46,19 @@ import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class AuthServiceImplTest extends AbstractTestCase {
 
-	private AuthService authService;
+	@Mock
+	private HttpServletRequest request;
+
+	@InjectMocks
+	private AuthServiceImpl authService;
 
 	@BeforeEach
 	public void authenticate() {
+		MockitoAnnotations.openMocks(this);
 		authService = new AuthServiceImpl();
+		when(request.getHeader("X-Forwarded-For")).thenReturn("127.0.0.1");
+		authService.setRequest(request);
+
 		LoginCredential credential = new LoginCredential();
 		credential.setUserName("GardenAdmin");
 		credential.setPassword("GardenAdmin");
@@ -63,6 +75,7 @@ public class AuthServiceImplTest extends AbstractTestCase {
 		}
 		String idListString = String.join(",", idList);
 		Env.setContext(Env.getCtx(), RequestFilter.LOGIN_CLIENTS, idListString);	
+
 	}
 
 	@Test
@@ -108,9 +121,9 @@ public class AuthServiceImplTest extends AbstractTestCase {
 
 	@Test
 	void getWarehousesWithValidClientIdRoleIdAndOrganizationIdReturnsWarehouses() {
-		int clientId = 100;
-		int roleId = 200;
-		int organizationId = 300;
+		int clientId = 11; //GardenWorld
+		int roleId = 102; //GardenAdmin
+		int organizationId = 11; //HQ
 
 		Response response = authService.getWarehouses(clientId, roleId, organizationId);
 
@@ -131,7 +144,7 @@ public class AuthServiceImplTest extends AbstractTestCase {
 
 	@Test
 	void getClientLanguageWithValidClientIdReturnsLanguage() {
-		int clientId = 100;
+		int clientId = 11;
 
 		Response response = authService.getClientLanguage(clientId);
 

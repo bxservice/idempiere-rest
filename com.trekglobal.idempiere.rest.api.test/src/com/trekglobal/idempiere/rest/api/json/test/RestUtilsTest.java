@@ -37,7 +37,6 @@ import java.util.HashMap;
 
 import javax.ws.rs.core.Response.Status;
 
-import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.PO;

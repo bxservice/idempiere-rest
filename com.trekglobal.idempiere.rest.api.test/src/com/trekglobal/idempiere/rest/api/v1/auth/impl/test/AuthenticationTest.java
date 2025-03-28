@@ -18,24 +18,41 @@ package com.trekglobal.idempiere.rest.api.v1.auth.impl.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
+import org.compiere.model.MRoleOrgAccess;
+import org.compiere.util.Env;
 import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 
 public class AuthenticationTest extends AbstractTestCase {
 
-	private AuthService authService;
+	@Mock
+	private HttpServletRequest request;
+	@InjectMocks
+	private AuthServiceImpl authService;
+
 
 	@BeforeEach
-	public void setUp() {
+	public void setUp() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		MockitoAnnotations.openMocks(this);
 		authService = new AuthServiceImpl();
+
+		when(request.getHeader("X-Forwarded-For")).thenReturn("127.0.0.1");
+		authService.setRequest(request);
 	}
 
 	@Test
@@ -47,40 +64,66 @@ public class AuthenticationTest extends AbstractTestCase {
 		Response response = authService.authenticate(credential);
 		assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
 	}
+
+	@Test
+	void authenticateWithMultipleClientsReturnsClientList() {
+		LoginCredential credential = new LoginCredential();
+		credential.setUserName("SuperUser");
+		credential.setPassword("System");
+
+		Response response = authService.authenticate(credential);
+
+		assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+		assertTrue(response.getEntity().toString().contains("clients"));
+	}
 	
-    @Test
-	void authenticateWithSingleClientAndRoleSetsLoginParameters() {
-        LoginCredential credential = new LoginCredential();
-        credential.setUserName("GardenUser");
-        credential.setPassword("GardenUser");
+	@Test
+	void authenticateWithSingleClientRoleAndOrgSetsLoginParameters() {
+	    MRoleOrgAccess[] roleOrgAccess = MRoleOrgAccess.getOfRole(Env.getCtx(), 103); // GardenUser Role
+	    
+	    // Store original state
+	    Map<MRoleOrgAccess, Boolean> originalStates = new HashMap<>();
+	    for (MRoleOrgAccess access : roleOrgAccess) {
+	        originalStates.put(access, access.isActive());
+	    }
 
-        Response response = authService.authenticate(credential);
+	    try {
+	        // Deactivate all except the first one
+	        for (int i = 1; i < roleOrgAccess.length; i++) {
+	            roleOrgAccess[i].setIsActive(false);
+	            roleOrgAccess[i].saveEx();
+	        }
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        assertTrue(response.getEntity().toString().contains("clientId"));
-        assertTrue(response.getEntity().toString().contains("roleId"));
-    }
+	        // Setup credentials
+	        LoginCredential credential = new LoginCredential();
+	        credential.setUserName("GardenUser");
+	        credential.setPassword("GardenUser");
 
-    @Test
-    void authenticateWithMultipleClientsReturnsClientList() {
-        LoginCredential credential = new LoginCredential();
-        credential.setUserName("SuperUser");
-        credential.setPassword("System");
+	        // Authenticate
+	        Response response = authService.authenticate(credential);
 
-        Response response = authService.authenticate(credential);
+	        // Validate response
+	        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+	        assertTrue(response.getEntity().toString().contains("clientId"));
+	        assertTrue(response.getEntity().toString().contains("roleId"));
 
-        assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
-        assertTrue(response.getEntity().toString().contains("clients"));
-    }
-    
-    @Test
-    void authenticateWithInvalidCredentialsReturnsUnauthorizedResponse() {
-          LoginCredential credential = new LoginCredential();
-          credential.setUserName("invalidUser");
-          credential.setPassword("invalidPassword");
+	    } finally {
+	        // Restore original state
+	        for (Map.Entry<MRoleOrgAccess, Boolean> entry : originalStates.entrySet()) {
+	            entry.getKey().setIsActive(entry.getValue());
+	            entry.getKey().saveEx();
+	        }
+	    }
+	}
 
-          Response response = authService.authenticate(credential);
-          assertEquals(Response.Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
-      }
+	@Test
+	void authenticateWithInvalidCredentialsReturnsUnauthorizedResponse() {
+		LoginCredential credential = new LoginCredential();
+		credential.setUserName("invalidUser");
+		credential.setPassword("invalidPassword");
+
+		Response response = authService.authenticate(credential);
+		assertEquals(Response.Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
+	}
 
 }
