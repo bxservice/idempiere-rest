@@ -20,13 +20,14 @@
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
 				<artifactId>tycho-surefire-plugin</artifactId>
+				<version>${tycho.version}</version>
 				<configuration>
 					<argLine>
 						-DIDEMPIERE_HOME=${idempiere.home}
 					</argLine>
 					<testRuntime>default</testRuntime>
 					<skipTests>${skipTests}</skipTests>
-					<providerHint>junit58</providerHint>
+					<providerHint>junit59</providerHint>
 					<bundleStartLevel>
 					  <bundle>
 						<id>org.eclipse.core.runtime</id>
@@ -50,6 +51,14 @@
 					  </bundle>
 					</bundleStartLevel>
 				</configuration>
+        <executions>
+					<execution>
+						<id>default-test</id>
+						<goals>
+							<goal>test</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.eclipse.tycho</groupId>
