@@ -11,7 +11,7 @@
 	<artifactId>com.trekglobal.idempiere.rest.api.test</artifactId>
 	<packaging>eclipse-test-plugin</packaging>
 	<properties>
-		<idempiere.home>../../idempiere</idempiere.home>
+		<idempiere.home>file:///${basedir}/../../iDempiere</idempiere.home>
 		<skipTests>true</skipTests>
 	</properties>
 
