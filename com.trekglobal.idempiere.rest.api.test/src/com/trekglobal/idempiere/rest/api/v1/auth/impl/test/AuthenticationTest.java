@@ -25,24 +25,23 @@ import javax.ws.rs.core.Response;
 
 import org.compiere.model.MRoleOrgAccess;
 import org.compiere.util.Env;
-import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import com.trekglobal.idempiere.rest.api.json.test.RestTestCase;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 
-public class AuthenticationTest extends AbstractTestCase {
+public class AuthenticationTest extends RestTestCase {
 
 	@Mock
 	private HttpServletRequest request;
 	@InjectMocks
 	private AuthServiceImpl authService;
-
-
+	
 	@BeforeEach
 	public void setUp() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		MockitoAnnotations.openMocks(this);

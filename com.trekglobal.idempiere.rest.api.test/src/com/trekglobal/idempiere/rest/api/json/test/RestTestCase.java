@@ -23,32 +23,44 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
+package com.trekglobal.idempiere.rest.api.json.test;
 
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.osgi.framework.BundleContext;
+import java.util.concurrent.CountDownLatch;
 
-/**
- * 
- * @author hengsin
- *
- */
-public class Activator extends Incremental2PackActivator {
+import org.idempiere.test.AbstractTestCase;
+import org.junit.jupiter.api.BeforeAll;
+import org.osgi.framework.ServiceReference;
+import org.osgi.util.tracker.ServiceTracker;
+
+public abstract class RestTestCase extends AbstractTestCase {
+
+	private static final CountDownLatch serviceLatch = new CountDownLatch(1);
 	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-
-		super.start(context);
+	public RestTestCase() {
 	}
 
-	@Override
-	protected void afterPackIn() {
-		super.afterPackIn();
-		context.registerService(Activator.class, this, null);
+	@BeforeAll
+	public static void beforeAll() {
+		 ServiceTracker<com.trekglobal.idempiere.rest.api.Activator, com.trekglobal.idempiere.rest.api.Activator> tracker = new ServiceTracker<>(
+	                Activator.context, com.trekglobal.idempiere.rest.api.Activator.class.getName(), null) {
+
+	            @Override
+	            public com.trekglobal.idempiere.rest.api.Activator addingService(ServiceReference<com.trekglobal.idempiere.rest.api.Activator> reference) {
+	            	com.trekglobal.idempiere.rest.api.Activator service = super.addingService(reference);
+	                serviceLatch.countDown(); // Signal that afterPackIn() is done
+	                return service;
+	            }
+
+	            @Override
+	            public void removedService(ServiceReference<com.trekglobal.idempiere.rest.api.Activator> reference, com.trekglobal.idempiere.rest.api.Activator service) {
+	                super.removedService(reference, service);
+	            }
+	        };
+	    tracker.open(); // Start tracking
+	    try {
+	    	//wait for afterPackIn to finish
+			serviceLatch.await();
+		} catch (InterruptedException e) {
+		}
 	}
-		
 }

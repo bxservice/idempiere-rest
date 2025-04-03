@@ -5,6 +5,7 @@ Bundle-SymbolicName: com.trekglobal.idempiere.rest.api.test
 Bundle-Version: 0.1.0.qualifier
 Bundle-Vendor: TREKGLOBAL
 Automatic-Module-Name: com.trekglobal.extension.test
+Bundle-Activator: com.trekglobal.idempiere.rest.api.json.test.Activator
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Import-Package: com.google.gson;version="[2.9.0,3.0.0]",
  javax.servlet.http;version="[3.1.0,4.0.0]",
@@ -24,6 +25,8 @@ Import-Package: com.google.gson;version="[2.9.0,3.0.0]",
  org.junit.jupiter.params.support;version="5.9.0",
  org.mockito,
  org.mockito.junit.jupiter,
- org.mockito.stubbing
+ org.mockito.stubbing,
+ org.osgi.framework;version="[1.10.0,2.0.0)",
+ org.osgi.util.tracker;version="[1.5.0,2.0.0)"
 Require-Bundle: org.adempiere.base;bundle-version="11.0.0",
  com.trekglobal.idempiere.rest.api;bundle-version="0.1.0"
