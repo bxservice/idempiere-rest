@@ -41,13 +41,12 @@ import org.compiere.model.MTable;
 import org.compiere.model.MUser;
 import org.compiere.model.PO;
 import org.compiere.util.Env;
-import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.Test;
 
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 
-public class RestUtilsTest extends AbstractTestCase {
+public class RestUtilsTest extends RestTestCase {
 
 	@Test
     void isUUIDReturnsTrueForValidUUID() {
