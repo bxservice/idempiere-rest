@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -40,7 +39,7 @@ import org.mockito.MockitoAnnotations;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 
-public class ResponseUtilsTest extends AbstractTestCase {
+public class ResponseUtilsTest extends RestTestCase {
 
 	private Exception exception;
 	

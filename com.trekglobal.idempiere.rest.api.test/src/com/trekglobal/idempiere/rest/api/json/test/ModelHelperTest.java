@@ -39,7 +39,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.PO;
 import org.compiere.model.X_AD_User;
-import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -49,7 +48,7 @@ import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.ModelHelper;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 
-public class ModelHelperTest extends AbstractTestCase {
+public class ModelHelperTest extends RestTestCase {
 
 	private ModelHelper modelHelper;
 
