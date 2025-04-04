@@ -26,7 +26,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
 import org.compiere.util.Env;
-import org.idempiere.test.AbstractTestCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -39,12 +38,13 @@ import org.mockito.MockitoAnnotations;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.trekglobal.idempiere.rest.api.json.test.RestTestCase;
 import com.trekglobal.idempiere.rest.api.v1.auth.LoginCredential;
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class AuthServiceImplTest extends AbstractTestCase {
+public class AuthServiceImplTest extends RestTestCase {
 
 	@Mock
 	private HttpServletRequest request;

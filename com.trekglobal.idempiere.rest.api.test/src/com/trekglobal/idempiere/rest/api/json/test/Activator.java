@@ -23,32 +23,26 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
+package com.trekglobal.idempiere.rest.api.json.test;
 
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
+import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 
-/**
- * 
- * @author hengsin
- *
- */
-public class Activator extends Incremental2PackActivator {
+public class Activator implements BundleActivator {
+
+	public static BundleContext context;
 	
+	public Activator() {
+	}
+
 	@Override
 	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-
-		super.start(context);
+		Activator.context = context;
 	}
 
 	@Override
-	protected void afterPackIn() {
-		super.afterPackIn();
-		context.registerService(Activator.class, this, null);
+	public void stop(BundleContext context) throws Exception {
+		context = null;
 	}
-		
+
 }
