@@ -1483,6 +1483,62 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?showlabel&$label={where clause}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner?showlabel&$label=Name eq '%23Customer'&$select=Name,IsCustomer,IsVendor&$expand=AD_User($select=Name,C_Job_ID;$label=Name eq '%23Manager')",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"C_BPartner"
+					],
+					"query": [
+						{
+							"key": "showlabel",
+							"value": null
+						},
+						{
+							"key": "$label",
+							"value": "Name eq '%23Customer'"
+						},
+						{
+							"key": "$select",
+							"value": "Name,IsCustomer,IsVendor"
+						},
+						{
+							"key": "$expand",
+							"value": "AD_User($select=Name,C_Job_ID;$label=Name eq '%23Manager')"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/windows",
 			"request": {
 				"method": "GET",

@@ -9,13 +9,22 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.compiere.model.MLabel;
+import org.compiere.model.MLabelAssignment;
 import org.compiere.model.MSysConfig;
+import org.compiere.model.MTable;
+import org.compiere.model.PO;
+import org.compiere.model.Query;
 import org.compiere.util.DB;
+import org.compiere.util.Env;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
+import com.trekglobal.idempiere.rest.api.json.IPOSerializer;
 import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
 
 public class ExpandUtils {
 	
@@ -39,6 +48,16 @@ public class ExpandUtils {
 	public static String getFilterClause(List<String> operators) {
 		for (String operator : operators) {
 			if (operator.startsWith(QueryOperators.FILTER)) {
+				return getStringOperatorValue(operator);
+			}
+		}
+		
+		return "";
+	}
+	
+	public static String getLabelClause(List<String> operators) {
+		for (String operator : operators) {
+			if (operator.startsWith(QueryOperators.LABEL)) {
 				return getStringOperatorValue(operator);
 			}
 		}
@@ -190,6 +209,50 @@ public class ExpandUtils {
 			String tableName = entry.getKey();
 			JsonElement childArray = entry.getValue();
 			json.add(tableName, childArray);
+		}
+	}
+	
+	public static void addAssignedLabelsToJson(PO po, String showlabel, JsonObject json) {
+		if (MLabelAssignment.hasAnyAssignment(po.get_Table_ID(), po.get_ID(), po.get_UUID())) {
+			StringBuilder whereClause = new StringBuilder();
+			whereClause.append(MLabel.COLUMNNAME_AD_Label_ID + " IN (");
+			whereClause.append("SELECT "+ MLabelAssignment.COLUMNNAME_AD_Label_ID);
+			whereClause.append(" FROM " + MLabelAssignment.Table_Name);
+			whereClause.append(" WHERE " + MLabelAssignment.COLUMNNAME_AD_Table_ID + "=?");
+			whereClause.append(" AND " + MLabelAssignment.COLUMNNAME_Record_UU + "=?)");
+			Query query = new Query(Env.getCtx(), MLabel.Table_Name, whereClause.toString(), null)
+					.setParameters(po.get_Table_ID(), po.get_UUID())
+					.setOrderBy(MLabel.COLUMNNAME_Name)
+					.setApplyAccessFilter(true)
+					.setOnlyActiveRecords(true);
+			String selectClause = null;
+			if (!"list".equals(showlabel))
+				selectClause = MLabel.COLUMNNAME_Name;
+			String[] includes = RestUtils.getSelectedColumns(MLabel.Table_Name, selectClause); 
+			if (includes != null && includes.length > 0)
+				query.selectColumns(includes);
+			List<MLabel> labelList = query.list();
+			IPOSerializer serializer = IPOSerializer.getPOSerializer(MLabel.Table_Name, MTable.getClass(MLabel.Table_Name));
+			if (!"list".equals(showlabel)) {
+				// by default, return a comma-separated list of assigned label names
+				String labelStr = "";
+				for (MLabel label : labelList) {					
+					JsonObject jsonObject = serializer.toJson(label, includes, null);
+					JsonElement jsonElement = jsonObject.get(MLabel.COLUMNNAME_Name);
+					if (labelStr.length() > 0)
+						labelStr += ", ";
+					labelStr += jsonElement.getAsString();
+				}
+				json.addProperty("assigned-labels", labelStr);
+			} else {
+				// showlabel=list return a list of assigned label objects
+				JsonArray labelArray = new JsonArray();
+				for (MLabel label : labelList) {					
+					JsonObject jsonObject = serializer.toJson(label, includes, null);
+					labelArray.add(jsonObject);
+				}
+				json.add("assigned-labels", labelArray);
+			}
 		}
 	}
 }

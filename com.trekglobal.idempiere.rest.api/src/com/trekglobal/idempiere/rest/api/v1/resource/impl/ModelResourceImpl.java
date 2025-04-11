@@ -116,9 +116,14 @@ public class ModelResourceImpl implements ModelResource {
 		return this;
 	}
 	
-	@Override
+	@Deprecated
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {
-		return getPO(tableName, id, details, select, null, showsql);
+		return getPO(tableName, id, details, select, null, showsql, null);
+	}
+	
+	@Override
+	public Response getPO(String tableName, String id, String details, String select, String showsql, String showlabel) {
+		return getPO(tableName, id, details, select, null, showsql, showlabel);
 	}
 	
 	/**
@@ -128,9 +133,11 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param details child/link entity
 	 * @param multiProperty comma separated columns
 	 * @param singleProperty single column
+	 * @param showsql
+	 * @param showlabel
 	 * @return
 	 */
-	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql) {
+	private Response getPO(String tableName, String id, String details, String multiProperty, String singleProperty, String showsql, String showlabel) {
 		try {
 			MRestView view = null;
 			if (useRestView)  {
@@ -174,14 +181,16 @@ public class ModelResourceImpl implements ModelResource {
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
 				if (showData)
 					json = serializer.toJson(po, view, includes, null);
-				else
+				else {
 					json = new JsonObject();
+					showlabel = null;
+				}
 
 				if (showsql != null) {
 					json.addProperty("sql-command", DB.getDatabase().convertStatement(query.getSQL()));
 				}
 				if (!Util.isEmpty(details, true)) {
-					expandDetailsInJsonObject(po, view, json, json, details, showsql != null, showData);
+					expandDetailsInJsonObject(po, view, json, json, details, showsql != null, showData, showlabel);
 				} else if (view != null) {
 					//add auto expand detail view definition
 					MRestViewRelated[] relateds = view.getRelatedViews();
@@ -195,11 +204,12 @@ public class ModelResourceImpl implements ModelResource {
 							}
 						}
 						if (expands.length() > 0) {
-							expandDetailsInJsonObject(po, view, json, json, expands.toString(), showsql != null, showData);
+							expandDetailsInJsonObject(po, view, json, json, expands.toString(), showsql != null, showData, showlabel);
 						}
 					}
 				}
-
+				if (showlabel != null)
+					ExpandUtils.addAssignedLabelsToJson(po, showlabel, json);
 				return Response.ok(json.toString()).build();
 			} else {
 				return poParser.getResponseError();
@@ -245,8 +255,9 @@ public class ModelResourceImpl implements ModelResource {
 		return String.join(",", columns);
 	}
 
-	private void expandDetailsInJsonObject(PO po, MRestView view, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, boolean showSql, boolean showData) {
-		ExpandParser expandParser = new ExpandParser(po, view, expandParameter);
+	private void expandDetailsInJsonObject(PO po, MRestView view, JsonObject masterJsonObject, JsonObject detailJsonObject, String expandParameter, 
+			boolean showSql, boolean showData, String showlabel) {
+		ExpandParser expandParser = new ExpandParser(po, view, expandParameter, showlabel);
 		if (showSql)
 			ExpandUtils.addDetailSQLCommandToJson(expandParser.getTableNameSQLStatementMap(), masterJsonObject);
 		
@@ -297,9 +308,15 @@ public class ModelResourceImpl implements ModelResource {
 
 	}
 
-	@Override
+	@Deprecated
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
 			String validationRuleID, String context, String showsql) {
+		return getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql, null, null);
+	}
+	
+	@Override
+	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
+			String validationRuleID, String context, String showsql, String label, String showlabel) {
 		try {
 			MRestView view = null;
 			if (useRestView) {
@@ -311,7 +328,7 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			
 			RestUtils.getTableAndCheckAccess(tableName, false);
-			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context);
+			ModelHelper modelHelper = new ModelHelper(tableName, filter, order, top, skip, validationRuleID, context, label);
 			if (view != null && !Util.isEmpty(select, true)) {
 				select = toColumnNames(view, select);
 			}
@@ -326,6 +343,8 @@ public class ModelResourceImpl implements ModelResource {
 				IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 
 				boolean showData = (showsql == null || !"nodata".equals(showsql));
+				if (!showData)
+					showlabel = null;
 				JsonObject json = new JsonObject();
 				json.addProperty("page-count", modelHelper.getPageCount());
 				json.addProperty("records-size", modelHelper.getTop());
@@ -339,7 +358,7 @@ public class ModelResourceImpl implements ModelResource {
 				for (PO po : list) {
 					JsonObject detailJson = serializer.toJson(po, view, includes, null);
 					if (!Util.isEmpty(details, true)) {
-						expandDetailsInJsonObject(po, view, json, detailJson, details, showsql != null, showData);
+						expandDetailsInJsonObject(po, view, json, detailJson, details, showsql != null, showData, showlabel);
 					} else if (view != null) {
 						//add auto expand detail view definition
 						MRestViewRelated[] relateds = view.getRelatedViews();
@@ -353,10 +372,12 @@ public class ModelResourceImpl implements ModelResource {
 								}
 							}
 							if (expands.length() > 0) {
-								expandDetailsInJsonObject(po, view, json, detailJson, expands.toString(), showsql != null, showData);
+								expandDetailsInJsonObject(po, view, json, detailJson, expands.toString(), showsql != null, showData, showlabel);
 							}
 						}
 					}
+					if (showlabel != null)
+						ExpandUtils.addAssignedLabelsToJson(po, showlabel, detailJson);
 					array.add(detailJson);
 				}
 				
