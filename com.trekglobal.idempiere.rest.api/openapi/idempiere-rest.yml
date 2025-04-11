@@ -129,6 +129,44 @@ components:
       schema:
         type: string
         description: inject context variable values for validation rule
+    showsql:
+      in: query
+      name: showsql
+      required: false
+      schema:
+        type: string
+      description: show sql command. By default show sql command and data
+      examples:
+        noShowSQL:
+          value: ''
+        showSQLAndData:
+          value: 'y'
+        showSQLNoData:
+          value: 'nodata'
+    label:
+      in: query
+      name: $label
+      required: false
+      schema:
+        type: string
+      description: query filter for AD_Label
+    showlabel:
+      in: query
+      name: showlabel
+      required: false
+      schema:
+        type: string
+      description: show list of assigned label. By default, returns a comma-separated list of assigned label names
+      examples:
+        noLabel:
+          value: ''
+        showLabelAsString:
+          value: 'y'
+          description: returns a comma-separated list of assigned label names
+        showLabelAsList:
+          value: 'list'
+          description: returns a list of assigned label objects
+    
   responses:
     NotFound:
       description: The specified resource was not found
@@ -3447,7 +3485,7 @@ paths:
         - Models
       summary: Get records for table.
       description: Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100.
-      parameters:                
+      parameters:
         - name: $expand
           in: query
           schema:
@@ -3502,6 +3540,9 @@ paths:
               value:
             valRule_C_UOM_210:
               value: 'M_Product_ID:124'
+        - $ref: '#/components/parameters/showsql'
+        - $ref: '#/components/parameters/label'
+        - $ref: '#/components/parameters/showlabel'
       responses:
         '200':
           description: Successful response
@@ -3665,18 +3706,8 @@ paths:
               value: ''
             name:
               value: Name
-        - name: showsql
-          in: query
-          schema:
-            type: string
-          description: show sql command
-          examples:
-            noShowSQL:
-              value: ''
-            showSQLAndData:
-              value: 'y'
-            showSQLNoData::
-              value: 'nodata'
+        - $ref: '#/components/parameters/showsql'
+        - $ref: '#/components/parameters/showlabel'
       responses:
         '200':
           description: Successful response
@@ -5879,6 +5910,9 @@ paths:
         - $ref: '#/components/parameters/skip'
         - $ref: '#/components/parameters/valrule'
         - $ref: '#/components/parameters/context'
+        - $ref: '#/components/parameters/showsql'
+        - $ref: '#/components/parameters/label'
+        - $ref: '#/components/parameters/showlabel'
       responses:
         '200':
           description: Successful response
@@ -5924,18 +5958,8 @@ paths:
       parameters:                
         - $ref: '#/components/parameters/expand'
         - $ref: '#/components/parameters/select'
-        - name: showsql
-          in: query
-          schema:
-            type: string
-          description: show sql command
-          examples:
-            noShowSQL:
-              value: ''
-            showSQLAndData:
-              value: 'y'
-            showSQLNoData::
-              value: 'nodata'
+        - $ref: '#/components/parameters/showsql'
+        - $ref: '#/components/parameters/showlabel'
       responses:
         '200':
           description: Successful response
