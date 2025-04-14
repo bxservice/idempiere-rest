@@ -1483,7 +1483,7 @@
 			"response": []
 		},
 		{
-			"name": "api/v1/models/{table name}?showlabel&$label={where clause}",
+			"name": "api/v1/models/{table name}?showlabel&label={where clause}",
 			"request": {
 				"method": "GET",
 				"header": [
@@ -1504,7 +1504,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner?showlabel&$label=Name eq '%23Customer'&$select=Name,IsCustomer,IsVendor&$filter=IsCustomer eq true&$expand=AD_User($select=Name,C_Job_ID;$label=Name eq '%23Manager')",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner?showlabel&label=Name eq '%23Customer'&$select=Name,IsCustomer,IsVendor&$filter=IsCustomer eq true&$expand=AD_User($select=Name,C_Job_ID;label=Name eq '%23Manager')",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -1522,7 +1522,7 @@
 							"value": null
 						},
 						{
-							"key": "$label",
+							"key": "label",
 							"value": "Name eq '%23Customer'"
 						},
 						{
@@ -1535,7 +1535,7 @@
 						},
 						{
 							"key": "$expand",
-							"value": "AD_User($select=Name,C_Job_ID;$label=Name eq '%23Manager')"
+							"value": "AD_User($select=Name,C_Job_ID;label=Name eq '%23Manager')"
 						}
 					]
 				}

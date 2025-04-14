@@ -145,7 +145,7 @@ components:
           value: 'nodata'
     label:
       in: query
-      name: $label
+      name: label
       required: false
       schema:
         type: string
