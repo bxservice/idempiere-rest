@@ -116,7 +116,6 @@ public class ModelResourceImpl implements ModelResource {
 		return this;
 	}
 	
-	@Deprecated
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {
 		return getPO(tableName, id, details, select, null, showsql, null);
 	}
@@ -308,7 +307,6 @@ public class ModelResourceImpl implements ModelResource {
 
 	}
 
-	@Deprecated
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top, int skip,
 			String validationRuleID, String context, String showsql) {
 		return getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql, null, null);

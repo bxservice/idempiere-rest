@@ -59,7 +59,6 @@ public class ViewResourceImpl implements ViewResource {
 		return new ModelResourceImpl().restView();
 	}
 	
-	@Deprecated
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {
 		return getPO(tableName, id, details, select, showsql, null);
 	}
@@ -74,7 +73,6 @@ public class ViewResourceImpl implements ViewResource {
 		return restView().getPOProperty(tableName, id, propertyName, showsql);
 	}
 
-	@Deprecated
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top,
 			int skip, String validationRuleID, String context, String showsql) {
 		return getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql, null, null);
