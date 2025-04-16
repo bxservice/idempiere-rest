@@ -42,5 +42,7 @@ public interface QueryOperators {
 	public static final String REPORTTYPE  = "$report_type";
 	public static final String INCLUDE_MSG = "with_messages";
 	public static final String AS_JSON     = "json";
+	public static final String LABEL	   = "label";
+	public static final String SHOW_LABEL  = "showlabel";
 
 }

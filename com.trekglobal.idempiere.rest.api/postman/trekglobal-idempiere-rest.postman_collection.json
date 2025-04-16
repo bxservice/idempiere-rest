@@ -1483,6 +1483,164 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}?showlabel={column name}&label={where clause}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner?showlabel=Name&label=Name eq '%23Customer'&$select=Name,IsCustomer,IsVendor&$filter=IsCustomer eq true&$expand=AD_User($select=Name,C_Job_ID;label=Name eq '%23Manager')",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"C_BPartner"
+					],
+					"query": [
+						{
+							"key": "showlabel",
+							"value": "Name"
+						},
+						{
+							"key": "label",
+							"value": "Name eq '%23Customer'"
+						},
+						{
+							"key": "$select",
+							"value": "Name,IsCustomer,IsVendor"
+						},
+						{
+							"key": "$filter",
+							"value": "IsCustomer eq true"
+						},
+						{
+							"key": "$expand",
+							"value": "AD_User($select=Name,C_Job_ID;label=Name eq '%23Manager')"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}?showlabel={columnname list}",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner/119?showlabel=Name,Description&$select=Name,IsCustomer,IsVendor",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"C_BPartner",
+						"119"
+					],
+					"query": [
+						{
+							"key": "showlabel",
+							"value": "Name,Description"
+						},
+						{
+							"key": "$select",
+							"value": "Name,IsCustomer,IsVendor"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}?showlabel",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_BPartner/119?showlabel&$select=Name,IsCustomer,IsVendor",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"C_BPartner",
+						"119"
+					],
+					"query": [
+						{
+							"key": "showlabel",
+							"value": null
+						},
+						{
+							"key": "$select",
+							"value": "Name,IsCustomer,IsVendor"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/windows",
 			"request": {
 				"method": "GET",

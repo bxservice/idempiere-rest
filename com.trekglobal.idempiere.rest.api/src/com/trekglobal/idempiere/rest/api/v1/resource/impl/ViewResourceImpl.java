@@ -59,9 +59,13 @@ public class ViewResourceImpl implements ViewResource {
 		return new ModelResourceImpl().restView();
 	}
 	
-	@Override
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {
-		return restView().getPO(tableName, id, details, select, showsql);
+		return getPO(tableName, id, details, select, showsql, null);
+	}
+	
+	@Override
+	public Response getPO(String tableName, String id, String details, String select, String showsql, String showlabel) {
+		return restView().getPO(tableName, id, details, select, showsql, showlabel);
 	}
 
 	@Override
@@ -69,10 +73,16 @@ public class ViewResourceImpl implements ViewResource {
 		return restView().getPOProperty(tableName, id, propertyName, showsql);
 	}
 
-	@Override
 	public Response getPOs(String tableName, String details, String filter, String order, String select, int top,
 			int skip, String validationRuleID, String context, String showsql) {
-		return restView().getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql);
+		return getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql, null, null);
+	}
+	
+	@Override
+	public Response getPOs(String tableName, String details, String filter, String order, String select, int top,
+			int skip, String validationRuleID, String context, String showsql, String label, String showlabel) {
+		return restView().getPOs(tableName, details, filter, order, select, top, skip, validationRuleID, context, showsql, 
+				label, showlabel);
 	}
 
 	@Override

@@ -55,6 +55,7 @@ public class ExpandParser {
 	
 	private PO po;
 	private String expandParameter = null;
+	private String showlabel = null;
 	private String masterTableName = null;
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonElement> tableNameChildArrayMap = new HashMap<>();
@@ -65,9 +66,14 @@ public class ExpandParser {
 	}
 	
 	public ExpandParser(PO po, MRestView view, String expandParameter) {
+		this(po, view, expandParameter, null);
+	}
+	
+	public ExpandParser(PO po, MRestView view, String expandParameter, String showlabel) {
 		this.po = po;
 		this.view = view;
 		this.expandParameter = expandParameter;
+		this.showlabel = showlabel;
 		masterTableName = po.get_TableName();
 		expandRelatedResources();
 	}
@@ -165,6 +171,8 @@ public class ExpandParser {
 			if (includes != null && includes.length > 0)
 				query.selectColumns(includes);
 			JsonObject json = serializer.toJson(po, referenceView, includes, null);
+			if (showlabel != null)
+				ExpandUtils.addAssignedLabelsToJson(po, showlabel, json);
 			tableNameChildArrayMap.put(restViewColumn != null ? restViewColumn.getName() : column.getColumnName(), json);
 		}
 	}
@@ -215,6 +223,8 @@ public class ExpandParser {
 					ExpandParser expandParser = new ExpandParser(child, view, expandParameter);
 					ExpandUtils.addDetailDataToJson(expandParser.getTableNameChildArrayMap(), childJsonObject);
 				}
+				if (showlabel != null)
+					ExpandUtils.addAssignedLabelsToJson(child, showlabel, childJsonObject);
 				childArray.add(childJsonObject);
 			}
 			tableNameChildArrayMap.put(restViewRelated != null ? restViewRelated.getName() : detailEntity, childArray);
@@ -227,7 +237,8 @@ public class ExpandParser {
 				!Util.isEmpty(ExpandUtils.getOrderByClause(operators)) || 
 				!Util.isEmpty(ExpandUtils.getExpandClause(operators)) ||
 				ExpandUtils.getTopClause(operators) > 0 ||
-				ExpandUtils.getSkipClause(operators) > 0)
+				ExpandUtils.getSkipClause(operators) > 0 ||
+				!Util.isEmpty(ExpandUtils.getLabelClause(operators)))
 			throw new IDempiereRestException("Expand error", "Expanding a master only support the $select query operator", Status.BAD_REQUEST);
 
 	}
@@ -289,8 +300,9 @@ public class ExpandParser {
 		String orderBy = ExpandUtils.getOrderByClause(operators);
 		int top = ExpandUtils.getTopClause(operators);
 		int skip = ExpandUtils.getSkipClause(operators);
+		String label = ExpandUtils.getLabelClause(operators);
 
-		return new ModelHelper(tableName, filter, orderBy, top, skip);
+		return new ModelHelper(tableName, filter, orderBy, top, skip, null, null, label);
 	}
 	
 	public String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
