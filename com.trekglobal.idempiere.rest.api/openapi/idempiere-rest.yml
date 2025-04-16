@@ -160,12 +160,15 @@ components:
       examples:
         noLabel:
           value: ''
-        showLabelAsString:
-          value: 'y'
-          description: returns a comma-separated list of assigned label names
-        showLabelAsList:
-          value: 'list'
-          description: returns a list of assigned label objects
+        showLabel:
+          value: ' '
+          description: returns a list of assigned label objects, including all columns
+        showLabelColumn :
+          value: 'Name'
+          description: returns the values of the assigned label column
+        showLabelColumnList:
+          value: 'Name,Description'
+          description: returns a list of assigned label objects, including the column list only
     
   responses:
     NotFound:

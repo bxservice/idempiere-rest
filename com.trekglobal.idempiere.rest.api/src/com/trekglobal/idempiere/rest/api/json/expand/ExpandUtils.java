@@ -17,6 +17,7 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Util;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -226,33 +227,36 @@ public class ExpandUtils {
 					.setApplyAccessFilter(true)
 					.setOnlyActiveRecords(true);
 			String selectClause = null;
-			if (!"list".equals(showlabel))
-				selectClause = MLabel.COLUMNNAME_Name;
-			String[] includes = RestUtils.getSelectedColumns(MLabel.Table_Name, selectClause); 
+			if (!Util.isEmpty(showlabel, true))
+				selectClause = showlabel;
+  			String[] includes = RestUtils.getSelectedColumns(MLabel.Table_Name, selectClause); 
 			if (includes != null && includes.length > 0)
 				query.selectColumns(includes);
 			List<MLabel> labelList = query.list();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MLabel.Table_Name, MTable.getClass(MLabel.Table_Name));
-			if (!"list".equals(showlabel)) {
-				// by default, return a comma-separated list of assigned label names
-				String labelStr = "";
-				for (MLabel label : labelList) {					
-					JsonObject jsonObject = serializer.toJson(label, includes, null);
-					JsonElement jsonElement = jsonObject.get(MLabel.COLUMNNAME_Name);
-					if (labelStr.length() > 0)
-						labelStr += ", ";
-					labelStr += jsonElement.getAsString();
-				}
-				json.addProperty("assigned-labels", labelStr);
-			} else {
-				// showlabel=list return a list of assigned label objects
-				JsonArray labelArray = new JsonArray();
-				for (MLabel label : labelList) {					
-					JsonObject jsonObject = serializer.toJson(label, includes, null);
+			JsonArray labelArray = new JsonArray();
+			for (MLabel label : labelList) {
+				JsonObject jsonObject = serializer.toJson(label, includes, null);
+				if (includes != null && includes.length > 0) {
+					if (includes.length == 1) {
+						// showlabel={column name} returns the values of the assigned label {column name}
+						JsonElement jsonElement = jsonObject.get(includes[0]);
+						labelArray.add(jsonElement);
+					} else {
+						// showlabel={columnname list} returns a list of assigned label objects, including the {columnname list} only
+						JsonObject jsonObjectIncludes = new JsonObject();
+						for (String include : includes) {
+							JsonElement jsonElement = jsonObject.get(include);
+							jsonObjectIncludes.add(include, jsonElement);
+						}
+						labelArray.add(jsonObjectIncludes);
+					}
+				} else {
+					// showlabel returns a list of assigned label objects, including all columns
 					labelArray.add(jsonObject);
 				}
-				json.add("assigned-labels", labelArray);
 			}
+			json.add("assigned-labels", labelArray);
 		}
 	}
 }
