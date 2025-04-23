@@ -45,6 +45,8 @@ import org.compiere.model.MSession;
 import org.compiere.model.MUser;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.KeyNamePair;
+import org.compiere.util.Login;
 import org.compiere.util.Util;
 
 import com.auth0.jwt.JWT;
@@ -226,6 +228,10 @@ public class RequestFilter implements ContainerRequestFilter {
 					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 				}
 			}
+			// validate login on the token to check if session is still valid
+			String errorMessage = new Login(Env.getCtx()).validateLogin(new KeyNamePair(AD_Org_ID, ""));
+			if (!Util.isEmpty(errorMessage))
+				throw new JWTVerificationException(errorMessage);
 		}
 		RestUtils.setSessionContextVariables(Env.getCtx());
 	}
