@@ -95,7 +95,7 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 	}
 	
 	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value, MRestView referenceView) {
-		if (lookup != null) {
+		if (lookup != null && value != null && value instanceof Integer) {
 			MLocation loc = MLocation.get((Integer)value);
 			JsonObject ref = new JsonObject();
 			if (referenceView == null)
