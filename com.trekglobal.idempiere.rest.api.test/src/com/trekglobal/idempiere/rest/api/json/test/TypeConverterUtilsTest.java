@@ -33,7 +33,9 @@ import java.util.Date;
 import org.compiere.model.MColumn;
 import org.junit.jupiter.api.Test;
 
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 
 public class TypeConverterUtilsTest extends RestTestCase {
@@ -202,6 +204,13 @@ public class TypeConverterUtilsTest extends RestTestCase {
    }
 	
 	@Test
+	public void toJsonValueReturnsJsonObjectForImageIDNonExisting() {
+		MColumn column = MColumn.get(58113); //C_Bpartner table > Logo column
+	    Object result = TypeConverterUtils.toJsonValue(column, 50);
+	    assertNull(result);
+   }
+	
+	@Test
 	public void toJsonValueReturnsNullForImageNull() {
 		MColumn column = MColumn.get(58113); //C_Bpartner table > Logo column
 	    Object result = TypeConverterUtils.toJsonValue(column, null); 
@@ -223,17 +232,24 @@ public class TypeConverterUtilsTest extends RestTestCase {
 	    assertNull(TypeConverterUtils.toJsonValue(column, ""));
 	    assertNull(TypeConverterUtils.toJsonValue(column, null));
 	}
-/*
+	
 	@Test
 	public void fromJsonValueReturnsStringForTextColumn() {
-	    when(column.getAD_Reference_ID()).thenReturn(DisplayType.String);
+		MColumn column = MColumn.get(327); //Test table > Description column
 	    Object result = TypeConverterUtils.fromJsonValue(column, new JsonPrimitive("TestValue"));
 	    assertEquals("TestValue", result);
 	}
 
 	@Test
-	public void fromJsonValueReturnsNullForJsonNull() {
-	    when(column.getAD_Reference_ID()).thenReturn(DisplayType.String);
+	public void fromJsonValueReturnsNullForJsonNullTextColumn() {
+		MColumn column = MColumn.get(327); //Test table > Description column
+	    Object result = TypeConverterUtils.fromJsonValue(column, JsonNull.INSTANCE);
+	    assertNull(result);
+	}
+	
+	@Test
+	public void fromJsonValueReturnsNullForNumericColumn() {
+		MColumn column = MColumn.get(330); //Test table > Number column
 	    Object result = TypeConverterUtils.fromJsonValue(column, JsonNull.INSTANCE);
 	    assertNull(result);
 	}
@@ -242,6 +258,9 @@ public class TypeConverterUtilsTest extends RestTestCase {
 	public void slugifyConvertsTextToSlug() {
 	    String result = TypeConverterUtils.slugify("Test Input Text!");
 	    assertEquals("test-input-text", result);
+	    
+	    result = TypeConverterUtils.slugify("a-b-c");
+	    assertEquals("a-b-c", result);
 	}
 
 	@Test
@@ -249,32 +268,59 @@ public class TypeConverterUtilsTest extends RestTestCase {
 	    String result = TypeConverterUtils.slugify("");
 	    assertEquals("", result);
 	}
-
+	
 	@Test
-	public void toJsonValueHandlesNumericColumn() {
-	    when(column.getAD_Reference_ID()).thenReturn(DisplayType.Integer);
-	    Object result = TypeConverterUtils.toJsonValue(column, 123);
-	    assertEquals(123, result);
-	}
+    public void slugify_removesPunctuationAndLowercases() {
+        String input = "Hello, World!";
+        String expected = "hello-world";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
 
-	@Test
-	public void fromJsonValueHandlesNumericColumn() {
-	    when(column.getAD_Reference_ID()).thenReturn(DisplayType.Integer);
-	    Object result = TypeConverterUtils.fromJsonValue(column, new JsonPrimitive(123));
-	    assertEquals(123, result);
-	}
+    @Test
+    public void slugify_handlesAccentsAndNonLatinCharacters() {
+        String input = "Café déjà vu";
+        String expected = "cafe-deja-vu";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
 
-	@Test
-	public void toJsonValueHandlesBooleanColumn() {
-	    when(gridField.getDisplayType()).thenReturn(DisplayType.YesNo);
-	    Object result = TypeConverterUtils.toJsonValue(gridField, true);
-	    assertEquals(true, result);
-	}
+    @Test
+    public void slugify_replacesMultipleSeparatorsWithSingleDash() {
+        String input = "A  --  B";
+        String expected = "a-b";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
 
-	@Test
-	public void fromJsonValueHandlesBooleanColumn() {
-	    when(gridField.getDisplayType()).thenReturn(DisplayType.YesNo);
-	    Object result = TypeConverterUtils.fromJsonValue(gridField, new JsonPrimitive(true));
-	    assertEquals(true, result);
-	}*/
+    @Test
+    public void slugify_trimsLeadingAndTrailingDashes() {
+        String input = " --- Hello --- ";
+        String expected = "hello";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
+
+    @Test
+    public void slugify_keepsHyphenAndUnderscore() {
+        String input = "foo-bar_baz";
+        String expected = "foo-bar_baz";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
+
+    @Test
+    public void slugify_handlesOnlyPunctuation() {
+        assertEquals("", TypeConverterUtils.slugify("!!!...,,,")); // becomes empty
+    }
+
+    @Test
+    public void slugify_collapsesConsecutiveSeparators() {
+        String input = "foo    bar";
+        String expected = "foo-bar";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
+
+    @Test
+    public void slugify_preservesCaseAsLower() {
+        String input = "This IS Mixed CASE";
+        String expected = "this-is-mixed-case";
+        assertEquals(expected, TypeConverterUtils.slugify(input));
+    }
+	
 }
