@@ -63,24 +63,30 @@ public class ImageTypeConverter implements ITypeConverter<Object> {
 	}
 
 	private Object toJsonValue(String label, Object value) {
-		if (value != null)
-		{
-			MImage img = MImage.get((Integer)value);
-			
-			JsonObject ref = new JsonObject();
-			ref.addProperty("propertyLabel", label);
-			if (value instanceof Number)
-				ref.addProperty("id", ((Number)value).intValue());
-			
-			String data = Base64.getEncoder().encodeToString(img.getBinaryData());
-			if (!Util.isEmpty(data, true)) {
-				ref.addProperty("data", data);
-			}							
-			ref.addProperty("model-name", MImage.Table_Name.toLowerCase());
-			return ref;
-		} else {
+		if (value == null) {
 			return null;
 		}
+
+		MImage img = MImage.get((Integer)value);
+		if (img == null) {
+			return null;
+		}
+
+		JsonObject ref = new JsonObject();
+		ref.addProperty("propertyLabel", label);
+		if (value instanceof Number)
+			ref.addProperty("id", ((Number)value).intValue());
+
+		byte[] binaryData = img.getBinaryData();
+		if (binaryData != null && binaryData.length > 0) {
+			String data = Base64.getEncoder().encodeToString(binaryData);
+			if (!Util.isEmpty(data, true)) {
+				ref.addProperty("data", data);
+			}
+		}
+
+		ref.addProperty("model-name", MImage.Table_Name.toLowerCase());
+		return ref;
 	}
 		
 	@Override
