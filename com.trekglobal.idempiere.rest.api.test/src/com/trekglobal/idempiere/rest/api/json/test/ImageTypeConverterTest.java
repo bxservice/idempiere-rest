@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MImage;
+import org.compiere.util.Env;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -86,7 +87,7 @@ public class ImageTypeConverterTest extends RestTestCase {
         assertNull(result);
     }
 
-    /*@Test
+    @Test
     public void fromJsonValueParsesValidJsonObjectToImageId() {
         JsonObject json = new JsonObject();
         json.addProperty("data", "AQID");
@@ -94,8 +95,10 @@ public class ImageTypeConverterTest extends RestTestCase {
         json.addProperty("url", "http://idempiere.org/image.png");
 
         Object result = converter.fromJsonValue(mockColumn, json);
-        assertTrue(result instanceof Integer);    
-    }*/
+        assertTrue(result instanceof Integer);        
+        MImage image = new MImage(Env.getCtx(), (Integer) result, null);
+        image.deleteEx(true);
+    }
 
     @Test
     public void fromJsonValueReturnsNullForInvalidJsonObject() {
