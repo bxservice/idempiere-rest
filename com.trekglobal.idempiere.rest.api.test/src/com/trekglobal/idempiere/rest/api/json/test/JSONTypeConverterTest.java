@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
-import org.compiere.model.MImage;
 import org.compiere.util.DisplayType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,8 +48,6 @@ public class JSONTypeConverterTest extends RestTestCase {
 	private MColumn mockColumn;
 	@Mock
 	private GridField mockField;
-	@Mock
-    private MImage image;
 
     @BeforeEach
     public void setUp() {
