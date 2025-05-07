@@ -68,6 +68,9 @@ public class JSONTypeConverter implements ITypeConverter<String> {
 	}
 	
 	private Object fromJsonValue(int displayType, JsonElement value) {
+		if (value == null || value.isJsonNull()) {
+			return null;
+		}
 		return value.toString();
 	}
 }
