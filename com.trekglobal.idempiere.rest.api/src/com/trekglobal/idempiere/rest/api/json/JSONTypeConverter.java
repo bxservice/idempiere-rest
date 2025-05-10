@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.json;
 
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
+import org.compiere.util.Util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -60,10 +61,16 @@ public class JSONTypeConverter implements ITypeConverter<String> {
 	}
 	
 	private Object toJsonValue(int displayType, String value) {
+		if (Util.isEmpty(value)) {
+			return null;
+		}
 		return JsonParser.parseString(value);
 	}
 	
 	private Object fromJsonValue(int displayType, JsonElement value) {
+		if (value == null || value.isJsonNull()) {
+			return null;
+		}
 		return value.toString();
 	}
 }

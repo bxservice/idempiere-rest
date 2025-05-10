@@ -114,7 +114,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 	}
 
 	private Object toJsonValue(int displayType, String label, Lookup lookup, String refTableName, Object value, MRestView referenceView) {
-		if (lookup != null) {
+		if (lookup != null && value != null) {
 			JsonObject ref = new JsonObject();
 			if (referenceView == null)
 				ref.addProperty("propertyLabel", label);

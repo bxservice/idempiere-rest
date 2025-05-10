@@ -48,6 +48,7 @@ import org.adempiere.base.ServiceQuery;
 import org.compiere.model.GridField;
 import org.compiere.model.MColumn;
 import org.compiere.util.DisplayType;
+import org.compiere.util.Util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
@@ -75,6 +76,9 @@ public class TypeConverterUtils {
 	 * @return propertyName
 	 */
 	public static String toPropertyName(String columnName) {
+		if (Util.isEmpty(columnName))
+			return columnName;
+
 		String propertyName = columnName;
 		if (!propertyName.contains("_")) {
 			String initial = propertyName.substring(0, 1).toLowerCase();
