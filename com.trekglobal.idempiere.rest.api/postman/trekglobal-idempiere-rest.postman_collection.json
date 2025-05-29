@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "7e3d4832-ac90-4b3d-aad1-a3daa716de88",
+		"_postman_id": "ecf43157-e76e-4f57-a812-841a05427eff",
 		"name": "trekglobal-idempiere-rest",
 		"description": "Import or create an environment with the variables: host, port, protocol, userName, password, clientId, roleId, organizationId, warehouseId, language, sysuserName and syspassword\n\nRun POST api/v1/auth/tokens to get the first authentication token.\n\nThen run PUT api/v1/auth/tokens to get the second authentication token.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -4951,6 +4951,370 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "/api/v1/uploads",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							"var jsonData = pm.response.json();\r",
+							"if (jsonData && jsonData.uploadId)\r",
+							"    pm.collectionVariables.set(\"uploadId\", jsonData.uploadId);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"fileName\": \"emoji_wallpaper.png\",\r\n    \"contentType\": \"image/png\",\r\n    \"fileSize\" : 292287,\r\n    \"chunkSize\" : 146144,\r\n    \"sha256\": \"0bfbc699c443b29ed58de31d29a0a989d7ea68f07e787c415157332c4bfaf427\"\r\n}\r\n"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads//{{uploadId}}/chunks/1",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-Content-SHA256",
+						"value": "6917746089c7a660e470671cea53dc04b4c27027882fa744822eaab686a55405",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "postman-cloud:///1f03ba17-94e1-4860-be9f-954b34dd13f4"
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/chunks/1",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}",
+						"chunks",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}}/chunks/2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/octet-stream",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					},
+					{
+						"key": "X-Content-SHA256",
+						"value": "26d146bf4946a9f9bf6f7fc46dbfd60ad6b01fa16f5ef7d5cb982b9235d8edba",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "file",
+					"file": {
+						"src": "postman-cloud:///1f03bbdc-1dc3-4fa0-9c09-71ea03ebb5a5"
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/chunks/2",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}",
+						"chunks",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}}/complete",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {\r",
+							"    pm.response.to.have.status(202);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"fileName\": \"\",\r\n    \"totalChunks\": 2\r\n}\r\n"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/complete",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}",
+						"complete"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}}/file",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/file",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}",
+						"file"
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [
@@ -4981,6 +5345,11 @@
 		{
 			"key": "c_orderline_id",
 			"value": ""
+		},
+		{
+			"key": "uploadId",
+			"value": "0ebda05d-7107-4dae-85c3-1e916802aa8a",
+			"type": "default"
 		}
 	]
 }

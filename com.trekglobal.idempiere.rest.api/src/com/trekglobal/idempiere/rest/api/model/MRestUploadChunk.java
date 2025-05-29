@@ -23,36 +23,54 @@
 * - Trek Global Corporation                                           *
 * - Heng Sin Low                                                      *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api.v1.resource;
+package com.trekglobal.idempiere.rest.api.model;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import java.sql.ResultSet;
+import java.util.List;
+import java.util.Properties;
 
-import com.trekglobal.idempiere.rest.api.json.QueryOperators;
+import org.compiere.model.Query;
+import org.compiere.util.Env;
 
-/**
- * 
- * @author hengsin
- *
- */
-@Path("v1/files")
-public interface FileResource {
+public class MRestUploadChunk extends X_REST_UploadChunk {
 
-	@GET
-	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.TEXT_HTML, MediaType.TEXT_PLAIN})
+	private static final long serialVersionUID = -4887198754499988534L;
+
+	public MRestUploadChunk(Properties ctx, int REST_UploadChunk_ID, String trxName) {
+		super(ctx, REST_UploadChunk_ID, trxName);
+	}
+
+	public MRestUploadChunk(Properties ctx, int REST_UploadChunk_ID, String trxName, String... virtualColumns) {
+		super(ctx, REST_UploadChunk_ID, trxName, virtualColumns);
+	}
+
+	public MRestUploadChunk(Properties ctx, String REST_UploadChunk_UU, String trxName) {
+		super(ctx, REST_UploadChunk_UU, trxName);
+	}
+
+	public MRestUploadChunk(Properties ctx, String REST_UploadChunk_UU, String trxName, String... virtualColumns) {
+		super(ctx, REST_UploadChunk_UU, trxName, virtualColumns);
+	}
+
+	public MRestUploadChunk(Properties ctx, ResultSet rs, String trxName) {
+		super(ctx, rs, trxName);
+	}
+
 	/**
-	 * Get file content as binary stream
-	 * @param fileName
-	 * @param length
-	 * @param nodeId
-	 * @param asJson if provided, the response will be in JSON format with file content as base64 encoded string.
-	 * @return response
+	 * Find upload chunks by upload uuid.
+	 * @param uploadId upload uuid
+	 * @return MRestUploadChunk list or empty list if not found
 	 */
-	public Response getFile(@QueryParam("fileName") String fileName, @QueryParam("length") @DefaultValue("0") long length,
-				@QueryParam("node_id") String nodeId, @QueryParam(QueryOperators.AS_JSON) String asJson);
+	public static List<MRestUploadChunk> findByUploadId(int uploadId) {
+		Query query = new Query(Env.getCtx(), I_REST_UploadChunk.Table_Name, "REST_Upload_ID=?", null);
+		return query.setParameters(uploadId).list();
+	}
+
+	/**
+	 * Get total size of the chunk data received.
+	 * @return total size of the chunk data received.
+	 */
+	public long getReceivedSize() {
+		return getREST_ReceivedSize() != null ? getREST_ReceivedSize().longValue() : 0L;
+	}
 }
