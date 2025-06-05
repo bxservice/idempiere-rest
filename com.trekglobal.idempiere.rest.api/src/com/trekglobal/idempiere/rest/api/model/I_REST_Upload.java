@@ -51,6 +51,19 @@ public interface I_REST_Upload
 	  */
 	public int getAD_Client_ID();
 
+    /** Column name AD_Image_ID */
+    public static final String COLUMNNAME_AD_Image_ID = "AD_Image_ID";
+
+	/** Set Image.
+	  * Image or Icon
+	  */
+	public void setAD_Image_ID (int AD_Image_ID);
+
+	/** Get Image.
+	  * Image or Icon
+	  */
+	public int getAD_Image_ID();
+
     /** Column name AD_Org_ID */
     public static final String COLUMNNAME_AD_Org_ID = "AD_Org_ID";
 
@@ -154,6 +167,15 @@ public interface I_REST_Upload
 
 	/** Get SHA-256	  */
 	public String getREST_SHA256();
+
+    /** Column name REST_UploadLocation */
+    public static final String COLUMNNAME_REST_UploadLocation = "REST_UploadLocation";
+
+	/** Set Upload Location	  */
+	public void setREST_UploadLocation (String REST_UploadLocation);
+
+	/** Get Upload Location	  */
+	public String getREST_UploadLocation();
 
     /** Column name REST_UploadStatus */
     public static final String COLUMNNAME_REST_UploadStatus = "REST_UploadStatus";
