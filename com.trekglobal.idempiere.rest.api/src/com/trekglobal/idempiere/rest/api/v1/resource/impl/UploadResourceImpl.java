@@ -475,7 +475,12 @@ public class UploadResourceImpl implements UploadResource {
 					"Upload is not completed yet. Current status: " + upload.getStatus(), uploadId, "");
         }
         
-        String copyLocation = MRestUpload.REST_UPLOADLOCATION_Archive;
+        if (Util.isEmpty(copyRequest.copyLocation(), true)) {
+        	return Response.status(Response.Status.BAD_REQUEST)
+    				.entity("{\"error\":\"copyLocation is required in request.\"}")
+                    .build();
+        }
+        
         if (!Util.isEmpty(copyRequest.copyLocation(), true)) {
         	if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
         			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
@@ -483,10 +488,9 @@ public class UploadResourceImpl implements UploadResource {
         		return Response.status(Response.Status.BAD_REQUEST)
         				.entity("{\"error\":\"Invalid copyLocation in request.\"}")
                         .build();
-        	copyLocation = copyRequest.copyLocation();
         }        
         
-        if (!copyLocation.equals(MRestUpload.REST_UPLOADLOCATION_Image) 
+        if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image) 
         		&& (Util.isEmpty(copyRequest.tableName(), true) || Util.isEmpty(copyRequest.recordId(), true))) {
         	return Response.status(Response.Status.BAD_REQUEST)
     				.entity("{\"error\":\"tableName and recordId are required in request.\"}")
@@ -498,7 +502,7 @@ public class UploadResourceImpl implements UploadResource {
 			return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
 		}
         
-        if (!copyLocation.equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+        if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
         	String tableName = copyRequest.tableName();
         	String id = copyRequest.recordId();
 	        MRestView view = RestUtils.getView(tableName);
@@ -507,7 +511,7 @@ public class UploadResourceImpl implements UploadResource {
             POParser poParser = new POParser(tableName, id, true, true);
     		if (poParser.isValidPO()) {
     			PO po = poParser.getPO();
-    			if (copyLocation.equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+    			if (copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
                 	MAttachment attachment = po.getAttachment();
                 	if (attachment == null)
                 		attachment = po.createAttachment();
@@ -539,7 +543,7 @@ public class UploadResourceImpl implements UploadResource {
     					copyRequest.tableName(), 
     					po.get_ID(),
     					po.get_UUID(), 
-    					copyLocation,
+    					copyRequest.copyLocation(),
     					uploadDetails.fileName,
     					uploadDetails.contentType,
     					uploadDetails.data.length);
@@ -561,7 +565,7 @@ public class UploadResourceImpl implements UploadResource {
 					image.get_TableName(), 
 					image.get_ID(),
 					image.get_UUID(),
-					copyLocation,
+					copyRequest.copyLocation(),
 					uploadDetails.fileName,
 					uploadDetails.contentType,
 					uploadDetails.data.length);

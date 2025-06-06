@@ -210,7 +210,7 @@ public interface UploadResource {
     /**
      * Request body for the copy uploaded file.
      * 
-     * @param copyLocation optional The copy location of the destination record, e.g. archive (default), image or attachment.
+     * @param copyLocation The copy location of the destination record, e.g. archive, image or attachment.
      * @param tableName optional The table name of the destination record.
      * @param recordId optional The record id/uuid of the destination record.
      */
