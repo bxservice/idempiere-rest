@@ -3146,6 +3146,8 @@ components:
     CopyUploadedFileRequest:
       type: object
       properties:
+        copyLocation:
+          $ref: '#/components/schemas/UploadLocation'
         tableName:
           type: string
           description: optional table name of the destination record
@@ -3167,7 +3169,7 @@ components:
         recordUU:
           type: string
           description: record uuid of the destination record
-        fileLocation:
+        copyLocation:
           $ref: '#/components/schemas/UploadLocation'
         fileName:
           type: string

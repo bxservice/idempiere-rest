@@ -210,10 +210,11 @@ public interface UploadResource {
     /**
      * Request body for the copy uploaded file.
      * 
-     * @param tableName optional table name of the destination record
-     * @param recordId optional record id/uuid of the destination record
+     * @param copyLocation optional The copy location of the destination record, e.g. archive (default), image or attachment.
+     * @param tableName optional The table name of the destination record.
+     * @param recordId optional The record id/uuid of the destination record.
      */
-    static record CopyUploadedFileRequest(String tableName, String recordId) {    	
+    static record CopyUploadedFileRequest(String copyLocation, String tableName, String recordId) {    	
 	};
 	
 	/**
@@ -223,13 +224,13 @@ public interface UploadResource {
      * @param tableName The table name of the destination record.
      * @param recordId The record id of the destination record.
      * @param recordUU The record uuid of the destination record.
-     * @param fileLocation The location of the file being copied.
+     * @param copyLocation The copy location of the destination record, e.g. archive (default), image or attachment.
      * @param fileName The name of the file being copied.
      * @param contentType The MIME type of the file being copied (e.g., "image/png", "application/pdf").
      * @param fileSize The size of the file being copied.
      */
     static record CopyUploadedFileResponse(String uploadId, String tableName, int recordId, String recordUU, 
-    		String fileLocation, String fileName, String contentType, int fileSize) {    	
+    		String copyLocation, String fileName, String contentType, int fileSize) {    	
 	};
     
     /**

@@ -5411,7 +5411,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"tableName\": \"\",\r\n    \"recordId\": \"\"\r\n}"
+					"raw": "{\r\n    \"copyLocation\": \"\",\r\n    \"tableName\": \"\",\r\n    \"recordId\": \" \"\r\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/copy",
