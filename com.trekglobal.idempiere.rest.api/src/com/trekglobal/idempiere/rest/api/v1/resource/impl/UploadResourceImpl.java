@@ -481,14 +481,12 @@ public class UploadResourceImpl implements UploadResource {
                     .build();
         }
         
-        if (!Util.isEmpty(copyRequest.copyLocation(), true)) {
-        	if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
-        			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
-        			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
-        		return Response.status(Response.Status.BAD_REQUEST)
-        				.entity("{\"error\":\"Invalid copyLocation in request.\"}")
-                        .build();
-        }        
+    	if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
+    			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
+    			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
+    		return Response.status(Response.Status.BAD_REQUEST)
+    				.entity("{\"error\":\"Invalid copyLocation in request.\"}")
+                     .build();
         
         if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image) 
         		&& (Util.isEmpty(copyRequest.tableName(), true) || Util.isEmpty(copyRequest.recordId(), true))) {
