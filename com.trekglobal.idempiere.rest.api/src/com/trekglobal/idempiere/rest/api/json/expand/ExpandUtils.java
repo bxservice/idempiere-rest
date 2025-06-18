@@ -134,7 +134,7 @@ public class ExpandUtils {
 
 		List<String> detailTables = Arrays.asList(expandParameter.split("[,]"));
 		for (String tableName : detailTables) 
-			tableNamesOperatorsMap.put(tableName, Collections.emptyList());
+			tableNamesOperatorsMap.put(tableName.trim(), Collections.emptyList());
 		
 		return tableNamesOperatorsMap;
 	}
@@ -180,7 +180,7 @@ public class ExpandUtils {
 		if (parameter.contains("("))
 			detailEntity = parameter.substring(0, parameter.indexOf("("));
 
-		return detailEntity;
+		return detailEntity.trim();
 	}
 	
 	private static List<String> getExpandOperators(String parameter) {
