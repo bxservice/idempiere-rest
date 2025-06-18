@@ -6481,7 +6481,7 @@ paths:
     delete:
       tags:
         - Uploads
-      summary: Cancels an ongoing upload and cleans up any temporarily stored chunks
+      summary: Cancels an ongoing/completed upload, cleans up any temporarily stored chunks and associated uploaded file.
       parameters:
         - name: uploadId
           in: path

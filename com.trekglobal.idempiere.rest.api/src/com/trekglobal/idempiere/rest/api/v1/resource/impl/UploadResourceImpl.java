@@ -328,6 +328,7 @@ public class UploadResourceImpl implements UploadResource {
 	                for (MRestUploadChunk chunk : currentChunks) {
 	                	chunk.set_TrxName(trx.getTrxName());
 	                    chunkStorageService.deleteChunk(chunk);
+	                    chunk.deleteEx(true);
 	                }
 
 	                currentUpload.setStatus(STATUS_COMPLETED);
@@ -380,6 +381,8 @@ public class UploadResourceImpl implements UploadResource {
 				chunkStorageService.deleteChunk(chunk);
 				chunk.deleteEx(true);
 			});
+        	
+        	chunkStorageService.deleteUploadFile(upload);
             
             // Update the main upload record to CANCELED
             upload.setStatus(STATUS_CANCELED);
@@ -404,7 +407,7 @@ public class UploadResourceImpl implements UploadResource {
         
         if (!STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
         	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
-					"Upload is not completed yet. Current status: " + upload.getStatus(), uploadId, "");
+					"Upload is not completed yet or cancelled. Current status: " + upload.getStatus(), uploadId, "");
         }
         
         ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
@@ -442,10 +445,10 @@ public class UploadResourceImpl implements UploadResource {
     @Override
    	public Response getPendingUploads() {
    		try {
-   			String whereClause = MRestUpload.COLUMNNAME_REST_UploadStatus + "!=? AND " + MRestUpload.COLUMNNAME_CreatedBy + "=?";
+   			String whereClause = MRestUpload.COLUMNNAME_REST_UploadStatus + " NOT IN (?,?) AND " + MRestUpload.COLUMNNAME_CreatedBy + "=?";
    			Query query = new Query(Env.getCtx(), MRestUpload.Table_Name, whereClause, null);
    			query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
-   			query.setParameters(STATUS_COMPLETED, Env.getAD_User_ID(Env.getCtx()));
+   			query.setParameters(STATUS_COMPLETED, STATUS_CANCELED, Env.getAD_User_ID(Env.getCtx()));
    			List<MRestUpload> uploads = query.setOrderBy(MRestUpload.COLUMNNAME_REST_Upload_ID).list();
    			JsonArray array = new JsonArray();
    			for (MRestUpload upload : uploads) {
@@ -472,7 +475,7 @@ public class UploadResourceImpl implements UploadResource {
         
         if (!STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
         	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
-					"Upload is not completed yet. Current status: " + upload.getStatus(), uploadId, "");
+					"Upload is not completed yet or cancelled. Current status: " + upload.getStatus(), uploadId, "");
         }
         
         if (Util.isEmpty(copyRequest.copyLocation(), true)) {
@@ -758,6 +761,38 @@ public class UploadResourceImpl implements UploadResource {
 				}
 			}
 			return null;
+		}
+		
+		/**
+         * Delete archive/image/attachment associated with the upload.
+         * @param upload
+         */
+        public void deleteUploadFile(MRestUpload upload) {
+        	if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+				if (upload.getAD_Image_ID() > 0) {
+					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
+					image.deleteEx(true);
+					upload.setAD_Image_ID(0);
+				}
+			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+				MAttachment attachment = upload.getAttachment();
+				if (attachment != null && attachment.getEntryCount() > 0) {
+					MAttachmentEntry[] entries = attachment.getEntries();
+					for (MAttachmentEntry entry : entries) {
+						if (entry.getName().equals(upload.getFileName())) {
+							attachment.deleteEntry(entry.getIndex());
+						}
+					}
+				}
+			} else {
+				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
+				if (archives != null && archives.length == 1) {
+					if (archives[0] != null) {
+						archives[0].set_TrxName(upload.get_TrxName());
+						archives[0].deleteEx(true);
+					}
+				}
+			}
 		}
     }	
 }

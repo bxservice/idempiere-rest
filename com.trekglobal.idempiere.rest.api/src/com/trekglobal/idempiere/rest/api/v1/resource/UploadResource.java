@@ -178,7 +178,7 @@ public interface UploadResource {
     Response finalizeUpload(@PathParam("uploadId") String uploadId, UploadCompletionRequest completionRequest);
 
     /**
-     * Cancels an ongoing upload and cleans up any temporarily stored chunks.
+     * Cancels an ongoing/completed upload, cleans up any temporarily stored chunks and associated uploaded file.
      *
      * @param uploadId The unique ID of the upload session to be canceled.
      * @return Response indicating the outcome of the cancellation.
