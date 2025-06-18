@@ -5236,7 +5236,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"fileName\": \"\",\r\n    \"totalChunks\": 2\r\n}\r\n"
+					"raw": "{\r\n    \"fileName\": \"\",\r\n    \"totalChunks\": 2,\r\n    \"uploadLocation\": \"\"\r\n}\r\n"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/complete",
@@ -5311,6 +5311,175 @@
 						"uploads",
 						"{{uploadId}}",
 						"file"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads - Get pending uploads",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}}/copy - Copy uploaded file",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 202\", function () {\r",
+							"    pm.response.to.have.status(202);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"copyLocation\": \"\",\r\n    \"tableName\": \"\",\r\n    \"recordId\": \"\"\r\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/copy",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}",
+						"copy"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/uploads/{{uploadId}} - Cancel an upload",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"uploads",
+						"{{uploadId}}"
 					]
 				}
 			},

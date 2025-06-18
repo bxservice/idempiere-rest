@@ -34,7 +34,7 @@ public class X_REST_Upload extends PO implements I_REST_Upload, I_Persistent
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20250528L;
+	private static final long serialVersionUID = 20250605L;
 
     /** Standard Constructor */
     public X_REST_Upload (Properties ctx, int REST_Upload_ID, String trxName)
@@ -127,6 +127,28 @@ public class X_REST_Upload extends PO implements I_REST_Upload, I_Persistent
         .append(get_ID()).append("]");
       return sb.toString();
     }
+
+	/** Set Image.
+		@param AD_Image_ID Image or Icon
+	*/
+	public void setAD_Image_ID (int AD_Image_ID)
+	{
+		if (AD_Image_ID < 1)
+			set_Value (COLUMNNAME_AD_Image_ID, null);
+		else
+			set_Value (COLUMNNAME_AD_Image_ID, Integer.valueOf(AD_Image_ID));
+	}
+
+	/** Get Image.
+		@return Image or Icon
+	  */
+	public int getAD_Image_ID()
+	{
+		Integer ii = (Integer)get_Value(COLUMNNAME_AD_Image_ID);
+		if (ii == null)
+			 return 0;
+		return ii.intValue();
+	}
 
 	/** Set Expires At.
 		@param ExpiresAt Expires At
@@ -224,6 +246,28 @@ public class X_REST_Upload extends PO implements I_REST_Upload, I_Persistent
 	public String getREST_SHA256()
 	{
 		return (String)get_Value(COLUMNNAME_REST_SHA256);
+	}
+
+	/** Archive = ARCHIVE */
+	public static final String REST_UPLOADLOCATION_Archive = "ARCHIVE";
+	/** Attachment = ATTACHMENT */
+	public static final String REST_UPLOADLOCATION_Attachment = "ATTACHMENT";
+	/** Image = IMAGE */
+	public static final String REST_UPLOADLOCATION_Image = "IMAGE";
+	/** Set Upload Location.
+		@param REST_UploadLocation Upload Location
+	*/
+	public void setREST_UploadLocation (String REST_UploadLocation)
+	{
+
+		set_Value (COLUMNNAME_REST_UploadLocation, REST_UploadLocation);
+	}
+
+	/** Get Upload Location.
+		@return Upload Location	  */
+	public String getREST_UploadLocation()
+	{
+		return (String)get_Value(COLUMNNAME_REST_UploadLocation);
 	}
 
 	/** Canceled = CANCELED */

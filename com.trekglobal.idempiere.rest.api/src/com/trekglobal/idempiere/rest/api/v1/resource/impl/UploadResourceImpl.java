@@ -25,28 +25,6 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
-import com.google.gson.JsonObject;
-import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
-import com.trekglobal.idempiere.rest.api.model.MRestUpload;
-import com.trekglobal.idempiere.rest.api.model.MRestUploadChunk;
-import com.trekglobal.idempiere.rest.api.model.X_REST_Upload;
-import com.trekglobal.idempiere.rest.api.v1.resource.UploadResource;
-
-import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-
-import org.adempiere.util.ContextRunnable;
-import org.compiere.Adempiere;
-import org.compiere.model.MArchive;
-import org.compiere.model.Query;
-import org.compiere.util.CLogger;
-import org.compiere.util.Env;
-import org.compiere.util.MimeType;
-import org.compiere.util.Trx;
-import org.compiere.util.Util;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,12 +35,46 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.logging.Level;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.logging.Level;
+
+import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+
+import org.adempiere.util.ContextRunnable;
+import org.compiere.Adempiere;
+import org.compiere.model.MArchive;
+import org.compiere.model.MAttachment;
+import org.compiere.model.MAttachmentEntry;
+import org.compiere.model.MImage;
+import org.compiere.model.MTable;
+import org.compiere.model.PO;
+import org.compiere.model.Query;
+import org.compiere.util.CLogger;
+import org.compiere.util.Env;
+import org.compiere.util.MimeType;
+import org.compiere.util.Trx;
+import org.compiere.util.Util;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.json.POParser;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
+import com.trekglobal.idempiere.rest.api.json.RestUtils;
+import com.trekglobal.idempiere.rest.api.model.MRestUpload;
+import com.trekglobal.idempiere.rest.api.model.MRestUploadChunk;
+import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.model.X_REST_Upload;
+import com.trekglobal.idempiere.rest.api.v1.resource.UploadResource;
 
 @Path("v1/uploads")
 public class UploadResourceImpl implements UploadResource {
@@ -271,6 +283,17 @@ public class UploadResourceImpl implements UploadResource {
         
         if (!Util.isEmpty(completionRequest.fileName(), true))
         	upload.setFileName(completionRequest.fileName());
+        
+        if (!Util.isEmpty(completionRequest.uploadLocation(), true)) {
+        	if (!completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
+        			&& !completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
+        			&& !completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
+        		return Response.status(Response.Status.BAD_REQUEST)
+        				.entity("{\"error\":\"Invalid uploadLocation in request.\"}")
+                        .build();
+        	upload.setREST_UploadLocation(completionRequest.uploadLocation());
+        }
+        
         // All checks passed, transition to PROCESSING and start async assembly
         upload.setStatus(STATUS_PROCESSING);
         try {
@@ -305,6 +328,7 @@ public class UploadResourceImpl implements UploadResource {
 	                for (MRestUploadChunk chunk : currentChunks) {
 	                	chunk.set_TrxName(trx.getTrxName());
 	                    chunkStorageService.deleteChunk(chunk);
+	                    chunk.deleteEx(true);
 	                }
 
 	                currentUpload.setStatus(STATUS_COMPLETED);
@@ -346,12 +370,6 @@ public class UploadResourceImpl implements UploadResource {
         if (upload == null) {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
-        
-        // Prevent cancellation if it's already completed or deep in processing without specific logic
-        if (STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
-        	return ResponseUtils.getResponseError(Response.Status.CONFLICT, "Upload is already completed and cannot be canceled: ",
-        			uploadId, "");
-        }
 
         Trx trx = Trx.get(Trx.createTrxName(), true);
         try {
@@ -363,6 +381,8 @@ public class UploadResourceImpl implements UploadResource {
 				chunkStorageService.deleteChunk(chunk);
 				chunk.deleteEx(true);
 			});
+        	
+        	chunkStorageService.deleteUploadFile(upload);
             
             // Update the main upload record to CANCELED
             upload.setStatus(STATUS_CANCELED);
@@ -387,7 +407,7 @@ public class UploadResourceImpl implements UploadResource {
         
         if (!STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
         	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
-					"Upload is not completed yet. Current status: " + upload.getStatus(), uploadId, "");
+					"Upload is not completed yet or cancelled. Current status: " + upload.getStatus(), uploadId, "");
         }
         
         ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
@@ -421,6 +441,138 @@ public class UploadResourceImpl implements UploadResource {
 			return Response.ok(json.toString()).build();
 		}
 	}
+    
+    @Override
+   	public Response getPendingUploads() {
+   		try {
+   			String whereClause = MRestUpload.COLUMNNAME_REST_UploadStatus + " NOT IN (?,?) AND " + MRestUpload.COLUMNNAME_CreatedBy + "=?";
+   			Query query = new Query(Env.getCtx(), MRestUpload.Table_Name, whereClause, null);
+   			query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
+   			query.setParameters(STATUS_COMPLETED, STATUS_CANCELED, Env.getAD_User_ID(Env.getCtx()));
+   			List<MRestUpload> uploads = query.setOrderBy(MRestUpload.COLUMNNAME_REST_Upload_ID).list();
+   			JsonArray array = new JsonArray();
+   			for (MRestUpload upload : uploads) {
+   				Response response = getUploadStatus(upload.getREST_Upload_UU());
+				Gson gson = new GsonBuilder().create();
+				JsonElement jsonElement = gson.toJsonTree(response.getEntity());
+				array.add(jsonElement);
+   			}
+   			JsonObject json = new JsonObject();
+   			json.add("uploads", array);
+   			return Response.ok(json.toString()).build();			
+   		} catch (Exception ex) {
+   			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
+   		}
+   	}
+    
+    @Override
+    public Response copyUploadedFile(String uploadId, CopyUploadedFileRequest copyRequest) {
+    	MRestUpload upload = MRestUpload.get(uploadId);
+
+        if (upload == null) {
+        	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        }
+        
+        if (!STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
+        	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
+					"Upload is not completed yet or cancelled. Current status: " + upload.getStatus(), uploadId, "");
+        }
+        
+        if (Util.isEmpty(copyRequest.copyLocation(), true)) {
+        	return Response.status(Response.Status.BAD_REQUEST)
+    				.entity("{\"error\":\"copyLocation is required in request.\"}")
+                    .build();
+        }
+        
+    	if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
+    			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
+    			&& !copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
+    		return Response.status(Response.Status.BAD_REQUEST)
+    				.entity("{\"error\":\"Invalid copyLocation in request.\"}")
+                     .build();
+        
+        if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image) 
+        		&& (Util.isEmpty(copyRequest.tableName(), true) || Util.isEmpty(copyRequest.recordId(), true))) {
+        	return Response.status(Response.Status.BAD_REQUEST)
+    				.entity("{\"error\":\"tableName and recordId are required in request.\"}")
+                    .build();
+        }
+        
+        ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
+        if (uploadDetails == null) {
+			return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
+		}
+        
+        if (!copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+        	String tableName = copyRequest.tableName();
+        	String id = copyRequest.recordId();
+	        MRestView view = RestUtils.getView(tableName);
+			if (view != null)
+				tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
+            POParser poParser = new POParser(tableName, id, true, true);
+    		if (poParser.isValidPO()) {
+    			PO po = poParser.getPO();
+    			if (copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+                	MAttachment attachment = po.getAttachment();
+                	if (attachment == null)
+                		attachment = po.createAttachment();
+                	try {
+                		attachment.addEntry(uploadDetails.fileName, uploadDetails.data);
+                    	attachment.saveEx();
+        			} catch (Exception ex) {
+        				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
+        			}
+                } else {
+    	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
+    						.setParameters(po.get_Table_ID(), po.get_ID()).first();
+    	            if (archive == null) {
+    					archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
+    					archive.setAD_Table_ID(po.get_Table_ID());
+    					archive.setRecord_ID(po.get_ID());
+    					archive.setRecord_UU(po.get_UUID());
+    				}
+    	            try {
+        	            archive.setName(uploadDetails.fileName);
+        	            archive.setBinaryData(uploadDetails.data);
+        	            archive.saveEx();
+        			} catch (Exception ex) {
+        				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
+        			}
+                }
+    			CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+    					uploadId, 
+    					copyRequest.tableName(), 
+    					po.get_ID(),
+    					po.get_UUID(), 
+    					copyRequest.copyLocation(),
+    					uploadDetails.fileName,
+    					uploadDetails.contentType,
+    					uploadDetails.data.length);
+    			return Response.ok(response).build();
+    		} else {
+    			return poParser.getResponseError();
+    		}
+        } else {
+        	MImage image = new MImage(Env.getCtx(), 0, upload.get_TrxName());
+        	try {
+        		image.setName(uploadDetails.fileName);
+            	image.setBinaryData(uploadDetails.data);
+            	image.saveEx();
+			} catch (Exception ex) {
+				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
+			}
+        	CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+					uploadId, 
+					image.get_TableName(), 
+					image.get_ID(),
+					image.get_UUID(),
+					copyRequest.copyLocation(),
+					uploadDetails.fileName,
+					uploadDetails.contentType,
+					uploadDetails.data.length);
+			return Response.ok(response).build();
+        }
+    }
     
     static class ChunkStorageService {
 
@@ -531,17 +683,32 @@ public class UploadResourceImpl implements UploadResource {
 				throw new IOException("SHA-256 mismatch for final file. Expected: " + upload.getREST_SHA256() + ", Calculated: " + sha256);
 			}
             
-            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
-					.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
-            if (archive == null) {
-				archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
-				archive.setAD_Table_ID(MRestUpload.Table_ID);
-				archive.setRecord_ID(upload.getREST_Upload_ID());
-				archive.setRecord_UU(upload.getREST_Upload_UU());
-			}
-            archive.setName(upload.getFileName());
-            archive.setBinaryData(baos.toByteArray());
-            archive.saveEx();
+            if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+            	MImage image = new MImage(Env.getCtx(), 0, upload.get_TrxName());
+            	image.setName(upload.getFileName());
+            	image.setBinaryData(baos.toByteArray());
+            	image.saveEx();
+            	upload.setAD_Image_ID(image.get_ID());
+            	upload.saveEx();
+            } else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+            	MAttachment attachment = upload.getAttachment();
+            	if (attachment == null)
+            		attachment = upload.createAttachment();
+            	attachment.addEntry(upload.getFileName(), baos.toByteArray());
+            	attachment.saveEx();
+            } else {
+	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
+						.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
+	            if (archive == null) {
+					archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
+					archive.setAD_Table_ID(MRestUpload.Table_ID);
+					archive.setRecord_ID(upload.getREST_Upload_ID());
+					archive.setRecord_UU(upload.getREST_Upload_UU());
+				}
+	            archive.setName(upload.getFileName());
+	            archive.setBinaryData(baos.toByteArray());
+	            archive.saveEx();
+            }
         }
 
         /**
@@ -558,19 +725,73 @@ public class UploadResourceImpl implements UploadResource {
 		}
 		
 		/**
-		 * Retrieves the upload details from the archive associated with the upload.
+		 * Retrieves the upload details from the archive/image/attachment associated with the upload.
 		 * @param upload
 		 * @return UploadDetails containing file name, content type and binary data, or null if not found
 		 */
 		public UploadDetails getUploadDetails(MRestUpload upload) {
-			MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
-			if (archives != null && archives.length == 1) {
-				return new UploadDetails(
-					upload.getFileName(),
-					upload.getContentType(),
-					archives[0].getBinaryData());
+			if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+				if (upload.getAD_Image_ID() > 0) {
+					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
+					return new UploadDetails(
+							upload.getFileName(),
+							upload.getContentType(),
+							image.getBinaryData());
+				}
+			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+				MAttachment attachment = upload.getAttachment();
+				if (attachment != null && attachment.getEntryCount() > 0) {
+					MAttachmentEntry[] entries = attachment.getEntries();
+					for (MAttachmentEntry entry : entries) {
+						if (entry.getName().equals(upload.getFileName())) {
+							return new UploadDetails(
+									upload.getFileName(),
+									upload.getContentType(),
+									entry.getData());
+						}
+					}
+				}
 			} else {
-				return null;
+				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
+				if (archives != null && archives.length == 1) {
+					return new UploadDetails(
+						upload.getFileName(),
+						upload.getContentType(),
+						archives[0].getBinaryData());
+				}
+			}
+			return null;
+		}
+		
+		/**
+         * Delete archive/image/attachment associated with the upload.
+         * @param upload
+         */
+        public void deleteUploadFile(MRestUpload upload) {
+        	if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+				if (upload.getAD_Image_ID() > 0) {
+					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
+					image.deleteEx(true);
+					upload.setAD_Image_ID(0);
+				}
+			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+				MAttachment attachment = upload.getAttachment();
+				if (attachment != null && attachment.getEntryCount() > 0) {
+					MAttachmentEntry[] entries = attachment.getEntries();
+					for (MAttachmentEntry entry : entries) {
+						if (entry.getName().equals(upload.getFileName())) {
+							attachment.deleteEntry(entry.getIndex());
+						}
+					}
+				}
+			} else {
+				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
+				if (archives != null && archives.length == 1) {
+					if (archives[0] != null) {
+						archives[0].set_TrxName(upload.get_TrxName());
+						archives[0].deleteEx(true);
+					}
+				}
 			}
 		}
     }	

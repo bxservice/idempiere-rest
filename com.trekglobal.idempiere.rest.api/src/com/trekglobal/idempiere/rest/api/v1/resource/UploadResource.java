@@ -148,8 +148,9 @@ public interface UploadResource {
      * Request body for the upload completion.
      * @param fileName The final name of the file being uploaded (optional).
      * @param totalChunks The total number of chunks expected for the file upload.
+     * @param uploadLocation optional The upload location for the file upload, e.g. archive (default), image or attachment.
      */
-    static record UploadCompletionRequest(String fileName, String totalChunks) {    	
+    static record UploadCompletionRequest(String fileName, String totalChunks, String uploadLocation) {    	
 	};
 	
 	/**
@@ -174,11 +175,10 @@ public interface UploadResource {
     @Path("/{uploadId}/complete")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    Response finalizeUpload(@PathParam("uploadId") String uploadId,
-                            UploadCompletionRequest completionRequest);
+    Response finalizeUpload(@PathParam("uploadId") String uploadId, UploadCompletionRequest completionRequest);
 
     /**
-     * Cancels an ongoing upload and cleans up any temporarily stored chunks.
+     * Cancels an ongoing/completed upload, cleans up any temporarily stored chunks and associated uploaded file.
      *
      * @param uploadId The unique ID of the upload session to be canceled.
      * @return Response indicating the outcome of the cancellation.
@@ -198,4 +198,51 @@ public interface UploadResource {
 	 * @return response
 	 */
 	public Response getFile(@PathParam("uploadId") String uploadId, @QueryParam(QueryOperators.AS_JSON) String asJson);
+    
+    @GET
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Get pending uploads from current user.
+	 * @return json array of upload
+	 */
+	public Response getPendingUploads();
+    
+    /**
+     * Request body for the copy uploaded file.
+     * 
+     * @param copyLocation The copy location of the destination record, e.g. archive, image or attachment.
+     * @param tableName optional The table name of the destination record.
+     * @param recordId optional The record id/uuid of the destination record.
+     */
+    static record CopyUploadedFileRequest(String copyLocation, String tableName, String recordId) {    	
+	};
+	
+	/**
+     * Response for the copy uploaded file.
+     * 
+     * @param uploadId The unique ID of the upload session.
+     * @param tableName The table name of the destination record.
+     * @param recordId The record id of the destination record.
+     * @param recordUU The record uuid of the destination record.
+     * @param copyLocation The copy location of the destination record, e.g. archive (default), image or attachment.
+     * @param fileName The name of the file being copied.
+     * @param contentType The MIME type of the file being copied (e.g., "image/png", "application/pdf").
+     * @param fileSize The size of the file being copied.
+     */
+    static record CopyUploadedFileResponse(String uploadId, String tableName, int recordId, String recordUU, 
+    		String copyLocation, String fileName, String contentType, int fileSize) {    	
+	};
+    
+    /**
+     * Copy uploaded file to attachment, image or archive (edited)
+     *
+     * @param uploadId The unique ID of the upload session.
+     * @param copyRequest optional Request body containing destination record like table name and record id/uuid.
+     * @return Response indicating that the file has been copied ({@link CopyUploadedFileResponse}).
+     */
+    @POST
+    @Path("/{uploadId}/copy")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    Response copyUploadedFile(@PathParam("uploadId") String uploadId, CopyUploadedFileRequest copyRequest);
 }

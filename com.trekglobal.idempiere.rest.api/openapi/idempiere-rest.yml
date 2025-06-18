@@ -3087,7 +3087,13 @@ components:
         - PROCESSING
         - COMPLETED
         - CANCELED
-        - FAILED        
+        - FAILED
+    UploadLocation:
+      type: string
+      enum:
+        - 'ARCHIVE'
+        - 'ATTACHMENT'
+        - 'IMAGE'
     UploadStatusResponse:
       type: object
       properties:
@@ -3120,10 +3126,12 @@ components:
       properties:
         fileName:
           type: string
-          description: optinal final file name to override the file name in initial upload request
+          description: optional final file name to override the file name in initial upload request
         totalChunks:
           type: integer
           description: number of chunk uploaded, for verification purpose
+        uploadLocation:
+          $ref: '#/components/schemas/UploadLocation'
     UploadCompletionResponse:
       type: object
       properties:
@@ -3135,6 +3143,43 @@ components:
         message:
           type: integer
           description: response message
+    CopyUploadedFileRequest:
+      type: object
+      properties:
+        copyLocation:
+          $ref: '#/components/schemas/UploadLocation'
+        tableName:
+          type: string
+          description: optional table name of the destination record
+        recordId:
+          type: string
+          description: optional record id/uuid of the destination record
+    CopyUploadedFileResponse:
+      type: object
+      properties:
+        uploadId:
+          type: string
+          description: uuid of REST_Upload record
+        tableName:
+          type: string
+          description: table name of the destination record
+        recordId:
+          type: string
+          description: record id of the destination record
+        recordUU:
+          type: string
+          description: record uuid of the destination record
+        copyLocation:
+          $ref: '#/components/schemas/UploadLocation'
+        fileName:
+          type: string
+          description: name of the file being copied
+        contentType:
+          type: string
+          description: mime content type of the file being copied
+        fileSize:
+          type: integer
+          description: size of the file being copied
 security:
     - bearerAuth: [] # use the same name as above          
 paths:
@@ -6347,6 +6392,24 @@ paths:
                 $ref: '#/components/schemas/UploadInitiationResponse'
         '500':
           $ref: '#/components/responses/ServerError'
+    get:
+      tags:
+        - Uploads
+      summary: Retrieves the pending uploads from current user
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UploadStatusResponse" }
+        '404':
+          description: no session found for uploadId
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
   /uploads/{uploadId}/chunks/{chunkOrder}:
     put:
       tags:
@@ -6418,7 +6481,7 @@ paths:
     delete:
       tags:
         - Uploads
-      summary: Cancels an ongoing upload and cleans up any temporarily stored chunks
+      summary: Cancels an ongoing/completed upload, cleans up any temporarily stored chunks and associated uploaded file.
       parameters:
         - name: uploadId
           in: path
@@ -6519,5 +6582,35 @@ paths:
             application/json: {}
         '400':
           $ref: '#/components/responses/ServerError'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /uploads/{uploadId}/copy:
+    post:
+      tags:
+        - Uploads
+      summary: Copy uploaded file to attachment, image or archive (edited)
+      parameters:
+        - name: uploadId
+          in: path
+          schema:
+            type: string
+          description: REST_Upload uuid
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopyUploadedFileRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopyUploadedFileResponse'
+        '404':
+          description: no session found for uploadId
+          content:
+            application/json: {}
         '500':
           $ref: '#/components/responses/ServerError'
