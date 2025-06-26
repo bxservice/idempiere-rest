@@ -156,6 +156,9 @@ public class ExpandUtils {
 	
 	private static HashMap<String, List<String>> fillMapWithNoOperators(String expandParameter) {
 		HashMap<String, List<String>> tableNamesOperatorsMap = new HashMap<String, List<String>>();
+		
+		if (Util.isEmpty(expandParameter, true))
+			return tableNamesOperatorsMap;
 
 		List<String> detailTables = Arrays.asList(expandParameter.split("[,]"));
 		for (String tableName : detailTables) 
