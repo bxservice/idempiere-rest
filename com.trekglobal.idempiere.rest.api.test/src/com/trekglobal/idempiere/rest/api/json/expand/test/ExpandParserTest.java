@@ -94,7 +94,7 @@ public class ExpandParserTest extends RestTestCase {
     
     @Test
     public void testExpandParserWithOperatorsAndTrailingSpaces() {
-        ExpandParser parser = new ExpandParser(po, "C_OrderLine ($select=Line,Linenetamt ; $filter=LineNetAmt gt 1000 ; $orderby=Line), AD_User");
+        ExpandParser parser = new ExpandParser(po, "C_OrderLine ($select=Line,Linenetamt ; $filter=LineNetAmt gt 50 ; $orderby=Line), AD_User");
         
         assertEquals(2, parser.getTableNameSQLStatementMap().size());
         assertEquals(2, parser.getTableNameChildArrayMap().size());
