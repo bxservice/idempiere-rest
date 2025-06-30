@@ -75,6 +75,7 @@ Bundle-ClassPath: .,
  lib/jwks-rsa.jar
 Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.json,
+ com.trekglobal.idempiere.rest.api.json.expand,
  com.trekglobal.idempiere.rest.api.model,
  com.trekglobal.idempiere.rest.api.oidc,
  com.trekglobal.idempiere.rest.api.util,
