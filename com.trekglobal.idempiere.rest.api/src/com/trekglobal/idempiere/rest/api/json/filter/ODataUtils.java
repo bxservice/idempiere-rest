@@ -89,13 +89,36 @@ public class ODataUtils {
 	}
 	
 	public static String getFirstParameter(String methodName, String expression) {
-		return isMethodWithParameters(methodName) ? 
-				expression.substring(expression.indexOf("(")+1 , expression.indexOf(",")) : 
-				expression.substring(expression.indexOf("(")+1 , expression.indexOf(")"));
+		if (expression == null || !expression.contains("(") || !expression.contains(")")) 
+	        return null;
+
+	    int openPos = expression.indexOf('(');
+	    int commaPos = expression.indexOf(',');
+	    int closePos = expression.indexOf(')');
+
+	    if (isMethodWithParameters(methodName)) {
+	        if (commaPos < 0 || commaPos <= openPos) 
+	        	return null;
+	        return expression.substring(openPos + 1, commaPos).trim();
+	    } else {
+	        if (closePos <= openPos) 
+	        	return null;
+	        return expression.substring(openPos + 1, closePos).trim();
+	    }
 	}
 	
 	public static String getSecondParameter(String methodName, String expression) {
-		return isMethodWithParameters(methodName) ? expression.substring(expression.indexOf(",")+1, expression.lastIndexOf(")")) : null;
+		if (!isMethodWithParameters(methodName) || expression == null) 
+	        return null;
+
+	    int commaPos  = expression.indexOf(',');
+	    int closePos  = expression.lastIndexOf(')');
+
+	    // Basic sanity‑checks
+	    if (commaPos < 0 || closePos < 0 || commaPos >= closePos) 
+	        return null;
+
+	    return expression.substring(commaPos + 1, closePos).trim();
 	}
 
 		
