@@ -203,6 +203,12 @@ public class ProcessResourceImpl implements ProcessResource {
 		MPInstance pInstance = Process.createPInstance(process, jsonObject, false);
 		
 		ProcessInfo processInfo = Process.createProcessInfo(process, pInstance, jsonObject);
+
+		if(processInfo.isProcessRunning(pInstance.getParameters())) {
+			return Response.status(Status.CONFLICT)
+					.entity(new ErrorBuilder().status(Status.CONFLICT).title("Process is Already Running. ").append(processSlug).build().toString())
+					.build();
+		}
 		
 		ServerProcessCtl.process(processInfo, null);
 		
@@ -273,6 +279,12 @@ public class ProcessResourceImpl implements ProcessResource {
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 		MPInstance pInstance = Process.createPInstance(process, jsonObject, true);
 		ProcessInfo processInfo = Process.createProcessInfo(process, pInstance, jsonObject);
+
+		if(processInfo.isProcessRunning(pInstance.getParameters())) {
+			return Response.status(Status.CONFLICT)
+					.entity(new ErrorBuilder().status(Status.CONFLICT).title("Process is Already Running. ").append(processSlug).build().toString())
+					.build();
+		}
 		
 		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
 		MPInstance.publishChangedEvent(AD_User_ID);
