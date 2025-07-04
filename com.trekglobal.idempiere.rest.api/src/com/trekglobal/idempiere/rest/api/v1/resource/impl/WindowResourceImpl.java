@@ -706,7 +706,7 @@ public class WindowResourceImpl implements WindowResource {
 							.build();
 				}
 				ErrorDataStatusListener edsl = new ErrorDataStatusListener();
-				gridTab.getTableModel().addDataStatusListener(edsl);;
+				gridTab.getTableModel().addDataStatusListener(edsl);
 				try {
 					if (gridTab.dataDelete()) {
 						return Response.status(Status.OK).build();
