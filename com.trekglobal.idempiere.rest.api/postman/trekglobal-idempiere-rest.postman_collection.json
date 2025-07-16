@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "ecf43157-e76e-4f57-a812-841a05427eff",
+		"_postman_id": "acb847ec-4d55-4823-9a6c-e9a087f3e786",
 		"name": "trekglobal-idempiere-rest",
 		"description": "Import or create an environment with the variables: host, port, protocol, userName, password, clientId, roleId, organizationId, warehouseId, language, sysuserName and syspassword\n\nRun POST api/v1/auth/tokens to get the first authentication token.\n\nThen run PUT api/v1/auth/tokens to get the second authentication token.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
@@ -4992,7 +4992,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"fileName\": \"emoji_wallpaper.png\",\r\n    \"contentType\": \"image/png\",\r\n    \"fileSize\" : 292287,\r\n    \"chunkSize\" : 146144,\r\n    \"sha256\": \"0bfbc699c443b29ed58de31d29a0a989d7ea68f07e787c415157332c4bfaf427\"\r\n}\r\n"
+					"raw": "{\r\n    \"fileName\": \"emoji_wallpaper.png\",\r\n    \"contentType\": \"image/png\",\r\n    \"fileSize\" : 292287,\r\n    \"chunkSize\" : 146144,\r\n    \"sha256\": \"0bfbc699c443b29ed58de31d29a0a989d7ea68f07e787c415157332c4bfaf427\",\r\n    \"uploadLocation\": \"ARCHIVE\",\r\n    \"expiresInSeconds\": 3600\r\n}\r\n"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads",
@@ -5053,7 +5053,7 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}?expiresInSeconds=3600",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -5064,6 +5064,12 @@
 						"v1",
 						"uploads",
 						"{{uploadId}}"
+					],
+					"query": [
+						{
+							"key": "expiresInSeconds",
+							"value": "3600"
+						}
 					]
 				}
 			},
@@ -5106,6 +5112,11 @@
 					{
 						"key": "X-Content-SHA256",
 						"value": "6917746089c7a660e470671cea53dc04b4c27027882fa744822eaab686a55405",
+						"type": "text"
+					},
+					{
+						"key": "X-Total-Chunks",
+						"value": "2",
 						"type": "text"
 					}
 				],
@@ -5172,6 +5183,11 @@
 						"key": "X-Content-SHA256",
 						"value": "26d146bf4946a9f9bf6f7fc46dbfd60ad6b01fa16f5ef7d5cb982b9235d8edba",
 						"type": "text"
+					},
+					{
+						"key": "X-Total-Chunks",
+						"value": "2",
+						"type": "text"
 					}
 				],
 				"body": {
@@ -5194,63 +5210,6 @@
 						"{{uploadId}}",
 						"chunks",
 						"2"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "/api/v1/uploads/{{uploadId}}/complete",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Status code is 202\", function () {\r",
-							"    pm.response.to.have.status(202);\r",
-							"});"
-						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{authToken}}",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"fileName\": \"\",\r\n    \"totalChunks\": 2,\r\n    \"uploadLocation\": \"\"\r\n}\r\n"
-				},
-				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/uploads/{{uploadId}}/complete",
-					"protocol": "{{protocol}}",
-					"host": [
-						"{{host}}"
-					],
-					"port": "{{port}}",
-					"path": [
-						"api",
-						"v1",
-						"uploads",
-						"{{uploadId}}",
-						"complete"
 					]
 				}
 			},

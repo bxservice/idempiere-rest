@@ -3042,6 +3042,11 @@ components:
         sha256:
           type: integer
           description: SHA-256 hash of file
+        uploadLocation:
+          $ref: '#/components/schemas/UploadLocation'
+        expiresInSeconds:
+          type: integer
+          description: number of seconds before upload session expires, default is 86400 seconds (24 hour)
     UploadInitiationResponse:
       type: object
       properties:
@@ -3055,6 +3060,9 @@ components:
           type: string
           format: date-time
           description: expire timestamp of upload session
+        presignedURL:
+          type: string
+          description: presigned URL for uploading file chunks
     UploadChunkResponse:
       type: object
       properties:
@@ -3070,6 +3078,9 @@ components:
         message:
           type: integer
           description: response message
+        isLastChunk:
+          type: boolean
+          description: true if this is the last chunk of the file that will trigger upload completion
     UploadedChunk:
       type: object
       properties:
@@ -3121,28 +3132,9 @@ components:
         message:
           type: integer
           description: response message
-    UploadCompletionRequest:
-      type: object
-      properties:
-        fileName:
+        presignedURL:
           type: string
-          description: optional final file name to override the file name in initial upload request
-        totalChunks:
-          type: integer
-          description: number of chunk uploaded, for verification purpose
-        uploadLocation:
-          $ref: '#/components/schemas/UploadLocation'
-    UploadCompletionResponse:
-      type: object
-      properties:
-        uploadId:
-          type: string
-          description: uuid of REST_Upload record
-        status:
-          $ref: '#/components/schemas/UploadStatus'
-        message:
-          type: integer
-          description: response message
+          description: presigned URL to get upload status or uploaded file
     CopyUploadedFileRequest:
       type: object
       properties:
@@ -6429,6 +6421,12 @@ paths:
           description: integer sequence of chunk (start from 1)
           required: true
         - in: header
+          name: X-Total-Chunks
+          schema:
+            type: integer
+          description: Total number of chunks for the upload session
+          required: true
+        - in: header
           name: X-Content-SHA256
           schema:
             type: string
@@ -6465,6 +6463,12 @@ paths:
             type: string
           description: REST_Upload uuid
           required: true
+        - name: expiresInSeconds
+          in: query
+          schema:
+            type: integer
+          description: Number of seconds after which the presigned URL expires. When provided, a presigned URL will be returned for the upload session.
+          required: false
       responses:
         '200':
           description: Successful response
@@ -6500,36 +6504,6 @@ paths:
                   message:
                     type: string
                     description: response message
-        '404':
-          description: no session found for uploadId
-          content:
-            application/json: {}
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /uploads/{uploadId}/complete:
-    post:
-      tags:
-        - Uploads
-      summary: Notifies the server that all chunks have been uploaded and the file should be reassembled
-      parameters:
-        - name: uploadId
-          in: path
-          schema:
-            type: string
-          description: REST_Upload uuid
-          required: true
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UploadCompletionRequest'
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UploadCompletionResponse'
         '404':
           description: no session found for uploadId
           content:

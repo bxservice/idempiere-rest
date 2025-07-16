@@ -1,0 +1,30 @@
+#Test PUT api/v1/uploads/{uploadId}/chunks/{chunkOrder}
+#Replace {hostName} with rest-api server host name
+#Replace {presignedURL} with presignedURL from "POST api/v1/uploads" response. Replace {chunkOrder} in presignedURL with the chunk sequence number
+#Example "http://localhost:8080/api/v1/uploads/36bed04b-a46d-474e-98d6-f9da95a1e7fc/chunks/1?X-ID-CREDENTIAL=C3KHgV0tUMfRlreTOjKvWE4Mm1yUj5xAt5jsSRn2S2f6nROz3p2u3PSqxZoL3UauM-TTpRpu37RHwQo4Zyx846cM44pizyBbrTLbLYWm6j8&X-ID-DATE=2025-07-16T16:08:54Z&X-ID-EXPIRES=3600&X-ID-SIGNATURE=c648dd521db1965257f12201fa775f51c191976a7d788370e9cfc0927711c3d1"
+
+curl -v -X PUT -H "Content-Type: application/octet-stream" -H "Accept: application/json" -H "X-Total-Chunks: 2" \
+-H "X-Content-SHA256: 6917746089c7a660e470671cea53dc04b4c27027882fa744822eaab686a55405" \
+--data-binary "@emoji_wallpaper_chunk_1" \
+"http://{hostName}/api/{presignedURL}"
+
+curl -v -X PUT -H "Content-Type: application/octet-stream" -H "Accept: application/json" -H "X-Total-Chunks: 2" \
+-H "X-Content-SHA256: 26d146bf4946a9f9bf6f7fc46dbfd60ad6b01fa16f5ef7d5cb982b9235d8edba" \
+--data-binary "@emoji_wallpaper_chunk_2" \
+"http://{hostName}/api/{presignedURL}"
+
+#Test GET api/v1/uploads/{uploadId}
+#Replace {hostName} with rest-api server host name
+#Replace {presignedURL} with presignedURL from "GET api/v1/uploads" response.
+#Example "http://localhost:8080/api/v1/uploads/66f19240-0eed-4c00-b78d-f406a4dde0d3?X-ID-CREDENTIAL=WxKBpJx7AMSx4CTBhjO4eK-_E-WgEfIuDZaJNbySpbPywNwH-e23jiKB7U3zF09OcsydNOiuqqoMGxgqWoRxgg&X-ID-DATE=2025-07-16T16:45:28Z&X-ID-EXPIRES=3600&X-ID-SIGNATURE=044c83bf8ad3399fdedc443edbd7e3df140aa15b2934e7ec96175076b4d32404"
+
+curl -v -H "Content-Type: application/json" -H "Accept: application/json" \
+"http://{hostName}/api/{presignedURL}"
+
+#Test GET api/v1/uploads/{uploadId}/file
+#Replace {hostName} with rest-api server host name
+#Replace {presignedURL} with presignedURL from "GET api/v1/uploads" response.
+#Example "http://localhost:8080/api/v1/uploads/66f19240-0eed-4c00-b78d-f406a4dde0d3/file?X-ID-CREDENTIAL=WxKBpJx7AMSx4CTBhjO4eE4Mm1yUj5xAt5jsSRn2S2f6nROz3p2u3PSqxZoL3UauJwBUbT7o4l1Pk4RIIYVKeQ&X-ID-DATE=2025-07-16T16:09:39Z&X-ID-EXPIRES=86400&X-ID-SIGNATURE=983cc1b42fa4ee48b4c7b69ade530abdc31ff93eb8f792bce9b4034703eff010"
+
+curl -v -H "Content-Type: application/json" -H "Accept: application/json" \
+"http://{hostName}/api/{presignedURL}"
