@@ -85,6 +85,7 @@ import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 import com.trekglobal.idempiere.rest.api.model.MRestViewRelated;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.file.FileStreamingOutput;
@@ -401,7 +402,8 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response create(String tableName, String jsonText) {
-		Trx trx = Trx.get(Trx.createTrxName(), true);
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
 		try {
 			MRestView view = null;
 			if (useRestView) {
@@ -451,7 +453,8 @@ public class ModelResourceImpl implements ModelResource {
 				log.warning("Encounter exception during execution of document action in REST: " + processError);
 				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, Msg.getMsg(po.getCtx(), "FailedProcessingDocument"), processError, "");
 			}
-			trx.commit(true);
+			if (threadLocalTrxName == null)
+				trx.commit(true);
 			po.load(trx.getTrxName());
 			jsonObject = serializer.toJson(po, view);
 			if (processMsg.length() > 0)
@@ -467,7 +470,8 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Server error");
 		} finally {
-			trx.close();
+			if (threadLocalTrxName == null)
+				trx.close();
 		}
 	}
 
@@ -578,7 +582,7 @@ public class ModelResourceImpl implements ModelResource {
 		}
 		
 		String tableName = name;
-		POParser poParser = new POParser(tableName, id, true, true);
+		POParser poParser = new POParser(tableName, id, true, true, ThreadLocalTrx.getTrxName());
 		if (!poParser.isValidPO()) {
 			return poParser.getResponseError();
 		}
@@ -587,10 +591,11 @@ public class ModelResourceImpl implements ModelResource {
 		if (!RestUtils.hasRoleUpdateAccess(po.getAD_Client_ID(), po.getAD_Org_ID(), po.get_Table_ID(), po.get_ID(), false))
 			return ResponseUtils.getResponseError(Status.FORBIDDEN, "Update error", "Role does not have access","");
 
-		Trx trx = Trx.get(Trx.createTrxName(), true);
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
 		try {
-
-			trx.start();
+			if (threadLocalTrxName == null)
+				trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
@@ -692,7 +697,8 @@ public class ModelResourceImpl implements ModelResource {
 			StringBuilder processMsg = new StringBuilder();
 			String error = runDocAction(po, jsonObject, processMsg);
 			if (Util.isEmpty(error, true)) {
-				trx.commit(true);
+				if (threadLocalTrxName == null)
+					trx.commit(true);
 			} else {
 				trx.rollback();
 				log.warning("Encounter exception during execution of document action in REST: " + error);
@@ -714,7 +720,8 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Update error");
 		} finally {
-			trx.close();
+			if (threadLocalTrxName == null)
+				trx.close();
 		}
 	}
 
@@ -744,7 +751,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
-		POParser poParser = new POParser(tableName, id, true, true);
+		POParser poParser = new POParser(tableName, id, true, true, ThreadLocalTrx.getTrxName());
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			if (!RestUtils.hasRoleUpdateAccess(po.getAD_Client_ID(), po.getAD_Org_ID(), po.get_Table_ID(), 0, true)) {
@@ -757,6 +764,12 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
 				return Response.ok(json.toString()).build();
 			} catch (Exception ex) {
+				String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+				if (threadLocalTrxName != null) {
+					Trx trx = Trx.get(threadLocalTrxName, false);
+					if (trx != null && trx.isActive())
+						trx.rollback();
+				}
 				return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 			}
 		} else {
@@ -859,7 +872,7 @@ public class ModelResourceImpl implements ModelResource {
 		if (view != null)
 			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
-		POParser poParser = new POParser(tableName, id, true, false);
+		POParser poParser = new POParser(tableName, id, true, false, ThreadLocalTrx.getTrxName());
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
@@ -896,6 +909,12 @@ public class ModelResourceImpl implements ModelResource {
 	            }
 	            attachment.saveEx();
 	        } catch (Exception ex) {
+	        	String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+	        	if (threadLocalTrxName != null) {
+	        		Trx trx = Trx.get(threadLocalTrxName, false);
+	        		if (trx != null && trx.isActive())
+	        			trx.rollback();
+	        	}
 				return ResponseUtils.getResponseErrorFromException(ex, "Create attachment error");
 			}
 															
@@ -981,7 +1000,7 @@ public class ModelResourceImpl implements ModelResource {
 		if (view != null)
 			tableName = MTable.getTableName(Env.getCtx(), view.getAD_Table_ID());
 		
-		POParser poParser = new POParser(tableName, id, true, false);
+		POParser poParser = new POParser(tableName, id, true, false, ThreadLocalTrx.getTrxName());
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			byte[] data = DatatypeConverter.parseBase64Binary(base64Content);
@@ -1008,6 +1027,12 @@ public class ModelResourceImpl implements ModelResource {
 				attachment.addEntry(fileName, data);
 				attachment.saveEx();
 			} catch (Exception ex) {
+				String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+				if (threadLocalTrxName != null) {
+					Trx trx = Trx.get(threadLocalTrxName, false);
+					if (trx != null && trx.isActive())
+						trx.rollback();
+				}
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
 			}
 			return Response.status(Status.CREATED).build();
@@ -1027,7 +1052,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
-		POParser poParser = new POParser(tableName, id, true, false);
+		POParser poParser = new POParser(tableName, id, true, false, ThreadLocalTrx.getTrxName());
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
@@ -1035,6 +1060,12 @@ public class ModelResourceImpl implements ModelResource {
 				try {
 					attachment.deleteEx(true);
 				} catch (Exception ex) {
+					String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+					if (threadLocalTrxName != null) {
+						Trx trx = Trx.get(threadLocalTrxName, false);
+						if (trx != null && trx.isActive())
+							trx.rollback();
+					}
 					return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 				}
 				JsonObject json = new JsonObject();
@@ -1059,7 +1090,7 @@ public class ModelResourceImpl implements ModelResource {
 				return ResponseUtils.getResponseErrorFromException(new IDempiereRestException("Invalid rest view name", "No match found for rest view name: " + tableName, Status.NOT_FOUND), "Not found");
 		}
 		
-		POParser poParser = new POParser(tableName, id, true, false);
+		POParser poParser = new POParser(tableName, id, true, false, ThreadLocalTrx.getTrxName());
 		if (poParser.isValidPO()) {
 			PO po = poParser.getPO();
 			MAttachment attachment = po.getAttachment();
@@ -1071,6 +1102,12 @@ public class ModelResourceImpl implements ModelResource {
 							try {
 								attachment.saveEx();
 							} catch (Exception ex) {
+								String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+								if (threadLocalTrxName != null) {
+									Trx trx = Trx.get(threadLocalTrxName, false);
+									if (trx != null && trx.isActive())
+										trx.rollback();
+								}
 								return ResponseUtils.getResponseErrorFromException(ex, "Delete error");
 							}
 							JsonObject json = new JsonObject();

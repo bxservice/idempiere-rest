@@ -50,6 +50,10 @@ public class POParser {
 	private Response responseError;
 	
 	public POParser(String tableName, String recordID, boolean fullyQualifiedWhere, boolean isReadWrite) {
+		this(tableName, recordID, fullyQualifiedWhere, isReadWrite, null);
+	}
+	
+	public POParser(String tableName, String recordID, boolean fullyQualifiedWhere, boolean isReadWrite, String trxName) {
 		this.tableName = tableName;
 		this.recordID = recordID;
 		if (isValidTable(isReadWrite))

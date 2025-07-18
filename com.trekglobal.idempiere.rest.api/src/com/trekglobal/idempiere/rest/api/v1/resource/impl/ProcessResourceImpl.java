@@ -55,6 +55,7 @@ import org.compiere.util.CLogger;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
+import org.compiere.util.Trx;
 import org.compiere.util.Util;
 
 import com.google.gson.Gson;
@@ -69,6 +70,7 @@ import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.ProcessResource;
 
 /**
@@ -204,7 +206,11 @@ public class ProcessResourceImpl implements ProcessResource {
 		
 		ProcessInfo processInfo = Process.createProcessInfo(process, pInstance, jsonObject);
 		
-		ServerProcessCtl.process(processInfo, null);
+		Trx trx = null;
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		if (threadLocalTrxName != null)
+			trx = Trx.get(threadLocalTrxName, false);
+		ServerProcessCtl.process(processInfo, trx);
 		
 		JsonObject processInfoJson = Process.toJsonObject(processInfo, processSlug);
 		
