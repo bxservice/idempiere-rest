@@ -39,6 +39,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import org.compiere.util.Trx;
 import org.glassfish.jersey.internal.PropertiesDelegate;
 import org.glassfish.jersey.server.ApplicationHandler;
 import org.glassfish.jersey.server.ContainerRequest;
@@ -63,6 +64,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         List<BatchRequestResource.BatchResponse> results = new ArrayList<>();
         URI baseUri = uriInfo.getBaseUri();
         
+        boolean badRequest = false;
         try (ThreadLocalTrx trx = new ThreadLocalTrx("BatchRequest")) {
 			// Process each request in the batch
 	        for (int i = 0; i < requests.size(); i++) {
@@ -94,14 +96,30 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	
 	                Future<ContainerResponse> responseFuture = applicationHandler.apply(containerRequest);
 	                ContainerResponse containerResponse = responseFuture.get();
-	                BatchResponse batchResp = new BatchResponse(containerResponse.getStatusInfo().getReasonPhrase(), containerResponse.getStatus(), containerResponse.getEntity());
+	                int statusCode = containerResponse.getStatus();
+	                BatchResponse batchResp = new BatchResponse(containerResponse.getStatusInfo().getReasonPhrase(), statusCode, containerResponse.getEntity());
 	                results.add(batchResp);
+	                if (statusCode != Status.OK.getStatusCode() && statusCode != Status.CREATED.getStatusCode() && statusCode != Status.ACCEPTED.getStatusCode()) {
+	                    // If the response is not OK, Created or Accepted, rollback the transaction
+	                    Trx threadLocalTrx = Trx.get(ThreadLocalTrx.getTrxName(), false);
+	                    if (threadLocalTrx != null && threadLocalTrx.isActive()) {
+	                        threadLocalTrx.rollback();
+	                    }
+	                    badRequest = true;
+	                    break; // Stop processing further requests on error
+	                }
 	            } catch (Exception e) {
 	                results.add(new BatchResponse(Status.INTERNAL_SERVER_ERROR.getReasonPhrase(), Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage()));
+	                Trx threadLocalTrx = Trx.get(ThreadLocalTrx.getTrxName(), false);
+	                if (threadLocalTrx != null && threadLocalTrx.isActive()) {
+	                    threadLocalTrx.rollback();
+	                }
+	                badRequest = true;
+	                break; // Stop processing further requests on error
 	            }
 	        }
         }
 
-        return Response.ok(results).build();
+        return badRequest ? Response.status(Status.BAD_REQUEST).entity(results).build() : Response.ok(results).build();
     }
 }

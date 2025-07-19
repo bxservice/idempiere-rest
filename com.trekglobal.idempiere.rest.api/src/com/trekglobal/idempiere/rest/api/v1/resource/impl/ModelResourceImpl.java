@@ -399,7 +399,7 @@ public class ModelResourceImpl implements ModelResource {
 			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
 		}
 	}
-	
+		
 	@Override
 	public Response create(String tableName, String jsonText) {
 		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
@@ -416,7 +416,8 @@ public class ModelResourceImpl implements ModelResource {
 			
 			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
 
-			trx.start();
+			if (threadLocalTrxName == null)
+				trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));

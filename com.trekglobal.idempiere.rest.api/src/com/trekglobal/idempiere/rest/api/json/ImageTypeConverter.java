@@ -37,6 +37,7 @@ import org.compiere.util.Util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 
 /**
  * json type converter for AD_Image
@@ -127,7 +128,7 @@ public class ImageTypeConverter implements ITypeConverter<Object> {
 				fileURL = primitive.getAsString();
 			}
 
-			MImage image = new MImage(Env.getCtx(), AD_Image_ID, null);
+			MImage image = new MImage(Env.getCtx(), AD_Image_ID, ThreadLocalTrx.getTrxName());
 			JsonElement data = ref.get("data");
 			if (data != null) {
 				if (fileName != null)
