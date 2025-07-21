@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 import javax.ws.rs.HttpMethod;
@@ -46,6 +47,8 @@ import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.ContainerResponse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.BatchRequestResource;
 
@@ -74,7 +77,12 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	            	if (!HttpMethod.POST.equals(method) && !HttpMethod.PUT.equals(method) && !HttpMethod.DELETE.equals(method)) {
 	            		BatchResponse batchResp = new BatchResponse(Status.BAD_REQUEST.getReasonPhrase(), Status.BAD_REQUEST.getStatusCode(), "Unsupported Method: "+method);
 		                results.add(batchResp);
-	            		continue; // Skip unsupported methods
+		                Trx threadLocalTrx = Trx.get(ThreadLocalTrx.getTrxName(), false);
+	                    if (threadLocalTrx != null && threadLocalTrx.isActive()) {
+	                        threadLocalTrx.rollback();
+	                    }
+	                    badRequest = true;
+	                    break; // Stop processing further requests on error
 	            	}
 	                
 	                URI requestUri = URI.create(baseUri.toString().replaceAll("v1/batch/?$", "") + req.getPath());
@@ -97,7 +105,17 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                Future<ContainerResponse> responseFuture = applicationHandler.apply(containerRequest);
 	                ContainerResponse containerResponse = responseFuture.get();
 	                int statusCode = containerResponse.getStatus();
-	                BatchResponse batchResp = new BatchResponse(containerResponse.getStatusInfo().getReasonPhrase(), statusCode, containerResponse.getEntity());
+	                String entity = containerResponse.getEntity() != null ? containerResponse.getEntity().toString() : null;
+	                JsonObject bodyObject = null;
+	                Map<?, ?> bodyAsMap = null;
+	                if (entity != null && !entity.isEmpty()) {
+	                	try {
+	                		Gson gson = new Gson();
+	                		bodyObject = gson.fromJson(entity, JsonObject.class);
+	                		bodyAsMap = gson.fromJson(bodyObject, Map.class);
+	                	} catch (Exception e) {}
+	                }
+	                BatchResponse batchResp = new BatchResponse(containerResponse.getStatusInfo().getReasonPhrase(), statusCode, bodyAsMap != null ? bodyAsMap : entity);
 	                results.add(batchResp);
 	                if (statusCode != Status.OK.getStatusCode() && statusCode != Status.CREATED.getStatusCode() && statusCode != Status.ACCEPTED.getStatusCode()) {
 	                    // If the response is not OK, Created or Accepted, rollback the transaction
