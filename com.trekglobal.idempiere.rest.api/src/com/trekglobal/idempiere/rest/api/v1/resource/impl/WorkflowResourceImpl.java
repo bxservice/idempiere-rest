@@ -53,6 +53,7 @@ import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.DateTypeConverter;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.WorkflowResource;
 
 public class WorkflowResourceImpl implements WorkflowResource {
@@ -185,9 +186,11 @@ public class WorkflowResourceImpl implements WorkflowResource {
 	private Response actionActivity(String nodeId, String jsonText, String value, boolean isApproval, boolean isConfirmation) {
 		Trx trx = null;
 		MWFActivity activity = null;
-		try {
-			trx = Trx.get(Trx.createTrxName("RWFS"), true);
-			trx.setDisplayName(getClass().getName()+"_setUserChoice");
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		try {			
+			trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName("RWFS"), true);
+			if (threadLocalTrxName == null)
+				trx.setDisplayName(getClass().getName()+"_setUserChoice");
 			activity = (MWFActivity) RestUtils.getPO(MWFActivity.Table_Name, nodeId, true, true);
 			if (activity == null)
 				return Response.status(Status.NOT_FOUND)
@@ -227,7 +230,8 @@ public class WorkflowResourceImpl implements WorkflowResource {
 				activity.setUserChoice(currentUserId, value, activity.getNode().getColumn().getAD_Reference_ID(), textMsg);
 			MWFProcess wfpr = new MWFProcess(activity.getCtx(), activity.getAD_WF_Process_ID(), activity.get_TrxName());
 			wfpr.checkCloseActivities(activity.get_TrxName());
-			trx.commit();
+			if (threadLocalTrxName == null) 
+				trx.commit();
 		} catch (Exception ex) {
 			if (trx != null)
 				trx.rollback();
@@ -236,7 +240,7 @@ public class WorkflowResourceImpl implements WorkflowResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Approve error").append("Approve error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		} finally {
-			if (trx != null)
+			if (trx != null && threadLocalTrxName == null)
 				trx.close();
 		}
 		JsonObject json = new JsonObject();
@@ -276,9 +280,11 @@ public class WorkflowResourceImpl implements WorkflowResource {
 
 		Trx trx = null;
 		MWFActivity activity = null;
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
 		try {
-			trx = Trx.get(Trx.createTrxName("RWFF"), true);
-			trx.setDisplayName(getClass().getName()+"_forward");
+			trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName("RWFF"), true);
+			if (threadLocalTrxName == null)
+				trx.setDisplayName(getClass().getName()+"_forward");
 			activity = (MWFActivity) RestUtils.getPO(MWFActivity.Table_Name, nodeId, true, true);
 			if (activity == null)
 				return Response.status(Status.NOT_FOUND)
@@ -302,7 +308,8 @@ public class WorkflowResourceImpl implements WorkflowResource {
 						.entity(new ErrorBuilder().status(Status.NOT_MODIFIED).title(Msg.getMsg(Env.getCtx(), "CannotForward")).build().toString())
 						.build();
 			}
-			trx.commit();
+			if (threadLocalTrxName == null)
+				trx.commit();
 		} catch (Exception ex) {
 			if (trx != null)
 				trx.rollback();
@@ -311,7 +318,7 @@ public class WorkflowResourceImpl implements WorkflowResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Forward error").append("Forward error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		} finally {
-			if (trx != null)
+			if (trx != null && threadLocalTrxName == null)
 				trx.close();
 		}
 		JsonObject json = new JsonObject();

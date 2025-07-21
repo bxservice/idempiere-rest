@@ -48,6 +48,7 @@ import com.google.gson.JsonPrimitive;
 
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 
 /**
  * json type converter for C_Location
@@ -186,7 +187,7 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 					C_Location_ID = 0;
 			}
 
-			MLocation po = new MLocation(Env.getCtx(), C_Location_ID, null);
+			MLocation po = new MLocation(Env.getCtx(), C_Location_ID, ThreadLocalTrx.getTrxName());
 
 			MTable table = MTable.get(Env.getCtx(), MLocation.Table_ID);
 			POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());

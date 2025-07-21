@@ -59,6 +59,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 
 /**
  * json type converter for AD lookup type
@@ -134,7 +135,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 				if (RestUtils.isReturnUULookup(refTableName)) {
 					String uidColumn = PO.getUUIDColumnName(refTableName);
 					String keyColumn = RestUtils.getKeyColumnName(refTableName);
-					String uuid = DB.getSQLValueString(null, "SELECT " + uidColumn + " FROM " + refTableName + " WHERE " + keyColumn + "=?", value);
+					String uuid = DB.getSQLValueString(ThreadLocalTrx.getTrxName(), "SELECT " + uidColumn + " FROM " + refTableName + " WHERE " + keyColumn + "=?", value);
 					if (!Util.isEmpty(uuid))
 						ref.addProperty("uuid", uuid);
 				}
@@ -222,7 +223,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 			if (uidField != null && !Util.isEmpty(refTableName) && !uidField.isJsonNull()) {
 				String uidColumn = PO.getUUIDColumnName(refTableName);
 				String keyColumn = RestUtils.getKeyColumnName(refTableName);
-				int id = DB.getSQLValue(null, "SELECT " + keyColumn + " FROM " + refTableName + " WHERE " + uidColumn + "=?", uidField.getAsString());
+				int id = DB.getSQLValue(ThreadLocalTrx.getTrxName(), "SELECT " + keyColumn + " FROM " + refTableName + " WHERE " + uidColumn + "=?", uidField.getAsString());
 				if (id > 0)
 					return id;
 			}
