@@ -137,6 +137,14 @@ public class UploadResourceImpl implements UploadResource {
         if (upload == null) {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
+        
+        if (totalChunks <= 0) {
+        	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
+        }
+        
+        if (chunkOrder < 1 || chunkOrder > totalChunks) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Chunk order must be between 1 and " + totalChunks, uploadId, "");
+		}
 
         // check if the upload is expired
         if (upload.getExpiresAt() != null && LocalDateTime.now().isAfter(upload.getExpiresAt().toLocalDateTime())) {

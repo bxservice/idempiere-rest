@@ -14,6 +14,7 @@ curl -v -X PUT -H "Content-Type: application/octet-stream" -H "Accept: applicati
 "http://{hostName}/api/{presignedURL}"
 
 #Test GET api/v1/uploads/{uploadId}
+#Note that must use the presigned URL return from GET api/v1/uploads/{uploadId} request, not the presigned url returns from POST api/v1/uploads/ return
 #Replace {hostName} with rest-api server host name
 #Replace {presignedURL} with presignedURL from "GET api/v1/uploads" response.
 #Example "http://localhost:8080/api/v1/uploads/66f19240-0eed-4c00-b78d-f406a4dde0d3?X-ID-CREDENTIAL=WxKBpJx7AMSx4CTBhjO4eK-_E-WgEfIuDZaJNbySpbPywNwH-e23jiKB7U3zF09OcsydNOiuqqoMGxgqWoRxgg&X-ID-DATE=2025-07-16T16:45:28Z&X-ID-EXPIRES=3600&X-ID-SIGNATURE=044c83bf8ad3399fdedc443edbd7e3df140aa15b2934e7ec96175076b4d32404"
