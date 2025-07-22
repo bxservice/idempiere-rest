@@ -54,8 +54,14 @@ public interface UploadResource {
 	 * @param fileSize The total size of the file in bytes.
 	 * @param chunkSize The preferred size of each chunk in the upload, in bytes.
 	 * @param sha256 The SHA-256 hash of the file content for integrity verification.
+	 * @param uploadLocation optional The upload location for the file upload, e.g. archive (default), image or attachment.
+	 * @param expiresInSeconds optional The number of seconds after which the upload session will expire, default is 3600 seconds (1 hour).
 	 */
-	static record UploadInitiationRequest(String fileName, String contentType, long fileSize, long chunkSize, String sha256) {		
+	static record UploadInitiationRequest(String fileName, String contentType, long fileSize, long chunkSize, String sha256,
+			String uploadLocation, long expiresInSeconds) {
+		public UploadInitiationRequest(String fileName, String contentType, long fileSize, long chunkSize, String sha256) {
+			this(fileName, contentType, fileSize, chunkSize, sha256, "ARCHIVE", 24*60*60); // default to archive location and 24 hours expiration
+		}
 	};
 	
 	/**
@@ -64,8 +70,9 @@ public interface UploadResource {
 	 * @param uploadId The unique ID of the upload session.
 	 * @param chunkSize The preferred size of each chunk in the upload, in bytes.
 	 * @param expiresAt The expiration time of the upload session.
+	 * @param presignedURL The pre-signed URL for PUT.
 	 */
-	static record UploadInitiationResponse(String uploadId ,long chunkSize, String expiresAt ) {		
+	static record UploadInitiationResponse(String uploadId ,long chunkSize, String expiresAt, String presignedURL) {		
 	};
 	
 	@POST
@@ -86,8 +93,10 @@ public interface UploadResource {
 	 * @param chunkOrder The order of the chunk in the upload sequence.
 	 * @param receivedSize The size of the chunk that has been received.
 	 * @param message Additional message or details about the upload processing.
+	 * @param isLastChunk true if this is the last chunk of the upload and the completion of the upload will be initiated asynchronously 
+	 * in a background thread, false otherwise.
 	 */
-	static record UploadChunkResponse(String uploadId, int chunkOrder, long receivedSize, String message) {		
+	static record UploadChunkResponse(String uploadId, int chunkOrder, long receivedSize, String message, boolean isLastChunk) {		
 	};
 	
 	@Path("{uploadId}/chunks/{chunkOrder}")
@@ -99,11 +108,13 @@ public interface UploadResource {
 	 * 
 	 * @param uploadId id of the upload session
 	 * @param chunkOrder order of the chunk
+	 * @param totalChunks total number of chunks in the upload
 	 * @param sha256 hash of the chunk data
 	 * @param chunkData chunk data to be uploaded
 	 * @return Response containing the detailed of the upload ({@link UploadChunkResponse})
 	 */
 	Response uploadChunk(@PathParam("uploadId") String uploadId, @PathParam("chunkOrder") int chunkOrder,
+			@HeaderParam("X-Total-Chunks") int totalChunks,
 			@HeaderParam("X-Content-SHA256") String sha256,
 			InputStream chunkData);
 	
@@ -128,55 +139,25 @@ public interface UploadResource {
 	 * @param uploadedChunks List of chunks that have been successfully uploaded ({@link UploadedChunk}).
 	 * @param totalReceivedSize Total size of all received chunks so far.
 	 * @param message Additional message or details about the upload processing.
+	 * @param presignedURL The pre-signed URL for GET, if available.
 	 */
 	static record UploadStatusResponse(String uploadId, String fileName, long fileSize, long chunkSize, String status,
-			List<UploadedChunk> uploadedChunks, long totalReceivedSize, String message) {
+			List<UploadedChunk> uploadedChunks, long totalReceivedSize, String message, String presignedURL) {
 	};
 	
 	/**
      * Retrieves the current status of an ongoing or completed upload.
      *
      * @param uploadId The unique ID of the upload session.
+     * @param expiresInSeconds optional The number of seconds after which the presigned URL will expire. 
+     * When provided, a presigned URL will be returned for the upload session.
      * @return Response containing the detailed status of the upload ({@link UploadStatusResponse}).
      */
     @GET
     @Path("/{uploadId}")
     @Produces(MediaType.APPLICATION_JSON)
-    Response getUploadStatus(@PathParam("uploadId") String uploadId);
+    Response getUploadStatus(@PathParam("uploadId") String uploadId, @QueryParam("expiresInSeconds") long expiresInSeconds);
     
-    /**
-     * Request body for the upload completion.
-     * @param fileName The final name of the file being uploaded (optional).
-     * @param totalChunks The total number of chunks expected for the file upload.
-     * @param uploadLocation optional The upload location for the file upload, e.g. archive (default), image or attachment.
-     */
-    static record UploadCompletionRequest(String fileName, String totalChunks, String uploadLocation) {    	
-	};
-	
-	/**
-	 * Response for the upload completion request.
-	 * 
-	 * @param uploadId The unique ID of the upload session.
-	 * @param status Status of the upload processing (INITIATED, UPLOADING, PROCESSING, COMPLETED, CANCELED or FAILED).
-	 * @param message Additional message or details about the upload processing.
-	 */
-    static record UploadCompletionResponse(String uploadId, String status, String message) {    	
-    };
-    
-    /**
-     * Notifies the server that all chunks have been uploaded and the file
-     * should be reassembled.
-     *
-     * @param uploadId The unique ID of the upload session.
-     * @param completionRequest Request body containing final verification details like total chunks.
-     * @return Response indicating that the file processing has been accepted or completed ({@link UploadCompletionResponse}).
-     */
-    @POST
-    @Path("/{uploadId}/complete")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    Response finalizeUpload(@PathParam("uploadId") String uploadId, UploadCompletionRequest completionRequest);
-
     /**
      * Cancels an ongoing/completed upload, cleans up any temporarily stored chunks and associated uploaded file.
      *

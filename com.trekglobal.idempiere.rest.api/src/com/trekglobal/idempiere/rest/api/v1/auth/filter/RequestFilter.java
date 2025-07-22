@@ -99,6 +99,11 @@ public class RequestFilter implements ContainerRequestFilter {
 			return;
 		}
 		
+		if (PresignedURL.isPresignedURL(requestContext)) {
+			PresignedURL.validateSignature(requestContext);
+			return;
+		}
+		
 		String authHeaderVal = requestContext.getHeaderString(HttpHeaders.AUTHORIZATION);
 
 		// consume JWT i.e. execute signature validation

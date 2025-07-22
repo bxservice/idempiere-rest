@@ -45,6 +45,7 @@ import java.util.logging.Level;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 
 import org.adempiere.util.ContextRunnable;
@@ -57,6 +58,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.MimeType;
 import org.compiere.util.Trx;
@@ -74,6 +76,7 @@ import com.trekglobal.idempiere.rest.api.model.MRestUpload;
 import com.trekglobal.idempiere.rest.api.model.MRestUploadChunk;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 import com.trekglobal.idempiere.rest.api.model.X_REST_Upload;
+import com.trekglobal.idempiere.rest.api.v1.auth.filter.PresignedURL;
 import com.trekglobal.idempiere.rest.api.v1.resource.UploadResource;
 
 @Path("v1/uploads")
@@ -91,7 +94,7 @@ public class UploadResourceImpl implements UploadResource {
     		
     @Override
     public Response initiateUpload(UploadInitiationRequest request) {
-        LocalDateTime expiresAt = LocalDateTime.now().plusHours(24);
+        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(request.expiresInSeconds());
 
         MRestUpload upload = new MRestUpload(Env.getCtx(), 0, null);
         upload.setFileName(request.fileName());
@@ -102,13 +105,25 @@ public class UploadResourceImpl implements UploadResource {
         upload.setExpiresAt(Timestamp.valueOf(expiresAt));
         upload.setREST_SHA256(request.sha256());
 
+        if (!Util.isEmpty(request.uploadLocation(), true)) {
+        	if (!request.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
+        			&& !request.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
+        			&& !request.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
+        		return Response.status(Response.Status.BAD_REQUEST)
+        				.entity("{\"error\":\"Invalid uploadLocation in request.\"}")
+                        .build();
+        	upload.setREST_UploadLocation(request.uploadLocation());
+        }
+        
         try {
             upload.saveEx();
             String uploadId = upload.getREST_Upload_UU(); // Use UUID for upload ID
+            String presignedURLParams = PresignedURL.createPresignedURLParams("PUT", "v1/uploads/"+uploadId+"/chunks", request.expiresInSeconds());
             UploadInitiationResponse response = new UploadInitiationResponse(
                     uploadId,
                     upload.getChunkSize(),
-                    expiresAt.format(DateTimeFormatter.ISO_DATE_TIME));
+                    expiresAt.format(DateTimeFormatter.ISO_DATE_TIME),
+                    "v1/uploads/"+uploadId+"/chunks/{chunkOrder}"+presignedURLParams);
             return Response.status(Response.Status.CREATED).entity(response).build();
         } catch (Exception e) {
             return ResponseUtils.getResponseErrorFromException(e, "Failed to initiate upload");
@@ -116,12 +131,20 @@ public class UploadResourceImpl implements UploadResource {
     }
 
     @Override
-    public Response uploadChunk(String uploadId, int chunkOrder, String sha256, InputStream chunkData) {
+    public Response uploadChunk(String uploadId, int chunkOrder, int totalChunks, String sha256, InputStream chunkData) {
         MRestUpload upload = MRestUpload.get(uploadId);
 
         if (upload == null) {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
+        
+        if (totalChunks <= 0) {
+        	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
+        }
+        
+        if (chunkOrder < 1 || chunkOrder > totalChunks) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Chunk order must be between 1 and " + totalChunks, uploadId, "");
+		}
 
         // check if the upload is expired
         if (upload.getExpiresAt() != null && LocalDateTime.now().isAfter(upload.getExpiresAt().toLocalDateTime())) {
@@ -141,34 +164,50 @@ public class UploadResourceImpl implements UploadResource {
         			+ upload.getREST_UploadStatus().toLowerCase(), uploadId, "");
         }
 
+        ChunkStorageService.ChunkDetails details = null;
         Trx trx = Trx.get(Trx.createTrxName(), true);
         try {
         	upload.set_TrxName(trx.getTrxName());
-            ChunkStorageService.ChunkDetails details = chunkStorageService.storeChunk(upload, chunkOrder, chunkData, sha256);
+            details = chunkStorageService.storeChunk(upload, chunkOrder, chunkData, sha256);
 
             if (STATUS_INITIATED.equals(upload.getREST_UploadStatus())) {
                 upload.setStatus(STATUS_UPLOADING);
                 upload.saveEx();
             }
 
-            trx.commit(true);
-            UploadChunkResponse response = new UploadChunkResponse(
-                    uploadId,
-                    chunkOrder,
-                    details.size,
-                    "Chunk uploaded successfully.");
-            return Response.ok(response).build();
-
+            trx.commit(true);            
         } catch (Exception e) {
         	trx.rollback();
         	return ResponseUtils.getResponseErrorFromException(e, "Failed to upload chunk");
         } finally {
 			trx.close();
 		}
+        
+        boolean isLastChunk = false;
+        String message = "Chunk " + chunkOrder + " uploaded successfully.";
+        Response finalizeResponse = finalizeUpload(upload, totalChunks);
+        Status status = Response.Status.OK;
+        if (finalizeResponse != null) {
+			// If finalizeUpload returns a response, it means the upload is complete or there was an error
+        	if (finalizeResponse.getStatus() == Response.Status.OK.getStatusCode()) {
+				isLastChunk = true;
+			} else {
+				message += "\n" + finalizeResponse.getEntity().toString();
+				status = Response.Status.fromStatusCode(finalizeResponse.getStatus());			
+			}
+		}
+        
+        UploadChunkResponse response = new UploadChunkResponse(
+                uploadId,
+                chunkOrder,
+                details.size,
+                message, isLastChunk);
+                
+        return Response.status(status).entity(response).build();
     }
         
     @Override
-    public Response getUploadStatus(String uploadId) {
+    public Response getUploadStatus(String uploadId, long expiresInSeconds) {
         MRestUpload upload = MRestUpload.get(uploadId);
 
         if (upload == null) {
@@ -217,7 +256,14 @@ public class UploadResourceImpl implements UploadResource {
                 }
             }
         }
-
+        
+        String presignedURL = null;
+        if (expiresInSeconds > 0) {
+        	String presignedURLParams = PresignedURL.createPresignedURLParams("GET", "v1/uploads/"+uploadId, expiresInSeconds);
+        	presignedURL = "v1/uploads/"+uploadId+","+
+                    "v1/uploads/"+uploadId+"/file" + presignedURLParams;
+        }
+        
         UploadStatusResponse response = new UploadStatusResponse(
                 upload.getREST_Upload_UU(),
                 upload.getFileName(),
@@ -226,82 +272,47 @@ public class UploadResourceImpl implements UploadResource {
                 upload.getREST_UploadStatus(),
                 uploadedChunkOrders,
                 totalReceivedSize,
-                message);
+                message,
+                presignedURL);
 
         return Response.ok(response).build();
     }
 
-    @Override
-    public Response finalizeUpload(String uploadId, UploadCompletionRequest completionRequest) {
-        MRestUpload upload = MRestUpload.get(uploadId);
-
-        if (upload == null) {
-        	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
-        }
-        if (STATUS_PROCESSING.equals(upload.getREST_UploadStatus())) {
-            UploadCompletionResponse response = new UploadCompletionResponse(uploadId, upload.getREST_UploadStatus(), "Upload is already being processed.");
-            return Response.status(Response.Status.ACCEPTED).entity(response).build();
-        }
-        if (STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
-            UploadCompletionResponse response = new UploadCompletionResponse(uploadId, upload.getREST_UploadStatus(), "Upload has already been completed.");
-            return Response.status(Response.Status.OK).entity(response).build(); 
-        }
-
-        if (upload.getExpiresAt() != null && LocalDateTime.now().isAfter(upload.getExpiresAt().toLocalDateTime())) {
-            upload.setStatus(STATUS_FAILED);
-            try{ upload.saveEx(); } catch (Exception e) { 
-            	return ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
-            }
-            return ResponseUtils.getResponseError(Response.Status.GONE, "Upload session has expired: ", uploadId, "");
-        }
-        
+    private Response finalizeUpload(MRestUpload upload, int totalChunks) {
         List<MRestUploadChunk> chunks = MRestUploadChunk.findByUploadId(upload.getREST_Upload_ID());
         
-        int expectedTotalChunks;
-        try {
-            expectedTotalChunks = Integer.parseInt(completionRequest.totalChunks());
-        } catch (NumberFormatException e) {
-             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Invalid totalChunks format in request.\"}")
-                    .build();
-        }
-
-        if (chunks.size() != expectedTotalChunks) {
-            // Do not mark as FAILED immediately, client might still be uploading or there's a mismatch.
-            // The getUploadStatus will reflect the current chunk count.
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Mismatch in chunk count. Expected: " + expectedTotalChunks + ", Received: " + chunks.size() + ". Please ensure all chunks are uploaded.\"}")
-                    .build();
-        }
-        
         long totalUploadedSize = chunks.stream().mapToLong(MRestUploadChunk::getReceivedSize).sum();
-        if (upload.getFileSize().longValue() > 0 && totalUploadedSize != upload.getFileSize().longValue()) {
-        	return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"error\":\"Mismatch in total received size. Expected: " + upload.getFileSize().longValue() + ", Received: " + totalUploadedSize + ". Please ensure all chunks are uploaded.\"}")
-                    .build();
+        boolean allReceived = chunks.size() == totalChunks;
+        boolean misMatch = false;
+        if (totalUploadedSize != upload.getFileSize().longValue() && upload.getFileSize().longValue() > 0) {
+        	misMatch = true;
         }
         
-        if (!Util.isEmpty(completionRequest.fileName(), true))
-        	upload.setFileName(completionRequest.fileName());
-        
-        if (!Util.isEmpty(completionRequest.uploadLocation(), true)) {
-        	if (!completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Archive)
-        			&& !completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)
-        			&& !completionRequest.uploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image))
+        if (allReceived) {
+        	if (misMatch) {
         		return Response.status(Response.Status.BAD_REQUEST)
-        				.entity("{\"error\":\"Invalid uploadLocation in request.\"}")
+                        .entity("{\"error\":\"Mismatch in total received size. Expected: " + upload.getFileSize().longValue() + ", Received: " + totalUploadedSize)
                         .build();
-        	upload.setREST_UploadLocation(completionRequest.uploadLocation());
+    					
+        	}
+        } else {
+        	return null;
         }
         
         // All checks passed, transition to PROCESSING and start async assembly
-        upload.setStatus(STATUS_PROCESSING);
         try {
-            upload.saveEx();
+            int rowUpdated = DB.executeUpdateEx("UPDATE " + MRestUpload.Table_Name + " SET " + MRestUpload.COLUMNNAME_REST_UploadStatus + "=? "
+            		+ "WHERE " + MRestUpload.COLUMNNAME_REST_Upload_ID + "=? AND "
+            		+ MRestUpload.COLUMNNAME_REST_UploadStatus + " !=? ", new Object[] {STATUS_PROCESSING, upload.getREST_Upload_ID(), STATUS_PROCESSING}, null);
+            if (rowUpdated != 1) {
+            	return null;
+            }
+            upload.load(null);
         } catch (Exception e) {
-        	return ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
+        	return ResponseUtils.getResponseErrorFromException(e, "Error setting upload status to PROCESSING");
         }
 
+        String uploadId = upload.getREST_Upload_UU();
         ContextRunnable runnable = new ContextRunnable() {
 			@Override
 			protected void doRun() {
@@ -356,11 +367,7 @@ public class UploadResourceImpl implements UploadResource {
         // Submit the assembly task to the executor
         Adempiere.getThreadPoolExecutor().submit(runnable);
 
-        UploadCompletionResponse response = new UploadCompletionResponse(
-                uploadId,
-                upload.getREST_UploadStatus(), // Will be PROCESSING
-                "File finalization accepted. Assembly is in progress. Check status endpoint for updates.");
-        return Response.status(Response.Status.ACCEPTED).entity(response).build();
+        return Response.ok().build();
     }
 
     @Override
@@ -452,7 +459,7 @@ public class UploadResourceImpl implements UploadResource {
    			List<MRestUpload> uploads = query.setOrderBy(MRestUpload.COLUMNNAME_REST_Upload_ID).list();
    			JsonArray array = new JsonArray();
    			for (MRestUpload upload : uploads) {
-   				Response response = getUploadStatus(upload.getREST_Upload_UU());
+   				Response response = getUploadStatus(upload.getREST_Upload_UU(), 0);
 				Gson gson = new GsonBuilder().create();
 				JsonElement jsonElement = gson.toJsonTree(response.getEntity());
 				array.add(jsonElement);
