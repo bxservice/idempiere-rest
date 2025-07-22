@@ -52,6 +52,8 @@ tags:
     description: Endpoints to get menu tree
   - name: Uploads
     description: Endpoints to upload files
+  - name: Batch
+    description: Endpoints for batch processing
 components:
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
@@ -3172,6 +3174,36 @@ components:
         fileSize:
           type: integer
           description: size of the file being copied
+    SubRequest:
+      type: object
+      properties:
+        method:
+          type: string
+          description: HTTP method for the sub-request (e.g., GET, POST)
+        path:
+          type: string
+          description: Path for the sub-request (e.g., v1/models/C_BPartner)
+        body:
+          type: object
+          description: Body of the sub-request, if applicable
+    BatchRequest:
+      type: array
+      items:
+        $ref: '#/components/schemas/SubRequest'
+    BatchResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          status:
+            type: string
+            description: HTTP status text of the sub-request (e.g., created, ok, etc)
+          statusCode:
+            type: integer
+            description: HTTP status code of the response
+          body:
+            type: object
+            description: Body of the response, if applicable
 security:
     - bearerAuth: [] # use the same name as above          
 paths:
@@ -6588,3 +6620,22 @@ paths:
             application/json: {}
         '500':
           $ref: '#/components/responses/ServerError'
+  /batch:
+    post:
+      tags:
+         - Batch
+      summary: Execute batch request
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchResponse'
+        '500':
+          ref: '#/components/responses/ServerError'

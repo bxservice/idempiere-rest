@@ -5443,6 +5443,52 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "/api/v1/batch",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":101\n                        }\n                    ]\n                }\n            ]\n        }\n    },\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update\"\n        }\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/batch",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"batch"
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [

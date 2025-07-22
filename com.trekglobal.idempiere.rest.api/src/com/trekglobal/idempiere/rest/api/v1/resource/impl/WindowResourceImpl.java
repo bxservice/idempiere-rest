@@ -81,6 +81,7 @@ import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.util.GridTabPaging;
 import com.trekglobal.idempiere.rest.api.util.Paging;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
 
 /**
@@ -520,10 +521,13 @@ public class WindowResourceImpl implements WindowResource {
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
-		Trx trx = Trx.get(Trx.createTrxName(), true);
+		
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
 		try {
-			trx.start();
-			return createTabRecord(gridWindow, null, null, jsonObject, trx);
+			if (threadLocalTrxName == null)
+				trx.start();
+			return createTabRecord(gridWindow, null, null, jsonObject, trx, (threadLocalTrxName != null));
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -531,7 +535,8 @@ public class WindowResourceImpl implements WindowResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		} finally {
-			trx.close();
+			if (threadLocalTrxName == null)
+				trx.close();
 		}		
 	}
 
@@ -572,10 +577,12 @@ public class WindowResourceImpl implements WindowResource {
 		Gson gson = new GsonBuilder().create();
 		JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);		
 		GridWindow gridWindow = GridWindow.get(Env.getCtx(), 1, window.getAD_Window_ID());
-		Trx trx = Trx.get(Trx.createTrxName(), true);
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
 		try {
-			trx.start();
-			return updateTabRecord(gridWindow, tabSlug, recordId, jsonObject, trx);
+			if (threadLocalTrxName == null)
+				trx.start();
+			return updateTabRecord(gridWindow, tabSlug, recordId, jsonObject, trx, (threadLocalTrxName != null));
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -583,7 +590,8 @@ public class WindowResourceImpl implements WindowResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		} finally {
-			trx.close();
+			if (threadLocalTrxName == null)
+				trx.close();
 		}		
 	}
 
@@ -642,10 +650,12 @@ public class WindowResourceImpl implements WindowResource {
 					.build();
 		}
 		
-		Trx trx = Trx.get(Trx.createTrxName(), true);
+		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
 		try {
-			trx.start();
-			return createTabRecord(gridWindow, parentTab, childTabSlug, jsonObject, trx);
+			if (threadLocalTrxName == null)
+				trx.start();
+			return createTabRecord(gridWindow, parentTab, childTabSlug, jsonObject, trx, (threadLocalTrxName != null));
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -653,7 +663,8 @@ public class WindowResourceImpl implements WindowResource {
 					.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Server error").append("Server error with exception: ").append(ex.getMessage()).build().toString())
 					.build();
 		} finally {
-			trx.close();
+			if (threadLocalTrxName == null)
+				trx.close();
 		}
 	}
 	
@@ -708,6 +719,9 @@ public class WindowResourceImpl implements WindowResource {
 				ErrorDataStatusListener edsl = new ErrorDataStatusListener();
 				gridTab.getTableModel().addDataStatusListener(edsl);
 				try {
+					String threadLocalTrxName = ThreadLocalTrx.getTrxName();
+					if (threadLocalTrxName != null)
+						gridTab.getTableModel().setImportingMode(true, threadLocalTrxName);
 					if (gridTab.dataDelete()) {
 						return Response.status(Status.OK).build();
 					} else {
@@ -894,7 +908,7 @@ public class WindowResourceImpl implements WindowResource {
 		return serializer;
 	}
 	
-	private Response updateTabRecord(GridWindow gridWindow, String tabSlug, int recordId, JsonObject jsonObject, Trx trx)
+	private Response updateTabRecord(GridWindow gridWindow, String tabSlug, int recordId, JsonObject jsonObject, Trx trx, boolean threadLocalTrx)
 			throws SQLException {
 		Response errorResponse = null;
 		GridTab headerTab = null;
@@ -1011,7 +1025,8 @@ public class WindowResourceImpl implements WindowResource {
 		
 		String error = runDocAction(headerTab, jsonObject, trx.getTrxName());
 		if (Util.isEmpty(error, true)) {
-			trx.commit(true);
+			if (!threadLocalTrx)
+				trx.commit(true);
 		} else {
 			trx.rollback();
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -1062,7 +1077,7 @@ public class WindowResourceImpl implements WindowResource {
 		return false;
 	}
 	
-	private Response createTabRecord(GridWindow gridWindow, GridTab parentTab, String tabSlug, JsonObject jsonObject, Trx trx) throws SQLException {
+	private Response createTabRecord(GridWindow gridWindow, GridTab parentTab, String tabSlug, JsonObject jsonObject, Trx trx, boolean threadLocalTrx) throws SQLException {
 		GridTab headerTab = null;
 		Map<String, JsonArray> childMap = new LinkedHashMap<String, JsonArray>();
 		for(int i = 0; i < gridWindow.getTabCount(); i++) {
@@ -1191,7 +1206,8 @@ public class WindowResourceImpl implements WindowResource {
 		
 		String error = runDocAction(headerTab, jsonObject, trx.getTrxName());
 		if (Util.isEmpty(error, true)) {
-			trx.commit(true);
+			if (!threadLocalTrx)
+				trx.commit(true);
 		} else {
 			trx.rollback();
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
