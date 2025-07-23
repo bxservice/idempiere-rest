@@ -267,7 +267,7 @@ public class ModelResourceImpl implements ModelResource {
 	
 	@Override
 	public Response getPOProperty(String tableName, String id, String propertyName, String showsql) {
-		return getPO(tableName, id, null, null, propertyName, showsql);
+		return getPO(tableName, id, null, null, propertyName, showsql, null);
 	}
 
 	@Override
