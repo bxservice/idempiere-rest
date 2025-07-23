@@ -1,13 +1,13 @@
 
 # iDempiere Rest API
 
-You can find the documentation on how to use it here: https://wiki.idempiere.org/en/REST_Web_Services.
+You can find the documentation on how to use it here: https://bxservice.github.io/idempiere-rest-docs/.
 
 ## Projects:
 * com.trekglobal.idempiere.extensions.parent - parent pom project
 * com.trekglobal.idempiere.rest.api - rest api project
 * com.trekglobal.idempiere.extensions.p2 - project to build p2 repository
-* iDempiere version - Current Default 11
+* iDempiere version - Current Default 12
 
 ## Folder layout:
 * idempiere
