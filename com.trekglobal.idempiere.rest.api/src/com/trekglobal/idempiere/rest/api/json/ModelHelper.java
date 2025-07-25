@@ -57,7 +57,7 @@ public class ModelHelper {
 	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
 	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
 	
-	private static final AtomicInteger windowNoAtomic = new AtomicInteger();
+	private static final AtomicInteger windowNoAtomic = new AtomicInteger(1);
 	
 	private String tableName;
 	private String filter;
