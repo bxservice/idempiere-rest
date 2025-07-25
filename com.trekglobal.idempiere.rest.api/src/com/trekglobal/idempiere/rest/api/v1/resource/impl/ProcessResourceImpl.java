@@ -206,7 +206,7 @@ public class ProcessResourceImpl implements ProcessResource {
 
 		if(processInfo.isProcessRunning(pInstance.getParameters())) {
 			return Response.status(Status.CONFLICT)
-					.entity(new ErrorBuilder().status(Status.CONFLICT).title("Process is Already Running. ").append(processSlug).build().toString())
+					.entity(new ErrorBuilder().status(Status.CONFLICT).title(Msg.getMsg(Env.getCtx(), "ProcessAlreadyRunning")).append(processSlug).build().toString())
 					.build();
 		}
 		
@@ -282,7 +282,7 @@ public class ProcessResourceImpl implements ProcessResource {
 
 		if(processInfo.isProcessRunning(pInstance.getParameters())) {
 			return Response.status(Status.CONFLICT)
-					.entity(new ErrorBuilder().status(Status.CONFLICT).title("Process is Already Running. ").append(processSlug).build().toString())
+					.entity(new ErrorBuilder().status(Status.CONFLICT).title(Msg.getMsg(Env.getCtx(), "ProcessAlreadyRunning")).append(processSlug).build().toString())
 					.build();
 		}
 		
