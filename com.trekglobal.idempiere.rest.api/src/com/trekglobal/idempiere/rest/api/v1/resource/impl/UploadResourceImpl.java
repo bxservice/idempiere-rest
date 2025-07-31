@@ -306,9 +306,10 @@ public class UploadResourceImpl implements UploadResource {
         
         // All checks passed, transition to PROCESSING and start async assembly
         try {
-            int rowUpdated = DB.executeUpdateEx("UPDATE " + MRestUpload.Table_Name + " SET " + MRestUpload.COLUMNNAME_REST_UploadStatus + "=? "
+            int rowUpdated = DB.executeUpdateEx("UPDATE " + MRestUpload.Table_Name + " SET " + MRestUpload.COLUMNNAME_REST_UploadStatus + "=?, "
+            		+ MRestUpload.COLUMNNAME_FileSize + "=? "
             		+ "WHERE " + MRestUpload.COLUMNNAME_REST_Upload_ID + "=? AND "
-            		+ MRestUpload.COLUMNNAME_REST_UploadStatus + " !=? ", new Object[] {STATUS_PROCESSING, upload.getREST_Upload_ID(), STATUS_PROCESSING}, null);
+            		+ MRestUpload.COLUMNNAME_REST_UploadStatus + " !=? ", new Object[] {STATUS_PROCESSING, new BigDecimal(totalUploadedSize), upload.getREST_Upload_ID(), STATUS_PROCESSING}, null);
             if (rowUpdated != 1) {
             	return null;
             }
@@ -539,14 +540,12 @@ public class UploadResourceImpl implements UploadResource {
             POParser poParser = new POParser(tableName, id, true, true);
     		if (poParser.isValidPO()) {
     			PO po = poParser.getPO();
-    			long size = 0;
     			if (copyRequest.copyLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
                 	MAttachment attachment = po.getAttachment();
                 	if (attachment == null)
                 		attachment = po.createAttachment();
                 	try {
-                		if (uploadDetails.inputStream instanceof ByteArrayInputStream bais) {
-                			size = bais.available();
+                		if (uploadDetails.inputStream instanceof ByteArrayInputStream) {
                 			attachment.addEntry(uploadDetails.fileName, uploadDetails.inputStream.readAllBytes());
                 		} else {
                 			try (uploadDetails.inputStream) {
@@ -554,7 +553,6 @@ public class UploadResourceImpl implements UploadResource {
 	                			java.nio.file.Path targetPat = tempPath.resolve(uploadDetails.fileName);
 	                			Files.copy(uploadDetails.inputStream, targetPat, StandardCopyOption.REPLACE_EXISTING);
 	                			File targetFile = targetPat.toFile();
-	                			size = targetFile.length();
 	                			attachment.addEntry(uploadDetails.fileName, targetFile);
                 			}
                 		}
@@ -572,32 +570,10 @@ public class UploadResourceImpl implements UploadResource {
     					archive.setRecord_UU(po.get_UUID());
     				}
     	            try {
-    	            	File tempFile = null;
-    	            	InputStream inputStream = uploadDetails.inputStream;
-    	            	if (uploadDetails.inputStream instanceof ByteArrayInputStream bais) {
-		            		size = bais.available();
-		            	} else {
-		            		try (uploadDetails.inputStream) {
-	                			java.nio.file.Path tempPath = Files.createTempDirectory(tableName);
-	                			java.nio.file.Path targetPath = tempPath.resolve(uploadDetails.fileName);
-	                			Files.copy(uploadDetails.inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-	                			tempFile = targetPath.toFile();
-	                			size = tempFile.length();
-	                			inputStream = Files.newInputStream(targetPath);
-                			}
-		            	}
-    	            	try {
+    	            	try (uploadDetails.inputStream) {
 	        	            archive.setName(uploadDetails.fileName);
-	        	            archive.setInputStream(inputStream);
+	        	            archive.setInputStream(uploadDetails.inputStream);
 	        	            archive.saveEx();
-    	            	} finally {
-    	            		try { 
-    	            			inputStream.close();
-    	            		} catch (IOException e) {}
-    	            		if (tempFile != null && tempFile.exists()) {
-		            			if (!tempFile.delete())
-		            				tempFile.deleteOnExit();
-		            		}
     	            	}
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -611,7 +587,7 @@ public class UploadResourceImpl implements UploadResource {
     					copyRequest.copyLocation(),
     					uploadDetails.fileName,
     					uploadDetails.contentType,
-    					size);
+    					uploadDetails.size);
     			return Response.ok(response).build();
     		} else {
     			return poParser.getResponseError();
@@ -821,7 +797,7 @@ public class UploadResourceImpl implements UploadResource {
 			return archives != null && archives.length == 1 ? archives[0]: null;
 		}
 		
-		static record UploadDetails(String fileName, String contentType, InputStream inputStream) {
+		static record UploadDetails(String fileName, String contentType, InputStream inputStream, long size) {
 		}
 		
 		/**
@@ -836,7 +812,8 @@ public class UploadResourceImpl implements UploadResource {
 					return new UploadDetails(
 							upload.getFileName(),
 							upload.getContentType(),
-							image.getInputStream());
+							image.getInputStream(),
+							upload.getFileSize().longValue());
 				}
 			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
 				MAttachment attachment = upload.getAttachment();
@@ -847,7 +824,8 @@ public class UploadResourceImpl implements UploadResource {
 							return new UploadDetails(
 									upload.getFileName(),
 									upload.getContentType(),
-									entry.getInputStream());
+									entry.getInputStream(),
+									upload.getFileSize().longValue());
 						}
 					}
 				}
@@ -857,7 +835,8 @@ public class UploadResourceImpl implements UploadResource {
 					return new UploadDetails(
 						upload.getFileName(),
 						upload.getContentType(),
-						archives[0].getInputStream());
+						archives[0].getInputStream(),
+						upload.getFileSize().longValue());
 				}
 			}
 			return null;
