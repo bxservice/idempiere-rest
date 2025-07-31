@@ -593,38 +593,13 @@ public class UploadResourceImpl implements UploadResource {
     			return poParser.getResponseError();
     		}
         } else {
-        	long size = 0;
         	MImage image = new MImage(Env.getCtx(), 0, upload.get_TrxName());
-        	File tempFile = null;
-        	InputStream inputStream = uploadDetails.inputStream;
-        	if (uploadDetails.inputStream instanceof ByteArrayInputStream bais) {
-        		size = bais.available();
-        	} else {
-        		try (uploadDetails.inputStream) {
-        			java.nio.file.Path tempPath = Files.createTempDirectory("image_upload");
-        			java.nio.file.Path targetPath = tempPath.resolve(uploadDetails.fileName);
-        			Files.copy(uploadDetails.inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-        			tempFile = targetPath.toFile();
-        			size = tempFile.length();
-        			inputStream = Files.newInputStream(targetPath);
-    			} catch (Exception e) {
-				}
-        	}
-        	try {
+        	try (uploadDetails.inputStream){
         		image.setName(uploadDetails.fileName);
-            	image.setInputStream(inputStream);
+            	image.setInputStream(uploadDetails.inputStream);
             	image.saveEx();
 			} catch (Exception ex) {
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
-			} finally {
-				try {
-					inputStream.close();
-				} catch (IOException e) {
-				}
-				if (tempFile != null && tempFile.exists()) {
-					if (!tempFile.delete())
-						tempFile.deleteOnExit();
-				}
 			}
         	CopyUploadedFileResponse response = new CopyUploadedFileResponse(
 					uploadId, 
@@ -634,7 +609,7 @@ public class UploadResourceImpl implements UploadResource {
 					copyRequest.copyLocation(),
 					uploadDetails.fileName,
 					uploadDetails.contentType,
-					size);
+					uploadDetails.size);
 			return Response.ok(response).build();
         }
     }
