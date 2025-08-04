@@ -25,10 +25,15 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -301,9 +306,10 @@ public class UploadResourceImpl implements UploadResource {
         
         // All checks passed, transition to PROCESSING and start async assembly
         try {
-            int rowUpdated = DB.executeUpdateEx("UPDATE " + MRestUpload.Table_Name + " SET " + MRestUpload.COLUMNNAME_REST_UploadStatus + "=? "
+            int rowUpdated = DB.executeUpdateEx("UPDATE " + MRestUpload.Table_Name + " SET " + MRestUpload.COLUMNNAME_REST_UploadStatus + "=?, "
+            		+ MRestUpload.COLUMNNAME_FileSize + "=? "
             		+ "WHERE " + MRestUpload.COLUMNNAME_REST_Upload_ID + "=? AND "
-            		+ MRestUpload.COLUMNNAME_REST_UploadStatus + " !=? ", new Object[] {STATUS_PROCESSING, upload.getREST_Upload_ID(), STATUS_PROCESSING}, null);
+            		+ MRestUpload.COLUMNNAME_REST_UploadStatus + " !=? ", new Object[] {STATUS_PROCESSING, new BigDecimal(totalUploadedSize), upload.getREST_Upload_ID(), STATUS_PROCESSING}, null);
             if (rowUpdated != 1) {
             	return null;
             }
@@ -438,12 +444,27 @@ public class UploadResourceImpl implements UploadResource {
 				contentType = MediaType.APPLICATION_OCTET_STREAM;
 			
 			StreamingOutput streamingOutput = os -> {
-				os.write(uploadDetails.data());
+				int length;
+				byte[] buffer = new byte[8192];
+				try (uploadDetails.inputStream) {
+					while ((length = uploadDetails.inputStream().read(buffer)) != -1) {
+						os.write(buffer, 0, length);
+					}
+				} catch (IOException e) {
+					log.log(Level.SEVERE, "Error writing file stream for upload: " + uploadId, e);
+					throw new RuntimeException("Error writing file stream", e);
+				}
 			};
 			return Response.ok(streamingOutput, contentType).build();
 		} else {
 			JsonObject json = new JsonObject();
-			String data = Base64.getEncoder().encodeToString(uploadDetails.data());
+			String data;
+			try (uploadDetails.inputStream) {
+				data = Base64.getEncoder().encodeToString(uploadDetails.inputStream().readAllBytes());
+			} catch (IOException e) {
+				log.log(Level.SEVERE, "Error reading input stream for upload: " + uploadId, e);
+				throw new RuntimeException("Error reading input stream", e);
+			}
 			json.addProperty("data", data);
 			return Response.ok(json.toString()).build();
 		}
@@ -524,7 +545,17 @@ public class UploadResourceImpl implements UploadResource {
                 	if (attachment == null)
                 		attachment = po.createAttachment();
                 	try {
-                		attachment.addEntry(uploadDetails.fileName, uploadDetails.data);
+                		if (uploadDetails.inputStream instanceof ByteArrayInputStream) {
+                			attachment.addEntry(uploadDetails.fileName, uploadDetails.inputStream.readAllBytes());
+                		} else {
+                			try (uploadDetails.inputStream) {
+	                			java.nio.file.Path tempPath = Files.createTempDirectory(tableName);
+	                			java.nio.file.Path targetPat = tempPath.resolve(uploadDetails.fileName);
+	                			Files.copy(uploadDetails.inputStream, targetPat, StandardCopyOption.REPLACE_EXISTING);
+	                			File targetFile = targetPat.toFile();
+	                			attachment.addEntry(uploadDetails.fileName, targetFile);
+                			}
+                		}
                     	attachment.saveEx();
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -539,9 +570,11 @@ public class UploadResourceImpl implements UploadResource {
     					archive.setRecord_UU(po.get_UUID());
     				}
     	            try {
-        	            archive.setName(uploadDetails.fileName);
-        	            archive.setBinaryData(uploadDetails.data);
-        	            archive.saveEx();
+    	            	try (uploadDetails.inputStream) {
+	        	            archive.setName(uploadDetails.fileName);
+	        	            archive.setInputStream(uploadDetails.inputStream);
+	        	            archive.saveEx();
+    	            	}
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
         			}
@@ -554,16 +587,16 @@ public class UploadResourceImpl implements UploadResource {
     					copyRequest.copyLocation(),
     					uploadDetails.fileName,
     					uploadDetails.contentType,
-    					uploadDetails.data.length);
+    					uploadDetails.size);
     			return Response.ok(response).build();
     		} else {
     			return poParser.getResponseError();
     		}
         } else {
         	MImage image = new MImage(Env.getCtx(), 0, upload.get_TrxName());
-        	try {
+        	try (uploadDetails.inputStream){
         		image.setName(uploadDetails.fileName);
-            	image.setBinaryData(uploadDetails.data);
+            	image.setInputStream(uploadDetails.inputStream);
             	image.saveEx();
 			} catch (Exception ex) {
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -576,7 +609,7 @@ public class UploadResourceImpl implements UploadResource {
 					copyRequest.copyLocation(),
 					uploadDetails.fileName,
 					uploadDetails.contentType,
-					uploadDetails.data.length);
+					uploadDetails.size);
 			return Response.ok(response).build();
         }
     }
@@ -615,8 +648,10 @@ public class UploadResourceImpl implements UploadResource {
             long size = 0;
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (InputStream digestingInputStream = new DigestInputStream(data, md)) {
+            java.nio.file.Path tempPath = Files.createTempDirectory("upload_chunk");
+            java.nio.file.Path targetPath = tempPath.resolve(upload.getFileName() + "_chunk_" + chunkOrder);
+            File tempFile = targetPath.toFile();
+            try (InputStream digestingInputStream = new DigestInputStream(data, md);BufferedOutputStream baos = new BufferedOutputStream(Files.newOutputStream(targetPath))) {
                 byte[] buffer = new byte[8192];
                 int bytesRead;
                 while ((bytesRead = digestingInputStream.read(buffer)) != -1) {
@@ -654,10 +689,19 @@ public class UploadResourceImpl implements UploadResource {
                 archive.setRecord_ID(chunkRecord.getREST_UploadChunk_ID());
                 archive.setRecord_UU(chunkRecord.getREST_UploadChunk_UU());
             }
-            archive.setName(upload.getFileName());
-            archive.setDescription(upload.getFileName() + "_chunk_" + chunkOrder);            
-            archive.setBinaryData(baos.toByteArray());
-            archive.saveEx();
+            try (InputStream chunkInputStream = Files.newInputStream(targetPath)) {
+            	archive.setName(upload.getFileName());
+                archive.setDescription(upload.getFileName() + "_chunk_" + chunkOrder);            
+                archive.setInputStream(chunkInputStream);
+                archive.saveEx();
+			} catch (IOException e) {
+				throw new IOException("Error reading chunk input stream for upload: " + upload.getREST_Upload_UU(), e);
+			} finally {
+				if (tempFile.exists()) {
+					if (!tempFile.delete())
+						tempFile.deleteOnExit();
+				}
+			}
             
             return new ChunkDetails(chunkRecord, size, calculatedSha256);
         }
@@ -728,7 +772,7 @@ public class UploadResourceImpl implements UploadResource {
 			return archives != null && archives.length == 1 ? archives[0]: null;
 		}
 		
-		static record UploadDetails(String fileName, String contentType, byte[] data) {			
+		static record UploadDetails(String fileName, String contentType, InputStream inputStream, long size) {
 		}
 		
 		/**
@@ -743,7 +787,8 @@ public class UploadResourceImpl implements UploadResource {
 					return new UploadDetails(
 							upload.getFileName(),
 							upload.getContentType(),
-							image.getBinaryData());
+							image.getInputStream(),
+							upload.getFileSize().longValue());
 				}
 			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
 				MAttachment attachment = upload.getAttachment();
@@ -754,7 +799,8 @@ public class UploadResourceImpl implements UploadResource {
 							return new UploadDetails(
 									upload.getFileName(),
 									upload.getContentType(),
-									entry.getData());
+									entry.getInputStream(),
+									upload.getFileSize().longValue());
 						}
 					}
 				}
@@ -764,7 +810,8 @@ public class UploadResourceImpl implements UploadResource {
 					return new UploadDetails(
 						upload.getFileName(),
 						upload.getContentType(),
-						archives[0].getBinaryData());
+						archives[0].getInputStream(),
+						upload.getFileSize().longValue());
 				}
 			}
 			return null;

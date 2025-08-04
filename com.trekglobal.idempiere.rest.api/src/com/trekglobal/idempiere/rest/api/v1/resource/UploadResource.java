@@ -211,7 +211,7 @@ public interface UploadResource {
      * @param fileSize The size of the file being copied.
      */
     static record CopyUploadedFileResponse(String uploadId, String tableName, int recordId, String recordUU, 
-    		String copyLocation, String fileName, String contentType, int fileSize) {    	
+    		String copyLocation, String fileName, String contentType, long fileSize) {    	
 	};
     
     /**
