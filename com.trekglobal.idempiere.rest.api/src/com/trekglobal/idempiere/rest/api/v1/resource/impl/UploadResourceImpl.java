@@ -400,6 +400,29 @@ public class UploadResourceImpl implements UploadResource {
             // Update the main upload record to CANCELED
             upload.setStatus(STATUS_CANCELED);
             upload.saveEx();
+            
+            // Delete archive, image or attachment if exists
+            if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+            	if (upload.getAD_Image_ID() > 0) {
+					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
+					upload.setAD_Image_ID(0);
+					upload.saveEx();
+					image.deleteEx(true);
+				}
+            } else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+            	MAttachment attachment = upload.getAttachment(true);
+            	if (attachment != null) {
+            		attachment.set_TrxName(upload.get_TrxName());
+            		attachment.deleteEx(true);
+            	}
+            } else {
+	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
+						.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
+	            if (archive != null) {
+					archive.deleteEx(true);
+				}
+            }
+            
             trx.commit(true);
 
             return Response.ok("{\"message\":\"Upload " + uploadId + " canceled successfully.\"}").build();
