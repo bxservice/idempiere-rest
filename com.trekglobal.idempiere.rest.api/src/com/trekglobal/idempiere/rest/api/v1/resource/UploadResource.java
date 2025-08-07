@@ -134,6 +134,7 @@ public interface UploadResource {
 	 * @param uploadId The unique ID of the upload session.
 	 * @param fileName The name of the file being uploaded.
 	 * @param fileSize The total size of the file being uploaded.
+	 * @param imageId The ID of the image associated with the upload, if applicable.
 	 * @param chunkSize The preferred size of each chunk in the upload, in bytes.
 	 * @param status Status of the upload processing (INITIATED, UPLOADING, PROCESSING, COMPLETED, CANCELED or FAILED).
 	 * @param uploadedChunks List of chunks that have been successfully uploaded ({@link UploadedChunk}).
@@ -141,7 +142,7 @@ public interface UploadResource {
 	 * @param message Additional message or details about the upload processing.
 	 * @param presignedURL The pre-signed URL for GET, if available.
 	 */
-	static record UploadStatusResponse(String uploadId, String fileName, long fileSize, long chunkSize, String status,
+	static record UploadStatusResponse(String uploadId, String fileName, long fileSize, int imageId, long chunkSize, String status,
 			List<UploadedChunk> uploadedChunks, long totalReceivedSize, String message, String presignedURL) {
 	};
 	

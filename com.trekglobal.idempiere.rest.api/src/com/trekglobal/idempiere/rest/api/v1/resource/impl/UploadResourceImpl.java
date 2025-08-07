@@ -277,6 +277,7 @@ public class UploadResourceImpl implements UploadResource {
                 upload.getREST_Upload_UU(),
                 upload.getFileName(),
                 upload.getFileSize().longValue(),
+                upload.getAD_Image_ID(),
                 upload.getChunkSize(),
                 upload.getREST_UploadStatus(),
                 uploadedChunkOrders,
@@ -413,22 +414,6 @@ public class UploadResourceImpl implements UploadResource {
 				upload.saveEx();
 			}
             upload.saveEx();
-            
-            // Delete archive or attachment if exists
-            if (MRestUpload.REST_UPLOADLOCATION_Attachment.equals(upload.getREST_UploadLocation())) {
-            	MAttachment attachment = upload.getAttachment(true);
-            	if (attachment != null) {
-            		attachment.set_TrxName(upload.get_TrxName());
-            		attachment.deleteEx(true);
-            	}
-            } if (MRestUpload.REST_UPLOADLOCATION_Archive.equals(upload.getREST_UploadLocation())
-            	|| upload.getREST_UploadLocation() == null) {
-	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
-						.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
-	            if (archive != null) {
-					archive.deleteEx(true);
-				}
-            }
             
             trx.commit(true);
 
@@ -852,31 +837,21 @@ public class UploadResourceImpl implements UploadResource {
          * @param upload
          */
         public void deleteUploadFile(MRestUpload upload) {
-        	if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
-				if (upload.getAD_Image_ID() > 0) {
-					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
-					image.deleteEx(true);
-					upload.setAD_Image_ID(0);
+            // Delete archive or attachment if exists
+            if (MRestUpload.REST_UPLOADLOCATION_Attachment.equals(upload.getREST_UploadLocation())) {
+            	MAttachment attachment = upload.getAttachment(true);
+            	if (attachment != null) {
+            		attachment.set_TrxName(upload.get_TrxName());
+            		attachment.deleteEx(true);
+            	}
+            } else if (MRestUpload.REST_UPLOADLOCATION_Archive.equals(upload.getREST_UploadLocation())
+            	|| upload.getREST_UploadLocation() == null) {
+	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
+						.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
+	            if (archive != null) {
+					archive.deleteEx(true);
 				}
-			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
-				MAttachment attachment = upload.getAttachment();
-				if (attachment != null && attachment.getEntryCount() > 0) {
-					MAttachmentEntry[] entries = attachment.getEntries();
-					for (MAttachmentEntry entry : entries) {
-						if (entry.getName().equals(upload.getFileName())) {
-							attachment.deleteEntry(entry.getIndex());
-						}
-					}
-				}
-			} else {
-				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
-				if (archives != null && archives.length == 1) {
-					if (archives[0] != null) {
-						archives[0].set_TrxName(upload.get_TrxName());
-						archives[0].deleteEx(true);
-					}
-				}
-			}
+            }            
 		}
     }	
 }
