@@ -142,6 +142,10 @@ public class UploadResourceImpl implements UploadResource {
         if (upload == null) {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
+
+        if (STATUS_CANCELED.equals(upload.getREST_UploadStatus())) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+		}
         
         if (totalChunks <= 0) {
         	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
@@ -153,7 +157,7 @@ public class UploadResourceImpl implements UploadResource {
 
         // check if the upload is expired
         if (upload.getExpiresAt() != null && LocalDateTime.now().isAfter(upload.getExpiresAt().toLocalDateTime())) {
-             upload.setStatus(STATUS_FAILED);
+            upload.setStatus(STATUS_FAILED);
             try {
                 upload.saveEx();
             } catch (Exception e) { 
@@ -384,6 +388,10 @@ public class UploadResourceImpl implements UploadResource {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
 
+        if (STATUS_CANCELED.equals(upload.getREST_UploadStatus())) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+		}
+        
         Trx trx = Trx.get(Trx.createTrxName(), true);
         try {
         	upload.set_TrxName(trx.getTrxName());
