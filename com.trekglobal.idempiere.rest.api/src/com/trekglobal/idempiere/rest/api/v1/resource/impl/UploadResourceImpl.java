@@ -575,15 +575,21 @@ public class UploadResourceImpl implements UploadResource {
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
         			}
+                	CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+        					uploadId, 
+        					copyRequest.tableName(), 
+        					po.get_ID(),
+        					po.get_UUID(), 
+        					copyRequest.copyLocation(),
+        					uploadDetails.fileName,
+        					uploadDetails.contentType,
+        					uploadDetails.size);
+        			return Response.ok(response).build();
                 } else {
-    	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
-    						.setParameters(po.get_Table_ID(), po.get_ID()).first();
-    	            if (archive == null) {
-    					archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
-    					archive.setAD_Table_ID(po.get_Table_ID());
-    					archive.setRecord_ID(po.get_ID());
-    					archive.setRecord_UU(po.get_UUID());
-    				}
+					MArchive archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
+					archive.setAD_Table_ID(po.get_Table_ID());
+					archive.setRecord_ID(po.get_ID());
+					archive.setRecord_UU(po.get_UUID());
     	            try {
     	            	try (uploadDetails.inputStream) {
 	        	            archive.setName(uploadDetails.fileName);
@@ -593,17 +599,17 @@ public class UploadResourceImpl implements UploadResource {
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
         			}
-                }
-    			CopyUploadedFileResponse response = new CopyUploadedFileResponse(
-    					uploadId, 
-    					copyRequest.tableName(), 
-    					po.get_ID(),
-    					po.get_UUID(), 
-    					copyRequest.copyLocation(),
-    					uploadDetails.fileName,
-    					uploadDetails.contentType,
-    					uploadDetails.size);
-    			return Response.ok(response).build();
+    	            CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+        					uploadId, 
+        					archive.get_TableName(), 
+        					archive.get_ID(),
+        					archive.get_UUID(), 
+        					copyRequest.copyLocation(),
+        					uploadDetails.fileName,
+        					uploadDetails.contentType,
+        					uploadDetails.size);
+        			return Response.ok(response).build();
+                }    			
     		} else {
     			return poParser.getResponseError();
     		}
