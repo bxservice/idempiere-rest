@@ -142,6 +142,10 @@ public class UploadResourceImpl implements UploadResource {
         if (upload == null) {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
+
+        if (STATUS_CANCELED.equals(upload.getREST_UploadStatus())) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+		}
         
         if (totalChunks <= 0) {
         	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
@@ -153,7 +157,7 @@ public class UploadResourceImpl implements UploadResource {
 
         // check if the upload is expired
         if (upload.getExpiresAt() != null && LocalDateTime.now().isAfter(upload.getExpiresAt().toLocalDateTime())) {
-             upload.setStatus(STATUS_FAILED);
+            upload.setStatus(STATUS_FAILED);
             try {
                 upload.saveEx();
             } catch (Exception e) { 
@@ -273,6 +277,7 @@ public class UploadResourceImpl implements UploadResource {
                 upload.getREST_Upload_UU(),
                 upload.getFileName(),
                 upload.getFileSize().longValue(),
+                upload.getAD_Image_ID(),
                 upload.getChunkSize(),
                 upload.getREST_UploadStatus(),
                 uploadedChunkOrders,
@@ -384,6 +389,10 @@ public class UploadResourceImpl implements UploadResource {
         	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
         }
 
+        if (STATUS_CANCELED.equals(upload.getREST_UploadStatus())) {
+			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+		}
+        
         Trx trx = Trx.get(Trx.createTrxName(), true);
         try {
         	upload.set_TrxName(trx.getTrxName());
@@ -399,7 +408,13 @@ public class UploadResourceImpl implements UploadResource {
             
             // Update the main upload record to CANCELED
             upload.setStatus(STATUS_CANCELED);
+            if (upload.getAD_Image_ID() > 0) {
+        		//keep the image record as it might have been used in other places
+				upload.setAD_Image_ID(0);
+				upload.saveEx();
+			}
             upload.saveEx();
+            
             trx.commit(true);
 
             return Response.ok("{\"message\":\"Upload " + uploadId + " canceled successfully.\"}").build();
@@ -560,15 +575,21 @@ public class UploadResourceImpl implements UploadResource {
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
         			}
+                	CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+        					uploadId, 
+        					copyRequest.tableName(), 
+        					po.get_ID(),
+        					po.get_UUID(), 
+        					copyRequest.copyLocation(),
+        					uploadDetails.fileName,
+        					uploadDetails.contentType,
+        					uploadDetails.size);
+        			return Response.ok(response).build();
                 } else {
-    	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
-    						.setParameters(po.get_Table_ID(), po.get_ID()).first();
-    	            if (archive == null) {
-    					archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
-    					archive.setAD_Table_ID(po.get_Table_ID());
-    					archive.setRecord_ID(po.get_ID());
-    					archive.setRecord_UU(po.get_UUID());
-    				}
+					MArchive archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
+					archive.setAD_Table_ID(po.get_Table_ID());
+					archive.setRecord_ID(po.get_ID());
+					archive.setRecord_UU(po.get_UUID());
     	            try {
     	            	try (uploadDetails.inputStream) {
 	        	            archive.setName(uploadDetails.fileName);
@@ -578,17 +599,17 @@ public class UploadResourceImpl implements UploadResource {
         			} catch (Exception ex) {
         				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
         			}
-                }
-    			CopyUploadedFileResponse response = new CopyUploadedFileResponse(
-    					uploadId, 
-    					copyRequest.tableName(), 
-    					po.get_ID(),
-    					po.get_UUID(), 
-    					copyRequest.copyLocation(),
-    					uploadDetails.fileName,
-    					uploadDetails.contentType,
-    					uploadDetails.size);
-    			return Response.ok(response).build();
+    	            CopyUploadedFileResponse response = new CopyUploadedFileResponse(
+        					uploadId, 
+        					archive.get_TableName(), 
+        					archive.get_ID(),
+        					archive.get_UUID(), 
+        					copyRequest.copyLocation(),
+        					uploadDetails.fileName,
+        					uploadDetails.contentType,
+        					uploadDetails.size);
+        			return Response.ok(response).build();
+                }    			
     		} else {
     			return poParser.getResponseError();
     		}
@@ -822,31 +843,21 @@ public class UploadResourceImpl implements UploadResource {
          * @param upload
          */
         public void deleteUploadFile(MRestUpload upload) {
-        	if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
-				if (upload.getAD_Image_ID() > 0) {
-					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
-					image.deleteEx(true);
-					upload.setAD_Image_ID(0);
+            // Delete archive or attachment if exists
+            if (MRestUpload.REST_UPLOADLOCATION_Attachment.equals(upload.getREST_UploadLocation())) {
+            	MAttachment attachment = upload.getAttachment(true);
+            	if (attachment != null) {
+            		attachment.set_TrxName(upload.get_TrxName());
+            		attachment.deleteEx(true);
+            	}
+            } else if (MRestUpload.REST_UPLOADLOCATION_Archive.equals(upload.getREST_UploadLocation())
+            	|| upload.getREST_UploadLocation() == null) {
+	            MArchive archive = new Query(Env.getCtx(), MArchive.Table_Name, "AD_Table_ID=? AND Record_ID=?", upload.get_TrxName())
+						.setParameters(MRestUpload.Table_ID, upload.getREST_Upload_ID()).first();
+	            if (archive != null) {
+					archive.deleteEx(true);
 				}
-			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
-				MAttachment attachment = upload.getAttachment();
-				if (attachment != null && attachment.getEntryCount() > 0) {
-					MAttachmentEntry[] entries = attachment.getEntries();
-					for (MAttachmentEntry entry : entries) {
-						if (entry.getName().equals(upload.getFileName())) {
-							attachment.deleteEntry(entry.getIndex());
-						}
-					}
-				}
-			} else {
-				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
-				if (archives != null && archives.length == 1) {
-					if (archives[0] != null) {
-						archives[0].set_TrxName(upload.get_TrxName());
-						archives[0].deleteEx(true);
-					}
-				}
-			}
+            }            
 		}
     }	
 }

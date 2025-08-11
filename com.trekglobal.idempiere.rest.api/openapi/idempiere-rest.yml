@@ -3119,6 +3119,9 @@ components:
         fileSize:
           type: integer
           description: file size in bytes
+        imageId:
+          type: integer
+          description: image id if the upload location is image
         chunkSize:
           type: integer
           description: prefer chunk size
