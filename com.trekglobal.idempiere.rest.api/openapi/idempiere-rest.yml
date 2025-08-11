@@ -6638,4 +6638,4 @@ paths:
               schema:
                 $ref: '#/components/schemas/BatchResponse'
         '500':
-          ref: '#/components/responses/ServerError'
+          $ref: '#/components/responses/ServerError'
