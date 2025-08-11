@@ -3673,8 +3673,9 @@ paths:
       parameters:
         - name: $expand
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/expand'
+            type: string
           examples:
             noExpand:
               value: ''
@@ -3682,8 +3683,9 @@ paths:
               value: C_OrderTax,C_OrderLine($select=Line,Linenetamt ; $top=1 ; $skip=1 ; $filter=IsActive eq true ; $orderby=Line)            
         - name: $filter
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/filter'
+            type: string
           examples:
             noFilter:
               value: ''
@@ -3696,8 +3698,9 @@ paths:
         - $ref: '#/components/parameters/orderby'
         - name: $select
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/select'
+            type: string
           examples:
             noSelect:
               value: ''
@@ -3709,8 +3712,9 @@ paths:
         - $ref: '#/components/parameters/skip'
         - name: $valrule
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/valrule'
+            type: integer
           examples:
             noValRule:
               value: 
@@ -3718,8 +3722,9 @@ paths:
               value: 210
         - name: $context
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/context'
+            type: string
           examples:
             noContext: 
               value:
@@ -3867,8 +3872,9 @@ paths:
       parameters:                
         - name: $expand
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/expand'
+            type: string
           examples:
             noExpand:
               value: ''
@@ -3884,8 +3890,9 @@ paths:
               value: m_product_category_id($select=Name,IsDefault),M_ProductPrice
         - name: $select
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/select'
+            type: string
           examples:
             noSelect:
               value: ''
@@ -4204,8 +4211,9 @@ paths:
       parameters:
         - name: $filter
           in: query
+          required: false
           schema:
-            $ref: '#/components/parameters/filter'
+            type: string
           examples:
             noFilter:
               value: ''
