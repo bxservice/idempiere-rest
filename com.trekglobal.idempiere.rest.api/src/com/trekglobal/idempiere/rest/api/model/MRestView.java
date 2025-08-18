@@ -199,6 +199,45 @@ public class MRestView extends X_REST_View implements ImmutablePOSupport {
 		List<MRestViewColumn> columnList = query.setOnlyActiveRecords(true)
 			.setOrderBy("SeqNo, REST_ViewColumn_ID")
 			.setParameters(getREST_View_ID()).list();
+		
+		boolean foundId = false;
+		boolean foundUid = false;
+		for (MRestViewColumn column : columnList) {
+			if (column.getName().equals("id"))
+				foundId = true;
+			else if (column.getName().equals("uid"))
+				foundUid = true;
+			if (foundId && foundUid)
+				break;
+		}
+		if (!foundId || !foundUid) {
+			MTable table = MTable.get(getAD_Table_ID());
+			if (!foundId) {
+				String keyColumn = table.getKeyColumns() != null && table.getKeyColumns().length == 1 ? table.getKeyColumns()[0] : null;
+				if (keyColumn != null) {
+					MColumn column = table.getColumn(keyColumn);
+					if (column != null) {	
+						MRestViewColumn viewColumn = new MRestViewColumn(Env.getCtx(), 0, null);
+						viewColumn.setREST_View_ID(getREST_View_ID());
+						viewColumn.setAD_Column_ID(column.getAD_Column_ID());
+						viewColumn.setName("id");
+						columnList.add(viewColumn);
+					}
+				}
+			}
+			if (!foundUid) {
+				String uidColumn = PO.getUUIDColumnName(table.getTableName());
+				MColumn column = table.getColumn(uidColumn);
+				if (column != null) {	
+					MRestViewColumn viewColumn = new MRestViewColumn(Env.getCtx(), 0, null);
+					viewColumn.setREST_View_ID(getREST_View_ID());
+					viewColumn.setAD_Column_ID(column.getAD_Column_ID());
+					viewColumn.setName("uid");
+					columnList.add(viewColumn);
+				}
+			}
+		}
+			
 		columns = columnList.toArray(new MRestViewColumn[0]);
 		return columns;
 	}
