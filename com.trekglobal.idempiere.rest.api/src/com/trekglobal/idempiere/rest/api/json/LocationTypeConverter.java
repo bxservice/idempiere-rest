@@ -191,7 +191,7 @@ public class LocationTypeConverter implements ITypeConverter<Object> {
 
 			MTable table = MTable.get(Env.getCtx(), MLocation.Table_ID);
 			POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
-			DefaultPOSerializer.validateJsonFields(json, po);
+			DefaultPOSerializer.validateJsonFields(json, po, referenceView);
 			Set<String> jsonFields = json.keySet();
 			MRestViewColumn[] viewColumns = referenceView != null ? referenceView.getColumns() : null;
 			int count = viewColumns != null ? viewColumns.length : poInfo.getColumnCount(); 
