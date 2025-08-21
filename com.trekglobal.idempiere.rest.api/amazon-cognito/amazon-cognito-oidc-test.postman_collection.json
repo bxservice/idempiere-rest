@@ -1,228 +1,338 @@
 {
 	"info": {
-		"_postman_id": "9671d7a1-8fa9-4731-80ef-57d144c5afcd",
+		"_postman_id": "f6a62c67-117c-47fb-b008-7b94c3f7e7ad",
 		"name": "amazon-cognito-oidc-test",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "27359776",
-		"_collection_link": "https://lunar-astronaut-434175.postman.co/workspace/GraphQL-Wrapper-for-iDempiere-R~c90f44fb-2bfc-4c52-8da6-093a705eddf2/collection/27359776-9671d7a1-8fa9-4731-80ef-57d144c5afcd?action=share&source=collection_link&creator=27359776"
+		"_exporter_id": "8597989"
 	},
 	"item": [
 		{
-			"name": "Get Token",
-			"event": [
+			"name": "Authorization Code Grant",
+			"item": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var jsonData = pm.response.json();",
-							"pm.environment.set(\"AccessToken\", jsonData.AuthenticationResult.AccessToken);",
-							"pm.environment.set(\"IdToken\", jsonData.AuthenticationResult.IdToken);",
-							"pm.environment.set(\"RefreshToken\", jsonData.AuthenticationResult.RefreshToken);",
-							"pm.environment.set(\"TokenType\", jsonData.AuthenticationResult.TokenType);"
-						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/x-amz-json-1.1",
-						"type": "text"
-					},
-					{
-						"key": "X-Amz-Target",
-						"value": "AWSCognitoIdentityProviderService.InitiateAuth",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\r\n  \"AuthParameters\": {\r\n    \"USERNAME\": \"{{cognitoUsername}}\",\r\n    \"PASSWORD\": \"{{cognitoPassword}}\",\r\n    \"SECRET_HASH\": \"{{cognitoSecretHash}}\"\r\n  },\r\n  \"ClientId\": \"{{cognitoClientId}}\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+					"name": "api/v1/models/{table name}",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
 						}
-					}
-				},
-				"url": {
-					"raw": "https://cognito-idp.{{cognitoRegion}}.amazonaws.com",
-					"protocol": "https",
-					"host": [
-						"cognito-idp",
-						"{{cognitoRegion}}",
-						"amazonaws",
-						"com"
-					]
+					],
+					"request": {
+						"auth": {
+							"type": "oauth2",
+							"oauth2": [
+								{
+									"key": "useBrowser",
+									"value": false,
+									"type": "boolean"
+								},
+								{
+									"key": "authRequestParams",
+									"value": [
+										{
+											"key": "",
+											"value": "",
+											"enabled": false,
+											"send_as": "request_url"
+										}
+									],
+									"type": "any"
+								},
+								{
+									"key": "clientSecret",
+									"value": "{{cognitoSecret}}",
+									"type": "string"
+								},
+								{
+									"key": "client_authentication",
+									"value": "body",
+									"type": "string"
+								},
+								{
+									"key": "clientId",
+									"value": "{{cognitoClientId}}",
+									"type": "string"
+								},
+								{
+									"key": "accessTokenUrl",
+									"value": "{{cognitoDomain}}/oauth2/token",
+									"type": "string"
+								},
+								{
+									"key": "authUrl",
+									"value": "{{cognitoDomain}}/oauth2/authorize",
+									"type": "string"
+								},
+								{
+									"key": "redirect_uri",
+									"value": "https://oauth.pstmn.io/v1/callback",
+									"type": "string"
+								},
+								{
+									"key": "addTokenTo",
+									"value": "header",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-ID-Organization",
+								"value": "{{organizationValue}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_Tax",
+							"protocol": "{{protocol}}",
+							"host": [
+								"{{host}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"api",
+								"v1",
+								"models",
+								"C_Tax"
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		},
 		{
-			"name": "Refresh Token",
-			"event": [
+			"name": "Resource Owner Password Credentials",
+			"item": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var jsonData = pm.response.json();",
-							"pm.environment.set(\"AccessToken\", jsonData.AuthenticationResult.AccessToken);",
-							"pm.environment.set(\"IdToken\", jsonData.AuthenticationResult.IdToken);",
-							"pm.environment.set(\"TokenType\", jsonData.AuthenticationResult.TokenType);",
-							"if (jsonData.AuthenticationResult.RefreshToken != null)",
-							"    pm.environment.set(\"RefreshToken\", jsonData.AuthenticationResult.RefreshToken);"
+					"name": "Get Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"AccessToken\", jsonData.AuthenticationResult.AccessToken);",
+									"pm.environment.set(\"IdToken\", jsonData.AuthenticationResult.IdToken);",
+									"pm.environment.set(\"RefreshToken\", jsonData.AuthenticationResult.RefreshToken);",
+									"pm.environment.set(\"TokenType\", jsonData.AuthenticationResult.TokenType);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-amz-json-1.1",
+								"type": "text"
+							},
+							{
+								"key": "X-Amz-Target",
+								"value": "AWSCognitoIdentityProviderService.InitiateAuth",
+								"type": "text"
+							}
 						],
-						"type": "text/javascript",
-						"packages": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/x-amz-json-1.1",
-						"type": "text"
-					},
-					{
-						"key": "X-Amz-Target",
-						"value": "AWSCognitoIdentityProviderService.InitiateAuth",
-						"type": "text"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"AuthFlow\": \"REFRESH_TOKEN_AUTH\",\r\n  \"AuthParameters\": {\r\n    \"REFRESH_TOKEN\": \"{{RefreshToken}}\",\r\n    \"SECRET_HASH\": \"{{cognitoSecretHash}}\"\r\n  },\r\n  \"ClientId\": \"{{cognitoClientId}}\"\r\n}",
-					"options": {
-						"raw": {
-							"language": "json"
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"AuthFlow\": \"USER_PASSWORD_AUTH\",\r\n  \"AuthParameters\": {\r\n    \"USERNAME\": \"{{cognitoUsername}}\",\r\n    \"PASSWORD\": \"{{cognitoPassword}}\",\r\n    \"SECRET_HASH\": \"{{cognitoSecretHash}}\"\r\n  },\r\n  \"ClientId\": \"{{cognitoClientId}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://cognito-idp.{{cognitoRegion}}.amazonaws.com",
+							"protocol": "https",
+							"host": [
+								"cognito-idp",
+								"{{cognitoRegion}}",
+								"amazonaws",
+								"com"
+							]
 						}
-					}
+					},
+					"response": []
 				},
-				"url": {
-					"raw": "https://cognito-idp.{{cognitoRegion}}.amazonaws.com",
-					"protocol": "https",
-					"host": [
-						"cognito-idp",
-						"{{cognitoRegion}}",
-						"amazonaws",
-						"com"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/models/{table name}?filter={where clause}",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{AccessToken}}",
-						"type": "text"
-					},
-					{
-						"key": "X-ID-IdToken",
-						"value": "{{IdToken}}",
-						"type": "text"
-					},
-					{
-						"key": "X-ID-Organization",
-						"value": "HQ",
-						"type": "text"
-					}
-				],
-				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_Tax?filter=C_TaxCategory_ID=107",
-					"protocol": "{{protocol}}",
-					"host": [
-						"{{host}}"
-					],
-					"port": "{{port}}",
-					"path": [
-						"api",
-						"v1",
-						"models",
-						"C_Tax"
-					],
-					"query": [
+				{
+					"name": "Refresh Token",
+					"event": [
 						{
-							"key": "filter",
-							"value": "C_TaxCategory_ID=107"
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"AccessToken\", jsonData.AuthenticationResult.AccessToken);",
+									"pm.environment.set(\"IdToken\", jsonData.AuthenticationResult.IdToken);",
+									"pm.environment.set(\"TokenType\", jsonData.AuthenticationResult.TokenType);",
+									"if (jsonData.AuthenticationResult.RefreshToken != null)",
+									"    pm.environment.set(\"RefreshToken\", jsonData.AuthenticationResult.RefreshToken);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
 						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "api/v1/models/{table name}?select={columnname list}",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Accept",
-						"value": "application/json",
-						"type": "text"
-					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{AccessToken}}",
-						"type": "text"
-					},
-					{
-						"key": "X-ID-IdToken",
-						"value": "{{IdToken}}",
-						"type": "text"
-					},
-					{
-						"key": "X-ID-Organization",
-						"value": "HQ",
-						"type": "text"
-					}
-				],
-				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_Order?select=DocumentNo,Description",
-					"protocol": "{{protocol}}",
-					"host": [
-						"{{host}}"
 					],
-					"port": "{{port}}",
-					"path": [
-						"api",
-						"v1",
-						"models",
-						"C_Order"
-					],
-					"query": [
-						{
-							"key": "select",
-							"value": "DocumentNo,Description"
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/x-amz-json-1.1",
+								"type": "text"
+							},
+							{
+								"key": "X-Amz-Target",
+								"value": "AWSCognitoIdentityProviderService.InitiateAuth",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"AuthFlow\": \"REFRESH_TOKEN_AUTH\",\r\n  \"AuthParameters\": {\r\n    \"REFRESH_TOKEN\": \"{{RefreshToken}}\",\r\n    \"SECRET_HASH\": \"{{cognitoSecretHash}}\"\r\n  },\r\n  \"ClientId\": \"{{cognitoClientId}}\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://cognito-idp.{{cognitoRegion}}.amazonaws.com",
+							"protocol": "https",
+							"host": [
+								"cognito-idp",
+								"{{cognitoRegion}}",
+								"amazonaws",
+								"com"
+							]
 						}
-					]
+					},
+					"response": []
+				},
+				{
+					"name": "api/v1/models/{table name}",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AccessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "X-ID-IdToken",
+								"value": "{{IdToken}}",
+								"type": "text"
+							},
+							{
+								"key": "X-ID-Organization",
+								"value": "{{organizationValue}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_Tax",
+							"protocol": "{{protocol}}",
+							"host": [
+								"{{host}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"api",
+								"v1",
+								"models",
+								"C_Tax"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "api/v1/models/{table name}?select={columnname list}",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{AccessToken}}",
+								"type": "text"
+							},
+							{
+								"key": "X-ID-IdToken",
+								"value": "{{IdToken}}",
+								"type": "text"
+							},
+							{
+								"key": "X-ID-Organization",
+								"value": "HQ",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/C_Order?select=DocumentNo,Description",
+							"protocol": "{{protocol}}",
+							"host": [
+								"{{host}}"
+							],
+							"port": "{{port}}",
+							"path": [
+								"api",
+								"v1",
+								"models",
+								"C_Order"
+							],
+							"query": [
+								{
+									"key": "select",
+									"value": "DocumentNo,Description"
+								}
+							]
+						}
+					},
+					"response": []
 				}
-			},
-			"response": []
+			]
 		}
 	]
 }
