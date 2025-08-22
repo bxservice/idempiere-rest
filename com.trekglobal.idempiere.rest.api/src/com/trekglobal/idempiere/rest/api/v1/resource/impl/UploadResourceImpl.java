@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.logging.Level;
 
 import javax.ws.rs.Path;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -96,7 +98,10 @@ public class UploadResourceImpl implements UploadResource {
     private static final String STATUS_CANCELED = X_REST_Upload.REST_UPLOADSTATUS_Canceled;
 
     private final static CLogger log = CLogger.getCLogger(UploadResourceImpl.class);
-    		
+    
+    @Context   
+    private ContainerRequestContext requestContext;
+     
     @Override
     public Response initiateUpload(UploadInitiationRequest request) {
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(request.expiresInSeconds());
@@ -140,19 +145,45 @@ public class UploadResourceImpl implements UploadResource {
         MRestUpload upload = MRestUpload.get(uploadId);
 
         if (upload == null) {
-        	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response;
         }
 
         if (STATUS_CANCELED.equals(upload.getREST_UploadStatus())) {
-			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Upload session has been canceled: ", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response; 
 		}
         
         if (totalChunks <= 0) {
-        	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Total chunks must be greater than 0", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response;
         }
         
         if (chunkOrder < 1 || chunkOrder > totalChunks) {
-			return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Chunk order must be between 1 and " + totalChunks, uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, "Chunk order must be between 1 and " + totalChunks, uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response;
+		}
+
+		// check if the upload is already initiated
+		if (!STATUS_INITIATED.equals(upload.getREST_UploadStatus()) && !STATUS_UPLOADING.equals(upload.getREST_UploadStatus())) {
+			if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors())
+				return PresignedURL.buildGenericErrorResponse();
 		}
 
         // check if the upload is expired
@@ -160,17 +191,32 @@ public class UploadResourceImpl implements UploadResource {
             upload.setStatus(STATUS_FAILED);
             try {
                 upload.saveEx();
-            } catch (Exception e) { 
-            	return ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
+            } catch (Exception e) {
+            	Response response = ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
+            	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+            		logErrorResponse(response);
+	        		return PresignedURL.buildGenericErrorResponse();
+            	} else
+					return response;
             }
-            return ResponseUtils.getResponseError(Response.Status.GONE, "Upload session has expired: ", uploadId, "");
+            Response response = ResponseUtils.getResponseError(Response.Status.GONE, "Upload session has expired: ", uploadId, "");
+            if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+            	logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+            } else
+				return response;
         }
         
         // check if the upload is already completed, processing or failed
         if (STATUS_COMPLETED.equals(upload.getREST_UploadStatus()) || STATUS_PROCESSING.equals(upload.getREST_UploadStatus()) 
         		|| STATUS_FAILED.equals(upload.getREST_UploadStatus())) {
-        	return ResponseUtils.getResponseError(Response.Status.CONFLICT, "Upload session is already: "
+        	Response response = ResponseUtils.getResponseError(Response.Status.CONFLICT, "Upload session is already: "
         			+ upload.getREST_UploadStatus().toLowerCase(), uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response;
         }
 
         ChunkStorageService.ChunkDetails details = null;
@@ -187,7 +233,12 @@ public class UploadResourceImpl implements UploadResource {
             trx.commit(true);            
         } catch (Exception e) {
         	trx.rollback();
-        	return ResponseUtils.getResponseErrorFromException(e, "Failed to upload chunk");
+        	Response response = ResponseUtils.getResponseErrorFromException(e, "Failed to upload chunk");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+				return response;
         } finally {
 			trx.close();
 		}
@@ -202,7 +253,11 @@ public class UploadResourceImpl implements UploadResource {
 				isLastChunk = true;
 			} else {
 				message += "\n" + finalizeResponse.getEntity().toString();
-				status = Response.Status.fromStatusCode(finalizeResponse.getStatus());			
+				status = Response.Status.fromStatusCode(finalizeResponse.getStatus());
+				if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+					logErrorResponse(finalizeResponse);
+	        		return PresignedURL.buildGenericErrorResponse();
+				}
 			}
 		}
         
@@ -215,12 +270,21 @@ public class UploadResourceImpl implements UploadResource {
         return Response.status(status).entity(response).build();
     }
         
-    @Override
+    private void logErrorResponse(Response response) {
+		log.log(Level.SEVERE, "Response.Status: " + response.getStatus() + ", Entity: " + response.getEntity());
+	}
+
+	@Override
     public Response getUploadStatus(String uploadId, long expiresInSeconds) {
         MRestUpload upload = MRestUpload.get(uploadId);
 
         if (upload == null) {
-        	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+        		return response;
         }
 
         // get uploaded chunks
@@ -260,8 +324,13 @@ public class UploadResourceImpl implements UploadResource {
             message = "Upload session has expired.";
             if(!STATUS_PROCESSING.equals(upload.getREST_UploadStatus())){ // Don't mark as failed if it's already processing
                 upload.setStatus(STATUS_FAILED);
-                try{ upload.saveEx(); } catch (Exception e) { 
-                	return ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
+                try{ upload.saveEx(); } catch (Exception e) {
+                	Response response = ResponseUtils.getResponseErrorFromException(e, "Error saving upload status");
+                	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+                		logErrorResponse(response);
+                		return PresignedURL.buildGenericErrorResponse();
+                	} else
+                		return response;
                 }
             }
         }
@@ -430,17 +499,32 @@ public class UploadResourceImpl implements UploadResource {
     	MRestUpload upload = MRestUpload.get(uploadId);
 
         if (upload == null) {
-        	return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "Upload session not found: ", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+        		return response;
         }
         
         if (!STATUS_COMPLETED.equals(upload.getREST_UploadStatus())) {
-        	return ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
+        	Response response = ResponseUtils.getResponseError(Response.Status.BAD_REQUEST, 
 					"Upload is not completed yet or cancelled. Current status: " + upload.getStatus(), uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+        		return response;
         }
         
         ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
         if (uploadDetails == null) {
-			return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
+        	Response response = ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
+        	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
+        		logErrorResponse(response);
+        		return PresignedURL.buildGenericErrorResponse();
+        	} else
+        		return response;
 		}
         
         if (asJson == null) {
@@ -458,6 +542,7 @@ public class UploadResourceImpl implements UploadResource {
 			if (Util.isEmpty(contentType, true))
 				contentType = MediaType.APPLICATION_OCTET_STREAM;
 			
+			boolean hideError = PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors();
 			StreamingOutput streamingOutput = os -> {
 				int length;
 				byte[] buffer = new byte[8192];
@@ -467,7 +552,10 @@ public class UploadResourceImpl implements UploadResource {
 					}
 				} catch (IOException e) {
 					log.log(Level.SEVERE, "Error writing file stream for upload: " + uploadId, e);
-					throw new RuntimeException("Error writing file stream", e);
+					if (hideError)
+						log.log(Level.SEVERE, "Error writing file stream", e);
+					else
+						throw new RuntimeException("Error writing file stream", e);
 				}
 			};
 			return Response.ok(streamingOutput, contentType).build();
@@ -478,7 +566,10 @@ public class UploadResourceImpl implements UploadResource {
 				data = Base64.getEncoder().encodeToString(uploadDetails.inputStream().readAllBytes());
 			} catch (IOException e) {
 				log.log(Level.SEVERE, "Error reading input stream for upload: " + uploadId, e);
-				throw new RuntimeException("Error reading input stream", e);
+				if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors())
+	        		return PresignedURL.buildGenericErrorResponse();
+				else
+					throw new RuntimeException("Error reading input stream", e);
 			}
 			json.addProperty("data", data);
 			return Response.ok(json.toString()).build();
