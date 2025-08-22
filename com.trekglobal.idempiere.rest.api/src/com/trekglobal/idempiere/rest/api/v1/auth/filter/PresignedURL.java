@@ -46,9 +46,11 @@ import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.compiere.model.MClient;
 import org.compiere.model.MRole;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MUser;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
 import org.compiere.util.Util;
 
 import com.trekglobal.idempiere.rest.api.json.DateTypeConverter;
@@ -61,13 +63,35 @@ public class PresignedURL {
 	private static final String DATE_CREATED = "X-ID-DATE";
 	private static final String EXPIRES = "X-ID-EXPIRES";
 	
+	private static final String REST_HIDE_PRESIGNED_URL_ERRORS = "REST_HIDE_PRESIGNED_URL_ERRORS";
+	// Default is "Something went wrong ..."
+	private static final String REST_PRESIGNED_URL_GENERIC_ERROR = "REST_Presigned_URL_Generic_Error";
+	
 	/**
 	 * Is the request context contains a presigned URL?
 	 * @param requestContext
 	 * @return true if the request context contains a presigned URL, false otherwise
 	 */
 	public static boolean isPresignedURL(ContainerRequestContext requestContext) {
-		return !Util.isEmpty(requestContext.getUriInfo().getQueryParameters().getFirst(SIGNATURE), true);
+		return requestContext != null && !Util.isEmpty(requestContext.getUriInfo().getQueryParameters().getFirst(SIGNATURE), true);
+	}
+	
+	/**
+	 * Build a generic error response for pre-signed URL errors
+	 * @return error response for pre-signed URL errors
+	 */
+	public static Response buildGenericErrorResponse() {
+		return Response.status(Response.Status.BAD_REQUEST)
+				.entity(Msg.getMsg(Env.getCtx(), REST_PRESIGNED_URL_GENERIC_ERROR))
+				.build();
+	}
+	
+	/**
+	 * Is hide errors for pre-signed URL enabled?
+	 * @return true if hide errors for pre-signed URL is enabled, false otherwise
+	 */
+	public static boolean isHideErrors() {
+		return "Y".equals(MSysConfig.getValue(REST_HIDE_PRESIGNED_URL_ERRORS, "N"));
 	}
 	
 	/**
@@ -78,6 +102,7 @@ public class PresignedURL {
 	 * @param requestContext
 	 */
 	public static void validateSignature(ContainerRequestContext requestContext) {
+		boolean hideErrors = isHideErrors();
 		String signature = requestContext.getUriInfo().getQueryParameters().getFirst(SIGNATURE);
 		if (!Util.isEmpty(signature, true)) {
 			String credential = requestContext.getUriInfo().getQueryParameters().getFirst(CREDENTIAL);
@@ -86,13 +111,19 @@ public class PresignedURL {
 			String url = requestContext.getUriInfo().getPath();
 			String method = requestContext.getMethod();
 			if (Util.isEmpty(credential, true) || Util.isEmpty(dateCreated, true) || Util.isEmpty(expires, true)) {
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				if (hideErrors)
+					requestContext.abortWith(buildGenericErrorResponse());
+				else
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 				return;
 			}
 			//tenantId, userId, roleId, httpMethod, url
 			String[] credentials = decodeCredential(credential);
 			if (credentials == null || credentials.length != 5) {
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				if (hideErrors)
+					requestContext.abortWith(buildGenericErrorResponse());
+				else
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 				return;
 			}
 			try {
@@ -102,26 +133,41 @@ public class PresignedURL {
 				String httpMethod = credentials[3];
 				String urlFromCredential = credentials[4];
 				if (!method.equalsIgnoreCase(httpMethod)) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
 				if (!url.startsWith(urlFromCredential)) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
 				MClient client = MClient.get(tenantId);
 				if (client == null || client.getAD_Client_ID() != tenantId) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
 				MUser user = MUser.get(userId);
 				if (user == null || user.getAD_User_ID() != userId || user.getAD_Client_ID() != tenantId) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
 				MRole role = MRole.get(Env.getCtx(), roleId);
 				if (role == null || role.getAD_Role_ID() != roleId || role.getAD_Client_ID() != tenantId) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else	
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
 				SimpleDateFormat dateFormat = new SimpleDateFormat(DateTypeConverter.ISO8601_DATETIME_PATTERN);
@@ -130,12 +176,18 @@ public class PresignedURL {
 				Timestamp expiresAt = new Timestamp(created.getTime() + expiresInSeconds * 1000L);
 				Timestamp now = new Timestamp(System.currentTimeMillis());
 				if (expiresAt.before(now) || expiresAt.equals(now)) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Presigned URL has expired").build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Presigned URL has expired").build());
 					return;
 				}
 				String expectedSignature = PresignedURL.generateSignature(method, urlFromCredential, client, user, role, dateCreated, expiresInSeconds);
 				if (!signature.equals(expectedSignature)) {
-					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Signature mismatch").build());
+					if (hideErrors)
+						requestContext.abortWith(buildGenericErrorResponse());
+					else
+						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity("Signature mismatch").build());
 					return;
 				}
 				
@@ -145,11 +197,17 @@ public class PresignedURL {
 				Env.setContext(Env.getCtx(), Env.AD_ROLE_ID, role.getAD_Role_ID());
 				RestUtils.setSessionContextVariables(Env.getCtx());
 			} catch (Exception e) {
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				if (hideErrors)
+					requestContext.abortWith(buildGenericErrorResponse());
+				else
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 				return;
 			}
 		} else {
-			requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).build());
+			if (hideErrors)
+				requestContext.abortWith(buildGenericErrorResponse());
+			else
+				requestContext.abortWith(Response.status(Response.Status.BAD_REQUEST).build());
 			return;
 		}
 	}
