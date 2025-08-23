@@ -42,6 +42,7 @@ import org.adempiere.util.ServerContext;
 import org.compiere.model.MClient;
 import org.compiere.model.MRole;
 import org.compiere.model.MSession;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MUser;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
@@ -71,6 +72,8 @@ import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
  *
  */
 public class RequestFilter implements ContainerRequestFilter {
+	// optional health monitoring key (AD_SysConfig.Name=REST_HEALTH_MONITORING_KEY)
+	private static final String REST_HEALTH_MONITORING_KEY = "REST_HEALTH_MONITORING_KEY";
 	public static final String LOGIN_NAME = "#LoginName";
 	public static final String LOGIN_CLIENTS = "#LoginClients";
 
@@ -96,6 +99,19 @@ public class RequestFilter implements ContainerRequestFilter {
 					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/logout")
 					)
 			) {
+			return;
+		}
+		
+		if (HttpMethod.GET.equals(requestContext.getMethod())
+			 && requestContext.getUriInfo().getPath().endsWith("v1/health"))
+		{
+			String healthMonitoringKey = MSysConfig.getValue(REST_HEALTH_MONITORING_KEY, "");
+			if (!Util.isEmpty(healthMonitoringKey)) {
+				String healthMonitoringValue = requestContext.getUriInfo().getQueryParameters().getFirst("key");
+				if (Util.isEmpty(healthMonitoringValue) || !healthMonitoringValue.equals(healthMonitoringKey)) {
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());					
+				}
+			}
 			return;
 		}
 		
