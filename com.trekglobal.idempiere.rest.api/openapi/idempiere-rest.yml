@@ -54,6 +54,8 @@ tags:
     description: Endpoints to upload files
   - name: Batch
     description: Endpoints for batch processing
+  - name: Health
+    description: Endpoints for health monitoring
 components:
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
@@ -6650,3 +6652,52 @@ paths:
                 $ref: '#/components/schemas/BatchResponse'
         '500':
           $ref: '#/components/responses/ServerError'
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health monitoring
+      parameters:
+        - name: key
+          in: query
+          required: false
+          schema:
+            type: string
+          description: optional health monitoring key, required if configure at backend
+        - name: db
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: optional flag to enable/disable database connection check. default is false
+      responses:
+        '200':
+          description: UP response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: 
+                      - UP
+                  database:
+                    type: string
+                    enum: 
+                      - connected
+        '503':
+          description: DOWN response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: 
+                      - DOWN
+                  database:
+                    type: string
+                    enum: 
+                      - disconnected
