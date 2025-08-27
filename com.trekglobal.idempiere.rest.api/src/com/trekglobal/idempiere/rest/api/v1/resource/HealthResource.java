@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.v1.resource;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -36,5 +37,5 @@ public interface HealthResource {
 
 	@GET
     @Produces(MediaType.APPLICATION_JSON)
-	Response getHealthStatus();
+	Response getHealthStatus(@QueryParam("db") boolean dbstatus);
 }

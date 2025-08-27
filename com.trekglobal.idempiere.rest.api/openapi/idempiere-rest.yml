@@ -6664,6 +6664,12 @@ paths:
           schema:
             type: string
           description: optional health monitoring key, required if configure at backend
+        - name: db
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: optional flag to enable/disable database connection check. default is false
       responses:
         '200':
           description: UP response
