@@ -5489,6 +5489,37 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "api/v1/health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/health?key={{healthMonitoringKey}}&db={{dbStatusCheck}}",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"health"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{healthMonitoringKey}}"
+						},
+						{
+							"key": "db",
+							"value": "{{dbStatusCheck}}"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"event": [

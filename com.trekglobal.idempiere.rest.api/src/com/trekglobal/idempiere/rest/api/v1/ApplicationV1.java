@@ -45,6 +45,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.impl.CacheResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ChartResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FileResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FormResourceImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.HealthResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.InfoResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.MenuTreeResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ModelResourceImpl;
@@ -98,6 +99,7 @@ public class ApplicationV1 extends Application {
         classes.add(TaskResourceImpl.class);
         classes.add(UploadResourceImpl.class);
         classes.add(BatchRequestResourseImpl.class);
+        classes.add(HealthResourceImpl.class);
         
         IServicesHolder<ResourceExtension> list = Service.locator().list(ResourceExtension.class);
         for (IServiceReferenceHolder<ResourceExtension> holder : list.getServiceReferences()) {
