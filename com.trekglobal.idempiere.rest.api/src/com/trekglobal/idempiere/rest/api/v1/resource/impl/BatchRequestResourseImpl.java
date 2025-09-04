@@ -63,7 +63,8 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
     private ApplicationHandler applicationHandler;
     
     @Override
-	public Response processBatch(List<BatchRequest> requests, UriInfo uriInfo, HttpHeaders headers, PropertiesDelegate propertiesDelegate) {
+	public Response processBatch(List<BatchRequest> requests, UriInfo uriInfo, HttpHeaders headers, 
+			PropertiesDelegate propertiesDelegate, boolean transaction) {
         List<BatchRequestResource.BatchResponse> results = new ArrayList<>();
         URI baseUri = uriInfo.getBaseUri();
         
@@ -81,8 +82,12 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    if (threadLocalTrx != null && threadLocalTrx.isActive()) {
 	                        threadLocalTrx.rollback();
 	                    }
-	                    badRequest = true;
-	                    break; // Stop processing further requests on error
+	                    if (transaction) {
+		                    badRequest = true;
+		                    break; // Stop processing further requests on error
+	                    } else {
+	                    	continue; // Proceed to next request
+	                    }
 	            	}
 	                
 	                URI requestUri = URI.create(baseUri.toString().replaceAll("v1/batch/?$", "") + req.getPath());
@@ -123,8 +128,21 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    if (threadLocalTrx != null && threadLocalTrx.isActive()) {
 	                        threadLocalTrx.rollback();
 	                    }
-	                    badRequest = true;
-	                    break; // Stop processing further requests on error
+	                    if (transaction) {
+	                    	badRequest = true;
+	                    	break; // Stop processing further requests on error
+	                    } else {
+	                    	if (threadLocalTrx != null)
+	                    		threadLocalTrx.start(); // Start a new transaction for next request
+	                    }
+	                } else {
+	                	if (!transaction) {
+	                		Trx threadLocalTrx = Trx.get(ThreadLocalTrx.getTrxName(), false);
+	                		if (threadLocalTrx != null && threadLocalTrx.isActive()) {
+	                			threadLocalTrx.commit(true);
+	                			threadLocalTrx.start(); // Start a new transaction for next request
+	                		}
+	                	}
 	                }
 	            } catch (Exception e) {
 	                results.add(new BatchResponse(Status.INTERNAL_SERVER_ERROR.getReasonPhrase(), Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage()));
@@ -132,8 +150,13 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                if (threadLocalTrx != null && threadLocalTrx.isActive()) {
 	                    threadLocalTrx.rollback();
 	                }
-	                badRequest = true;
-	                break; // Stop processing further requests on error
+	                if (transaction) {
+		                badRequest = true;
+		                break; // Stop processing further requests on error
+	                } else {
+	                	if (threadLocalTrx != null)
+	                		threadLocalTrx.start(); // Start a new transaction for next request
+	                }
 	            }
 	        }
         }

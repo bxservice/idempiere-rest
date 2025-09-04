@@ -6638,6 +6638,13 @@ paths:
       tags:
          - Batch
       summary: Execute batch request
+      parameters:
+        - name: transaction
+          in: query
+          schema:
+            type: boolean
+          description: if true, all requests are processed in a single transaction (default is true)
+          required: false
       requestBody:
         content:
           application/json:
