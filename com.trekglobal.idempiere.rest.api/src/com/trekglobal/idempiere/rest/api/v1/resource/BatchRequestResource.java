@@ -28,9 +28,11 @@ package com.trekglobal.idempiere.rest.api.v1.resource;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -70,12 +72,15 @@ public interface BatchRequestResource {
 	 * @param requests the list of batch requests to process
 	 * @param uriInfo the URI information for the request
 	 * @param headers the HTTP headers for the request
+	 * @param transaction if true, all requests are processed in a single transaction (default: true)
 	 * @return a response containing the results of processing the batch requests
 	 */ 
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	Response processBatch(List<BatchRequest> requests, @Context UriInfo uriInfo, @Context HttpHeaders headers, @Context PropertiesDelegate propertiesDelegate);
+	Response processBatch(List<BatchRequest> requests, @Context UriInfo uriInfo, @Context HttpHeaders headers, 
+			@Context PropertiesDelegate propertiesDelegate, 
+			@DefaultValue("true") @QueryParam("transaction") boolean transaction);
 
 	class BatchRequest {
 	    private String method;

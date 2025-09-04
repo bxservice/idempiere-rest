@@ -5445,7 +5445,7 @@
 			"response": []
 		},
 		{
-			"name": "/api/v1/batch",
+			"name": "/api/v1/batch single transaction",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -5467,7 +5467,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":101\n                        }\n                    ]\n                }\n            ]\n        }\n    },\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":101\n                        }\n                    ]\n                }\n            ]\n        }\n    },\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5475,7 +5475,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/batch",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/batch?transaction=true",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -5485,6 +5485,97 @@
 						"api",
 						"v1",
 						"batch"
+					],
+					"query": [
+						{
+							"key": "transaction",
+							"value": "true",
+							"description": "if true, all requests are processed in a single transaction (default is true)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/api/v1/batch transaction per request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":10000000\n                        }\n                    ]\n                }\n            ]\n        }\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/batch?transaction=false",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"batch"
+					],
+					"query": [
+						{
+							"key": "transaction",
+							"value": "false",
+							"description": "if true, all requests are processed in a single transaction (default is true)"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/health",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/health?key={{healthMonitoringKey}}&db={{dbStatusCheck}}",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"health"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{healthMonitoringKey}}"
+						},
+						{
+							"key": "db",
+							"value": "{{dbStatusCheck}}"
+						}
 					]
 				}
 			},
