@@ -25,10 +25,15 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.model;
 
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.util.Properties;
 
+import org.compiere.model.MArchive;
+import org.compiere.model.MAttachment;
+import org.compiere.model.MAttachmentEntry;
+import org.compiere.model.MImage;
 import org.compiere.model.Query;
 import org.compiere.util.Env;
 
@@ -112,5 +117,49 @@ public class MRestUpload extends X_REST_Upload {
 	 */
 	public String getContentType() {
 		return getREST_ContentType();
+	}
+	
+	public static record UploadDetails(String fileName, String contentType, InputStream inputStream, long size) {
+	}
+	
+	/**
+	 * Retrieves the upload details from the archive/image/attachment associated with the upload.
+	 * @return UploadDetails containing file name, content type and binary data, or null if not found
+	 */
+	public UploadDetails getUploadDetails() {
+		if (getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
+			if (getAD_Image_ID() > 0) {
+				MImage image = new MImage(Env.getCtx(), getAD_Image_ID(), get_TrxName());
+				return new UploadDetails(
+						getFileName(),
+						getContentType(),
+						image.getInputStream(),
+						getFileSize().longValue());
+			}
+		} else if (getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
+			MAttachment attachment = getAttachment();
+			if (attachment != null && attachment.getEntryCount() > 0) {
+				MAttachmentEntry[] entries = attachment.getEntries();
+				for (MAttachmentEntry entry : entries) {
+					if (entry.getName().equals(getFileName())) {
+						return new UploadDetails(
+								getFileName(),
+								getContentType(),
+								entry.getInputStream(),
+								getFileSize().longValue());
+					}
+				}
+			}
+		} else {
+			MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+get_ID(), null);
+			if (archives != null && archives.length == 1) {
+				return new UploadDetails(
+					getFileName(),
+					getContentType(),
+					archives[0].getInputStream(),
+					getFileSize().longValue());
+			}
+		}
+		return null;
 	}
 }

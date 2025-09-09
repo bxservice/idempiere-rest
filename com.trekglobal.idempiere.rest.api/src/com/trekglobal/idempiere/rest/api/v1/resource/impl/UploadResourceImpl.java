@@ -59,7 +59,6 @@ import org.adempiere.util.ContextRunnable;
 import org.compiere.Adempiere;
 import org.compiere.model.MArchive;
 import org.compiere.model.MAttachment;
-import org.compiere.model.MAttachmentEntry;
 import org.compiere.model.MImage;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
@@ -80,6 +79,7 @@ import com.trekglobal.idempiere.rest.api.json.POParser;
 import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.model.MRestUpload;
+import com.trekglobal.idempiere.rest.api.model.MRestUpload.UploadDetails;
 import com.trekglobal.idempiere.rest.api.model.MRestUploadChunk;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 import com.trekglobal.idempiere.rest.api.model.X_REST_Upload;
@@ -517,7 +517,7 @@ public class UploadResourceImpl implements UploadResource {
         		return response;
         }
         
-        ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
+        UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
         if (uploadDetails == null) {
         	Response response = ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
         	if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors()) {
@@ -546,7 +546,7 @@ public class UploadResourceImpl implements UploadResource {
 			StreamingOutput streamingOutput = os -> {
 				int length;
 				byte[] buffer = new byte[8192];
-				try (uploadDetails.inputStream) {
+				try (InputStream inputStream = uploadDetails.inputStream()) {
 					while ((length = uploadDetails.inputStream().read(buffer)) != -1) {
 						os.write(buffer, 0, length);
 					}
@@ -562,8 +562,8 @@ public class UploadResourceImpl implements UploadResource {
 		} else {
 			JsonObject json = new JsonObject();
 			String data;
-			try (uploadDetails.inputStream) {
-				data = Base64.getEncoder().encodeToString(uploadDetails.inputStream().readAllBytes());
+			try (InputStream inputStream = uploadDetails.inputStream()) {
+				data = Base64.getEncoder().encodeToString(inputStream.readAllBytes());
 			} catch (IOException e) {
 				log.log(Level.SEVERE, "Error reading input stream for upload: " + uploadId, e);
 				if (PresignedURL.isPresignedURL(requestContext) && PresignedURL.isHideErrors())
@@ -632,7 +632,7 @@ public class UploadResourceImpl implements UploadResource {
                     .build();
         }
         
-        ChunkStorageService.UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
+        UploadDetails uploadDetails = chunkStorageService.getUploadDetails(upload);
         if (uploadDetails == null) {
 			return ResponseUtils.getResponseError(Response.Status.NOT_FOUND, "File not found for upload: ", uploadId, "");
 		}
@@ -651,15 +651,15 @@ public class UploadResourceImpl implements UploadResource {
                 	if (attachment == null)
                 		attachment = po.createAttachment();
                 	try {
-                		if (uploadDetails.inputStream instanceof ByteArrayInputStream) {
-                			attachment.addEntry(uploadDetails.fileName, uploadDetails.inputStream.readAllBytes());
+                		if (uploadDetails.inputStream() instanceof ByteArrayInputStream) {
+                			attachment.addEntry(uploadDetails.fileName(), uploadDetails.inputStream().readAllBytes());
                 		} else {
-                			try (uploadDetails.inputStream) {
+                			try (InputStream inputStream = uploadDetails.inputStream()) {
 	                			java.nio.file.Path tempPath = Files.createTempDirectory(tableName);
-	                			java.nio.file.Path targetPat = tempPath.resolve(uploadDetails.fileName);
-	                			Files.copy(uploadDetails.inputStream, targetPat, StandardCopyOption.REPLACE_EXISTING);
+	                			java.nio.file.Path targetPat = tempPath.resolve(uploadDetails.fileName());
+	                			Files.copy(inputStream, targetPat, StandardCopyOption.REPLACE_EXISTING);
 	                			File targetFile = targetPat.toFile();
-	                			attachment.addEntry(uploadDetails.fileName, targetFile);
+	                			attachment.addEntry(uploadDetails.fileName(), targetFile);
                 			}
                 		}
                     	attachment.saveEx();
@@ -672,9 +672,9 @@ public class UploadResourceImpl implements UploadResource {
         					po.get_ID(),
         					po.get_UUID(), 
         					copyRequest.copyLocation(),
-        					uploadDetails.fileName,
-        					uploadDetails.contentType,
-        					uploadDetails.size);
+        					uploadDetails.fileName(),
+        					uploadDetails.contentType(),
+        					uploadDetails.size());
         			return Response.ok(response).build();
                 } else {
 					MArchive archive = new MArchive(Env.getCtx(), 0, upload.get_TrxName());
@@ -682,9 +682,9 @@ public class UploadResourceImpl implements UploadResource {
 					archive.setRecord_ID(po.get_ID());
 					archive.setRecord_UU(po.get_UUID());
     	            try {
-    	            	try (uploadDetails.inputStream) {
-	        	            archive.setName(uploadDetails.fileName);
-	        	            archive.setInputStream(uploadDetails.inputStream);
+    	            	try (InputStream inputStream = uploadDetails.inputStream()) {
+	        	            archive.setName(uploadDetails.fileName());
+	        	            archive.setInputStream(inputStream);
 	        	            archive.saveEx();
     	            	}
         			} catch (Exception ex) {
@@ -696,9 +696,9 @@ public class UploadResourceImpl implements UploadResource {
         					archive.get_ID(),
         					archive.get_UUID(), 
         					copyRequest.copyLocation(),
-        					uploadDetails.fileName,
-        					uploadDetails.contentType,
-        					uploadDetails.size);
+        					uploadDetails.fileName(),
+        					uploadDetails.contentType(),
+        					uploadDetails.size());
         			return Response.ok(response).build();
                 }    			
     		} else {
@@ -706,9 +706,9 @@ public class UploadResourceImpl implements UploadResource {
     		}
         } else {
         	MImage image = new MImage(Env.getCtx(), 0, upload.get_TrxName());
-        	try (uploadDetails.inputStream){
-        		image.setName(uploadDetails.fileName);
-            	image.setInputStream(uploadDetails.inputStream);
+        	try (InputStream inputStream = uploadDetails.inputStream()){
+        		image.setName(uploadDetails.fileName());
+            	image.setInputStream(inputStream);
             	image.saveEx();
 			} catch (Exception ex) {
 				return ResponseUtils.getResponseErrorFromException(ex, "Save error");
@@ -719,9 +719,9 @@ public class UploadResourceImpl implements UploadResource {
 					image.get_ID(),
 					image.get_UUID(),
 					copyRequest.copyLocation(),
-					uploadDetails.fileName,
-					uploadDetails.contentType,
-					uploadDetails.size);
+					uploadDetails.fileName(),
+					uploadDetails.contentType(),
+					uploadDetails.size());
 			return Response.ok(response).build();
         }
     }
@@ -884,49 +884,13 @@ public class UploadResourceImpl implements UploadResource {
 			return archives != null && archives.length == 1 ? archives[0]: null;
 		}
 		
-		static record UploadDetails(String fileName, String contentType, InputStream inputStream, long size) {
-		}
-		
 		/**
 		 * Retrieves the upload details from the archive/image/attachment associated with the upload.
 		 * @param upload
 		 * @return UploadDetails containing file name, content type and binary data, or null if not found
 		 */
 		public UploadDetails getUploadDetails(MRestUpload upload) {
-			if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Image)) {
-				if (upload.getAD_Image_ID() > 0) {
-					MImage image = new MImage(Env.getCtx(), upload.getAD_Image_ID(), upload.get_TrxName());
-					return new UploadDetails(
-							upload.getFileName(),
-							upload.getContentType(),
-							image.getInputStream(),
-							upload.getFileSize().longValue());
-				}
-			} else if (upload.getREST_UploadLocation().equals(MRestUpload.REST_UPLOADLOCATION_Attachment)) {
-				MAttachment attachment = upload.getAttachment();
-				if (attachment != null && attachment.getEntryCount() > 0) {
-					MAttachmentEntry[] entries = attachment.getEntries();
-					for (MAttachmentEntry entry : entries) {
-						if (entry.getName().equals(upload.getFileName())) {
-							return new UploadDetails(
-									upload.getFileName(),
-									upload.getContentType(),
-									entry.getInputStream(),
-									upload.getFileSize().longValue());
-						}
-					}
-				}
-			} else {
-				MArchive[] archives = MArchive.get(Env.getCtx(), " AND AD_Table_ID="+MRestUpload.Table_ID+" AND Record_ID="+upload.get_ID(), null);
-				if (archives != null && archives.length == 1) {
-					return new UploadDetails(
-						upload.getFileName(),
-						upload.getContentType(),
-						archives[0].getInputStream(),
-						upload.getFileSize().longValue());
-				}
-			}
-			return null;
+			return upload.getUploadDetails();
 		}
 		
 		/**
