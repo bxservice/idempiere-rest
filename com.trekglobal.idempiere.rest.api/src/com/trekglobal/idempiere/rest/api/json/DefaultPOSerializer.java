@@ -75,14 +75,19 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	@Override
 	public JsonObject toJson(PO po, MRestView view, String[] includes, String[] excludes) {
 		JsonObject json = new JsonObject();
-		//always include id and uid
-		String[] keyColumns = po.get_KeyColumns();
+		MTable table = MTable.get(po.get_Table_ID());
 		String keyColumn = null;
-		if (keyColumns != null && keyColumns.length == 1) {
-			json.addProperty("id", po.get_ID());
-			keyColumn = keyColumns[0];
-		}
 		String uidColumn = po.getUUIDColumnName();
+		if (table.isIDKeyTable()) {
+			//always include id and uid
+			String[] keyColumns = po.get_KeyColumns();
+			if (keyColumns != null && keyColumns.length == 1) {
+				json.addProperty("id", po.get_ID());
+				keyColumn = keyColumns[0];
+			}
+		} else {
+			keyColumn = uidColumn;
+		}
 		if (po.get_ColumnIndex(uidColumn) >= 0) {
 			String uid = po.get_ValueAsString(uidColumn);
 			if (!Util.isEmpty(uid, true)) {
