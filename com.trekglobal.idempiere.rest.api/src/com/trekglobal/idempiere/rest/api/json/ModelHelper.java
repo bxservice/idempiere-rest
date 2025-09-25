@@ -152,6 +152,7 @@ public class ModelHelper {
 		} 
 		query.setPageSize(top);
 		query.setRecordstoSkip(skip);
+		query.setNoVirtualColumn(false);
 
 		if (includeColumns != null && includeColumns.length > 0)
 			query.selectColumns(includeColumns);
