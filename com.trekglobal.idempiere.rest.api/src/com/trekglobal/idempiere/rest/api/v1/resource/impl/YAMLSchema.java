@@ -232,7 +232,11 @@ public class YAMLSchema {
 		} else if (DisplayType.isList(column.getAD_Reference_ID())) {
 			addListProperty(builder, column, offset+2);
 		} else if (DisplayType.isLookup(column.getAD_Reference_ID())) {
-			addLookupProperty(builder, column, offset+2);
+			if (DisplayType.ChosenMultipleSelectionTable == column.getAD_Reference_ID()
+				|| DisplayType.ChosenMultipleSelectionSearch == column.getAD_Reference_ID())
+				addChosenMultipleSelectionTableProperty(builder, column, offset+2);
+			else
+				addLookupProperty(builder, column, offset+2);
 		} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
 			builder.append(" ".repeat(offset+2)).append("type: string\n");
 			builder.append(" ".repeat(offset+2)).append("format: byte\n");
@@ -437,6 +441,39 @@ public class YAMLSchema {
 	}
 
 	/**
+	 * Add column chosen multiple selection property to builder
+	 * @param builder
+	 * @param column
+	 * @param offset
+	 */
+	public static void addChosenMultipleSelectionTableProperty(StringBuilder builder, MColumn column, int offset) {
+		String label = Msg.getElement(Env.getCtx(), column.getColumnName());
+		builder.append(" ".repeat(offset)).append("type: object\n");
+		builder.append(" ".repeat(offset)).append("properties:\n");
+		builder.append(" ".repeat(offset+2)).append("propertyLabel: \n");
+		builder.append(" ".repeat(offset+4)).append("type: string\n");
+		builder.append(" ".repeat(offset+4)).append("readOnly: true\n");
+		builder.append(" ".repeat(offset+4)).append("enum:\n");
+		builder.append(" ".repeat(offset+6)).append(" - '").append(label).append("'\n");
+		builder.append(" ".repeat(offset+2)).append("selections: \n");
+		builder.append(" ".repeat(offset+4)).append("type: array\n");
+		builder.append(" ".repeat(offset+4)).append("items:\n");
+		builder.append(" ".repeat(offset+6)).append("type: object\n");
+		builder.append(" ".repeat(offset+6)).append("properties:\n");
+		builder.append(" ".repeat(offset+8)).append("id:\n");
+		builder.append(" ".repeat(offset+10)).append("type: integer\n");
+		builder.append(" ".repeat(offset+10)).append("description: record id\n");
+		builder.append(" ".repeat(offset+8)).append("identifier:\n");
+		builder.append(" ".repeat(offset+10)).append("type: string\n");
+		builder.append(" ".repeat(offset+10)).append("description: record identifier\n");
+		builder.append(" ".repeat(offset+8)).append("model-name:\n");
+		builder.append(" ".repeat(offset+10)).append("type: string\n");
+		builder.append(" ".repeat(offset+10)).append("readOnly: true\n");
+		builder.append(" ".repeat(offset+10)).append("enum:\n");
+		builder.append(" ".repeat(offset+12)).append(" - '").append(column.getReferenceTableName().toLowerCase()).append("'\n");
+	}
+	
+	/**
 	 * Add column list property to builder
 	 * @param builder
 	 * @param column
@@ -511,7 +548,11 @@ public class YAMLSchema {
 			if (DisplayType.isList(column.getAD_Reference_ID())) {				
 				addListProperty(builder, column, offset+2);
 			} else if (DisplayType.isLookup(column.getAD_Reference_ID())) {
-				addLookupProperty(builder, column, offset+2);
+				if (DisplayType.ChosenMultipleSelectionTable == column.getAD_Reference_ID()
+					|| DisplayType.ChosenMultipleSelectionSearch == column.getAD_Reference_ID())
+					addChosenMultipleSelectionTableProperty(builder, column, offset+2);
+				else
+					addLookupProperty(builder, column, offset+2);
 			} else if (column.getAD_Reference_ID() == DisplayType.Binary) {
 				builder.append(" ".repeat(offset+2)).append("type: string\n");
 				builder.append(" ".repeat(offset+2)).append("format: byte\n");
