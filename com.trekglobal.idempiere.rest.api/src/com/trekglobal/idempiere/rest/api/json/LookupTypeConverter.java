@@ -133,7 +133,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 	private Object toJsonValueForChosenMultipleSelectionTable(Lookup lookup, String refTableName, Object value,
 			MRestView referenceView, JsonObject ref) {
 		JsonArray array = new JsonArray();
-		String[] values = value.toString().split(";");
+		String[] values = value.toString().split(",");
 		if (values.length > 0) {
 			for(String v : values) {
 				JsonObject item = new JsonObject();
@@ -262,7 +262,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 					Object id = findRecordId(ref, refTableName);
 					if (id != null) {
 						if (sb.length() > 0)
-							sb.append(";");
+							sb.append(",");
 						sb.append(id.toString());
 					} else {
 						throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
@@ -271,11 +271,11 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 					JsonPrimitive primitive = (JsonPrimitive) el;
 					if (primitive.isNumber()) {
 						if (sb.length() > 0)
-							sb.append(";");
+							sb.append(",");
 						sb.append(primitive.getAsInt());
 					} else {
 						if (sb.length() > 0)
-							sb.append(";");
+							sb.append(",");
 						sb.append(primitive.getAsString());
 					}
 				} else {
