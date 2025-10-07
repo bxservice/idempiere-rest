@@ -349,7 +349,6 @@ public class ModelResourceImpl implements ModelResource {
 				json.addProperty("records-size", modelHelper.getTop());
 				json.addProperty("skip-records", modelHelper.getSkip());
 				json.addProperty("row-count", modelHelper.getRowCount());
-				json.addProperty("array-count", array.size());
 				if (showsql != null) {
 					json.addProperty("sql-command", DB.getDatabase().convertStatement(modelHelper.getSQLStatement()));
 				}
@@ -382,6 +381,7 @@ public class ModelResourceImpl implements ModelResource {
 				
 				if (showData)
 					json.add("records", array);
+				json.addProperty("array-count", array.size());
 				
 				return Response.ok(json.toString())
 						.header("X-Page-Count", modelHelper.getPageCount())
