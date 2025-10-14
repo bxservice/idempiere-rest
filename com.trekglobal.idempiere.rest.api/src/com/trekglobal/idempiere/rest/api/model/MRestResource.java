@@ -157,7 +157,7 @@ public class MRestResource extends X_REST_Resource implements ImmutablePOSupport
 			if (access.getREST_Resource_ID() == getREST_Resource_ID() 
 					&& access.getAD_Role_ID() == role.getAD_Role_ID()
 					&& access.isActive()
-					&& access.getREST_HttpMethods().equals(method)) {
+					&& access.getREST_HttpMethods().contains(method)) {
 				return true;
 			}
 		}
@@ -170,7 +170,7 @@ public class MRestResource extends X_REST_Resource implements ImmutablePOSupport
 				if (access.getREST_Resource_ID() == getREST_Resource_ID() 
 						&& access.getAD_Role_ID() == r.getAD_Role_ID()
 						&& access.isActive()
-						&& access.getREST_HttpMethods().equals(method)) {
+						&& access.getREST_HttpMethods().contains(method)) {
 					return true;
 				}
 			}
