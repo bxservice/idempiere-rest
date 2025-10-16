@@ -117,6 +117,34 @@ public class MRestResource extends X_REST_Resource implements ImmutablePOSupport
 		}
 	}
 
+	private static final CCache<Integer, MRestResourceAccess[]> s_accessCache = new CCache<Integer, MRestResourceAccess[]>(MRole.Table_Name, "REST_Resource_Access_Cache", 100, 0, false);
+	
+	/**
+	 * Thread-safe method to get resource access rights for a role (doesn't merge with included role template).
+	 * It uses double-checked locking to ensure the database is hit only once
+	 * per role when the cache is being populated.
+	 *
+	 * @param AD_Role_ID The ID of the role.
+	 * @return An array of resource access rights.
+	 */
+	public static MRestResourceAccess[] getRestResourceAccess(int AD_Role_ID) {
+	    MRestResourceAccess[] accesses = s_accessCache.get(AD_Role_ID);
+	    if (accesses == null) {
+	        synchronized (s_accessCache) {
+	            accesses = s_accessCache.get(AD_Role_ID);
+	            if (accesses == null) {
+	                Query query = new Query(Env.getCtx(), MRestResourceAccess.Table_Name, "AD_Role_ID=?", null);
+	                List<MRestResourceAccess> accessList = query.setOnlyActiveRecords(true)
+	                                                             .setParameters(AD_Role_ID)
+	                                                             .list();
+	                accesses = accessList.toArray(new MRestResourceAccess[0]);
+	                s_accessCache.put(AD_Role_ID, accesses);
+	            }
+	        }
+	    }
+	    return accesses;
+	}
+	
 	/**
 	 * Is role has access to this resource
 	 * @param role
@@ -124,8 +152,30 @@ public class MRestResource extends X_REST_Resource implements ImmutablePOSupport
 	 * @return true if role has access to this resource
 	 */
 	public boolean hasAccess(MRole role, String method) {
-		Query query = new Query(Env.getCtx(), MRestResourceAccess.Table_Name, "REST_Resource_ID=? AND AD_Role_ID=? AND REST_HttpMethods LIKE ?", null);
-		return query.setOnlyActiveRecords(true).setParameters(getREST_Resource_ID(), role.getAD_Role_ID(), "%"+method+"%").count() == 1;
+		MRestResourceAccess[] accesses = getRestResourceAccess(role.getAD_Role_ID());
+		for(MRestResourceAccess access : accesses) {
+			if (access.getREST_Resource_ID() == getREST_Resource_ID() 
+					&& access.getAD_Role_ID() == role.getAD_Role_ID()
+					&& access.isActive()
+					&& access.getREST_HttpMethods().contains(method)) {
+				return true;
+			}
+		}
+		
+		//check included roles
+		List<MRole> includedRole = role.getIncludedRoles(false);
+		for(MRole r : includedRole) {
+			accesses = getRestResourceAccess(r.getAD_Role_ID());
+			for(MRestResourceAccess access : accesses) {
+				if (access.getREST_Resource_ID() == getREST_Resource_ID() 
+						&& access.getAD_Role_ID() == r.getAD_Role_ID()
+						&& access.isActive()
+						&& access.getREST_HttpMethods().contains(method)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	@Override
