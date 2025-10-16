@@ -187,7 +187,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	
 	@Override
 	public PO fromJson(JsonObject json, MTable table, MRestView view) {
-		PO po = table.getPO(0, null);
+		PO po = table.isUUIDKeyTable() ? table.getPOByUU(PO.UUID_NEW_RECORD, null) : table.getPO(0, null);
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
