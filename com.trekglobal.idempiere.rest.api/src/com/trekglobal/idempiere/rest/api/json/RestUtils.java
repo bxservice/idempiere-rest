@@ -143,6 +143,10 @@ public class RestUtils {
 	}
 	
 	public static String[] getSelectedColumns(String tableName, String selectClause) {
+		return getSelectedColumns(null, tableName, selectClause);
+	}
+	
+	public static String[] getSelectedColumns(MRestView restView, String tableName, String selectClause) {
 		List<String> selectedColumns = new ArrayList<String>();
 		if (Util.isEmpty(selectClause, true) || Util.isEmpty(tableName, true))
 			return new String[0];
@@ -150,6 +154,11 @@ public class RestUtils {
 		MTable mTable = MTable.get(Env.getCtx(), tableName);
 		String[] columnNames = selectClause.split("[,]");
 		for(String columnName : columnNames) {
+			if (restView != null) {
+				String restViewColumnName = restView.toColumnName(columnName);
+				if (restViewColumnName != null)
+					columnName = restViewColumnName;
+			}
 			MTable table = mTable;
 			if (table.getColumnIndex(columnName.trim()) < 0)
 				throw new IDempiereRestException(columnName + " is not a valid column of table " + table.getTableName(), Status.BAD_REQUEST);
