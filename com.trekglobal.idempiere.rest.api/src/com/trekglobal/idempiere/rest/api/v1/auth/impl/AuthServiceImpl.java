@@ -494,8 +494,13 @@ public class AuthServiceImpl implements AuthService {
 		int clientId = -1;
 		if (Pattern.matches("\\d+", s.trim())) {
 			clientId = Integer.parseInt(s.trim());
-			if (MClient.get(clientId).get_ID() == clientId)
-				return clientId;
+			try {
+				PO.setCrossTenantSafe();
+				if (MClient.get(clientId).get_ID() == clientId)
+					return clientId;
+			} finally {
+				PO.clearCrossTenantSafe();
+			}
 		}
 		Query query = new Query(Env.getCtx(), MClient.Table_Name, "IsActive='Y' AND Value=?", null);
 		clientId = query.setParameters(s.trim()).firstId();
