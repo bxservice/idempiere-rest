@@ -55,10 +55,15 @@ import com.trekglobal.idempiere.rest.api.json.RestUtils;
 public class ExpandUtils {
 	
 	private static final String RECORD_ID_COLUMN = "Record_ID";
+	private static final String RECORD_UU_COLUMN = "Record_UU";
 	public static final String TABLE_ID_COLUMN  = "AD_Table_ID";
 	
 	public static boolean isRecordIDTableIDFK(String keyColumnName) {
 		return RECORD_ID_COLUMN.equalsIgnoreCase(keyColumnName);
+	}
+	
+	public static boolean isRecordUUTableUUFK(String keyColumnName) {
+		return RECORD_UU_COLUMN.equalsIgnoreCase(keyColumnName);
 	}
 	
 	public static String getSelectClause(List<String> operators) {

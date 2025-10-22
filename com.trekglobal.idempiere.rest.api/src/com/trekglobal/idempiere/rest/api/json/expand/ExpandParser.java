@@ -25,6 +25,7 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.json.expand;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.MTree_Base;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -167,7 +169,7 @@ public class ExpandParser {
 		if (poParser.isValidPO()) {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, po.getClass());
 			String select = ExpandUtils.getSelectClause(operators);
-			String[] includes = RestUtils.getSelectedColumns(tableName, select); 
+			String[] includes = RestUtils.getSelectedColumns(referenceView, tableName, select); 
 			if (includes != null && includes.length > 0)
 				query.selectColumns(includes);
 			JsonObject json = serializer.toJson(po, referenceView, includes, null);
@@ -207,9 +209,7 @@ public class ExpandParser {
 		}
 
 		String select = ExpandUtils.getSelectClause(operators);
-		includes = RestUtils.getSelectedColumns(tableName, select);
-		if (detailView != null && includes != null && includes.length > 0)
-			includes = detailView.toColumnNames(includes, true);
+		includes = RestUtils.getSelectedColumns(detailView, tableName, select);
 		List<PO> childPOs = getChildPOs(operators, tableName, parentKeyColumn, childKeyColumn, includes);
 		if (childPOs != null && childPOs.size() > 0) {
 			JsonArray childArray = new JsonArray();
@@ -294,7 +294,11 @@ public class ExpandParser {
 		MColumn column = MColumn.get(Env.getCtx(), tableName, childKeyColumn);
 		if (column == null)
 			throw new IDempiereRestException("Invalid column for expand: " + childKeyColumn, Status.BAD_REQUEST);
-		int parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) ? po.get_ID() : po.get_ValueAsInt(parentKeyColumn); 
+		Serializable parentId;
+		if (masterTableName.equalsIgnoreCase(column.getReferenceTableName()))
+			parentId = (MTable.get(po.get_Table_ID()).isUUIDKeyTable() ? po.get_UUID() : po.get_ID());
+		else
+			parentId = (MTable.get(Env.getCtx(), column.getReferenceTableName()).isUUIDKeyTable() ? po.get_ValueAsString(parentKeyColumn) : po.get_ValueAsInt(parentKeyColumn));
 		
 		String filter = getFilterClause(operators, childKeyColumn, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
@@ -305,12 +309,17 @@ public class ExpandParser {
 		return new ModelHelper(tableName, filter, orderBy, top, skip, null, null, label);
 	}
 	
-	public String getFilterClause(List<String> operators, String keyColumnName, int keyColumnValue) {
-		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq " + keyColumnValue);
+	public String getFilterClause(List<String> operators, String keyColumnName, Serializable keyColumnValue) {
+		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq ");
+		if (keyColumnValue instanceof String keyColumnValueString)
+			filterClause.append(DB.TO_STRING(keyColumnValueString));
+		else
+			filterClause.append(keyColumnValue);
 		
-		if (ExpandUtils.isRecordIDTableIDFK(keyColumnName))
+		if (   ExpandUtils.isRecordIDTableIDFK(keyColumnName)
+			|| ExpandUtils.isRecordUUTableUUFK(keyColumnName))
 			filterClause.append(" AND ").append(ExpandUtils.TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
-		
+
 		String requestFilterClause = ExpandUtils.getFilterClause(operators);
 		if (!Util.isEmpty(requestFilterClause)) 
 			filterClause.append(" AND ").append(requestFilterClause);
