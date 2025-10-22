@@ -37,6 +37,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.MTree_Base;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -293,9 +294,11 @@ public class ExpandParser {
 		MColumn column = MColumn.get(Env.getCtx(), tableName, childKeyColumn);
 		if (column == null)
 			throw new IDempiereRestException("Invalid column for expand: " + childKeyColumn, Status.BAD_REQUEST);
-		Serializable parentId = masterTableName.equalsIgnoreCase(column.getReferenceTableName()) 
-				? (MTable.get(po.get_Table_ID()).isUUIDKeyTable() ? po.get_UUID() : po.get_ID()) 
-				: (MTable.get(Env.getCtx(), column.getReferenceTableName()).isUUIDKeyTable() ? po.get_ValueAsString(parentKeyColumn) : po.get_ValueAsInt(parentKeyColumn)); 
+		Serializable parentId;
+		if (masterTableName.equalsIgnoreCase(column.getReferenceTableName()))
+			parentId = (MTable.get(po.get_Table_ID()).isUUIDKeyTable() ? po.get_UUID() : po.get_ID());
+		else
+			parentId = (MTable.get(Env.getCtx(), column.getReferenceTableName()).isUUIDKeyTable() ? po.get_ValueAsString(parentKeyColumn) : po.get_ValueAsInt(parentKeyColumn));
 		
 		String filter = getFilterClause(operators, childKeyColumn, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
@@ -308,16 +311,15 @@ public class ExpandParser {
 	
 	public String getFilterClause(List<String> operators, String keyColumnName, Serializable keyColumnValue) {
 		StringBuilder filterClause = new StringBuilder(keyColumnName + " eq ");
-		if (keyColumnValue instanceof String)
-			filterClause.append("'").append(keyColumnValue).append("'");
+		if (keyColumnValue instanceof String keyColumnValueString)
+			filterClause.append(DB.TO_STRING(keyColumnValueString));
 		else
 			filterClause.append(keyColumnValue);
 		
-		if (ExpandUtils.isRecordIDTableIDFK(keyColumnName))
+		if (   ExpandUtils.isRecordIDTableIDFK(keyColumnName)
+			|| ExpandUtils.isRecordUUTableUUFK(keyColumnName))
 			filterClause.append(" AND ").append(ExpandUtils.TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
-		else if (ExpandUtils.isRecordUUTableUUFK(keyColumnName))
-			filterClause.append(" AND ").append(ExpandUtils.TABLE_ID_COLUMN).append(" eq ").append(po.get_Table_ID());
-		
+
 		String requestFilterClause = ExpandUtils.getFilterClause(operators);
 		if (!Util.isEmpty(requestFilterClause)) 
 			filterClause.append(" AND ").append(requestFilterClause);
