@@ -65,6 +65,12 @@ public class RestUtils {
 	private final static String EXPORT_UU_LOOKUP_SYSCONFIG_NAME = "REST_TABLES_EXPORT_LOOKUP_UU";
 
 	/**
+	 * ThreadLocal to store the window number for context variable resolution
+	 * This allows passing the window number through the call stack without modifying method signatures
+	 */
+	private static final ThreadLocal<Integer> contextWindowNo = new ThreadLocal<>();
+
+	/**
 	 * @param value
 	 * @return true if value is a UUID identifier
 	 */
@@ -517,6 +523,32 @@ public class RestUtils {
 	 */
 	public static void removeSavedCtx(int sessionId) {
 		ctxSessionCache.remove(sessionId);
+	}
+
+	/**
+	 * Set the context window number for the current thread
+	 * This is used to pass context variables to GridField default value resolution
+	 * @param windowNo the window number to use for context variable resolution
+	 */
+	public static void setContextWindowNo(int windowNo) {
+		contextWindowNo.set(windowNo);
+	}
+
+	/**
+	 * Get the context window number for the current thread
+	 * @return the window number, or 0 if not set
+	 */
+	public static int getContextWindowNo() {
+		Integer windowNo = contextWindowNo.get();
+		return windowNo != null ? windowNo : 0;
+	}
+
+	/**
+	 * Clear the context window number for the current thread
+	 * This should be called in a finally block to prevent memory leaks
+	 */
+	public static void clearContextWindowNo() {
+		contextWindowNo.remove();
 	}
 
 }

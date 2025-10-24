@@ -119,9 +119,11 @@ public interface ModelResource {
 	 *   doc-action (document action to execute)
 	 * @param tableName
 	 * @param jsonText json representation of data to process
+	 * @param context context variable values for validation rule
 	 * @return json representation of created record
 	 */
-	public Response create(@PathParam("tableName") String tableName, String jsonText);
+	public Response create(@PathParam("tableName") String tableName, String jsonText,
+			@QueryParam(QueryOperators.CONTEXT) String context);
 	
 	@Path("{tableName}/{id}")
 	@PUT
@@ -134,9 +136,11 @@ public interface ModelResource {
 	 * @param tableName
 	 * @param id id/uuid
 	 * @param jsonText json representation of data to process
+	 * @param context context variable values for validation rule
 	 * @return json representation updated record
 	 */
-	public Response update(@PathParam("tableName") String tableName, @PathParam("id") String id, String jsonText);
+	public Response update(@PathParam("tableName") String tableName, @PathParam("id") String id, String jsonText,
+			@QueryParam(QueryOperators.CONTEXT) String context);
 	
 	@Path("{tableName}/{id}")
 	@DELETE

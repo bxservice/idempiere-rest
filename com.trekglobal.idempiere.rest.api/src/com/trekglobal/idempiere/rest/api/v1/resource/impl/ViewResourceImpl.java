@@ -177,13 +177,13 @@ public class ViewResourceImpl implements ViewResource {
 	}
 
 	@Override
-	public Response create(String tableName, String jsonText) {
-		return restView().create(tableName, jsonText);
+	public Response create(String tableName, String jsonText, String context) {
+		return restView().create(tableName, jsonText, context);
 	}
 
 	@Override
-	public Response update(String tableName, String id, String jsonText) {
-		return restView().update(tableName, id, jsonText);
+	public Response update(String tableName, String id, String jsonText, String context) {
+		return restView().update(tableName, id, jsonText, context);
 	}
 
 	@Override

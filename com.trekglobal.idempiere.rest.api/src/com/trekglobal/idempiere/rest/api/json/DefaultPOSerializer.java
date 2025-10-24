@@ -588,7 +588,9 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	
 	private boolean setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn) {
 		if (!column.isVirtualColumn() && (!Util.isEmpty(column.getDefaultValue(), true) || (viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true)))) {
-			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), 0, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
+			// Get window number from ThreadLocal to enable context variable resolution
+			int windowNo = RestUtils.getContextWindowNo();
+			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
 						: column.getAD_Reference_ID(), 0, false, false, "");
