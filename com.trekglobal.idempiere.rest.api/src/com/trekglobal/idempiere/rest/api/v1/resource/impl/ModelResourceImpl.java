@@ -36,7 +36,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -100,6 +102,10 @@ public class ModelResourceImpl implements ModelResource {
 	
 	public static final String PO_BEFORE_REST_SAVE = "idempiere-rest/po/beforeSave";
 	public static final String PO_AFTER_REST_SAVE = "idempiere-rest/po/afterSave";
+
+	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
+	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
+	private static final AtomicInteger windowNoAtomic = new AtomicInteger(1);
 
 	private boolean useRestView = false;
 	
@@ -401,9 +407,10 @@ public class ModelResourceImpl implements ModelResource {
 	}
 		
 	@Override
-	public Response create(String tableName, String jsonText) {
+	public Response create(String tableName, String jsonText, String context) {
 		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
 		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
+		int windowNo = -1;
 		try {
 			MRestView view = null;
 			if (useRestView) {
@@ -415,6 +422,13 @@ public class ModelResourceImpl implements ModelResource {
 			}
 			
 			MTable table = RestUtils.getTableAndCheckAccess(tableName, true);
+
+			// Set context variables if provided
+			windowNo = setContextVariables(context);
+			// Store window number in ThreadLocal so it can be accessed by serializers
+			if (windowNo >= 0) {
+				RestUtils.setContextWindowNo(windowNo);
+			}
 
 			if (threadLocalTrxName == null)
 				trx.start();
@@ -471,6 +485,11 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Server error");
 		} finally {
+			// Clear context variables if they were set
+			if (windowNo >= 0) {
+				Env.clearWinContext(windowNo);
+				RestUtils.clearContextWindowNo();
+			}
 			if (threadLocalTrxName == null)
 				trx.close();
 		}
@@ -572,7 +591,7 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	@Override
-	public Response update(String name, String id, String jsonText) {
+	public Response update(String name, String id, String jsonText, String context) {
 		MRestView view = null;
 		if (useRestView) {
 			view = RestUtils.getView(name);
@@ -594,7 +613,15 @@ public class ModelResourceImpl implements ModelResource {
 
 		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
 		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
+		int windowNo = -1;
 		try {
+			// Set context variables if provided
+			windowNo = setContextVariables(context);
+			// Store window number in ThreadLocal so it can be accessed by serializers
+			if (windowNo >= 0) {
+				RestUtils.setContextWindowNo(windowNo);
+			}
+
 			if (threadLocalTrxName == null)
 				trx.start();
 			Gson gson = new GsonBuilder().create();
@@ -721,6 +748,11 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Update error");
 		} finally {
+			// Clear context variables if they were set
+			if (windowNo >= 0) {
+				Env.clearWinContext(windowNo);
+				RestUtils.clearContextWindowNo();
+			}
 			if (threadLocalTrxName == null)
 				trx.close();
 		}
@@ -1214,6 +1246,46 @@ public class ModelResourceImpl implements ModelResource {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Parse context variables and set them in the environment
+	 * @param context context string in format "name1:value1,name2:value2"
+	 * @return window number used for context, -1 if context is empty or invalid
+	 */
+	private int setContextVariables(String context) {
+		if (Util.isEmpty(context, true))
+			return -1;
+
+		int windowNo = windowNoAtomic.getAndIncrement();
+
+		for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
+			String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);
+			if (namevaluePair.length != 2)
+				continue;
+
+			String contextName = namevaluePair[0];
+			String contextValue = namevaluePair[1];
+
+			if (!isValidContextValue(contextValue))
+				continue;
+
+			Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
+		}
+
+		return windowNo;
+	}
+
+	/**
+	 * Validates the context value to avoid potential SQL injection
+	 * @param value
+	 * @return
+	 */
+	private boolean isValidContextValue(String value) {
+		// Accept context values composed by letters, numbers, space and dash (for UUID)
+		// This avoids usage of strange characters (like semicolon or quotes) that could enable SQL injection
+		final String sanitize = "^[A-Za-z0-9\\s\\-]+$";
+		return Pattern.matches(sanitize, value);
 	}
 
 	@Override
