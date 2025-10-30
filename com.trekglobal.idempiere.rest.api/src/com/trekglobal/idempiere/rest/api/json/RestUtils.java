@@ -73,11 +73,23 @@ public class RestUtils {
 	}
 	
 	public static Query getQuery(String tableName, String recordID, boolean fullyQualified, boolean RW) {
+		return getQuery(tableName, recordID, fullyQualified, RW, null);
+	}
+	
+	public static Query getQuery(String tableName, String recordID, boolean fullyQualified, boolean RW, String whereClause) {
 		boolean isUUID = isUUID(recordID);
 		
 		String keyColumn = getKeyColumn(tableName, isUUID);
 		
-		Query query = new Query(Env.getCtx(), tableName, keyColumn + "=?", null);
+		StringBuilder where = new StringBuilder(keyColumn).append("=?");
+		if (!Util.isEmpty(whereClause, true)) {
+			int atIdx = whereClause.indexOf("@");
+			if (atIdx >= 0 && whereClause.indexOf("@", atIdx+1) > atIdx) {
+				whereClause = Env.parseContext(Env.getCtx(), -1, whereClause, false);
+			}
+			where.append(" AND (").append(whereClause).append(")");
+		}
+		Query query = new Query(Env.getCtx(), tableName, where.toString(), null);
 		
 		if (fullyQualified || RW)
 			query.setApplyAccessFilter(fullyQualified, RW);
