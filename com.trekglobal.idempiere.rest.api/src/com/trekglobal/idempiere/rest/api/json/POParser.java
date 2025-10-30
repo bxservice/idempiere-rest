@@ -87,11 +87,15 @@ public class POParser {
 	}
 	
 	public Response getResponseError() {
+		return getResponseError(null);
+	}
+	
+	public Response getResponseError(String whereClause) {
 		if (responseError != null)
 			return responseError;
 
 		try {
-			po = RestUtils.getPO(tableName, recordID, false, false);
+			po = RestUtils.getQuery(tableName, recordID, false, false, whereClause).first();
 		} catch (CrossTenantException e) {
 			log.log(Level.WARNING, "Exception getting the PO -> " + e.getLocalizedMessage());
 		} catch (Exception e) {
