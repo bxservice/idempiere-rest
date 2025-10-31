@@ -528,7 +528,13 @@ public class ModelResourceImpl implements ModelResource {
 								throw new AdempiereException("AccessCannotUpdate");
 							
 							childPO.set_TrxName(trx.getTrxName());
-							childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
+							
+							MTable table = MTable.get(Env.getCtx(), po.get_TableName());
+							if (table.isUUIDKeyTable())
+								childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_UUID());
+							else
+								childPO.set_ValueOfColumn(RestUtils.getKeyColumnName(po.get_TableName()), po.get_ID());
+							
 							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
 							childPO.validForeignKeysEx();
 							childPO.saveEx();
