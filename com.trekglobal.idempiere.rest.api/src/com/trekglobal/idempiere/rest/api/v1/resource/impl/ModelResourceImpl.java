@@ -169,7 +169,7 @@ public class ModelResourceImpl implements ModelResource {
 				includes = new String[] {singleProperty};
 			}
 
-			Query query = RestUtils.getQuery(tableName, id, true, false);
+			Query query = RestUtils.getQuery(tableName, id, true, false, (view != null ? view.getWhereClause() : null));
 			if (includes != null && includes.length > 0)
 				query.selectColumns(includes);
 			PO po = query.first();
@@ -212,7 +212,7 @@ public class ModelResourceImpl implements ModelResource {
 					ExpandUtils.addAssignedLabelsToJson(po, showlabel, json);
 				return Response.ok(json.toString()).build();
 			} else {
-				return poParser.getResponseError();
+				return poParser.getResponseError(view != null ? view.getWhereClause() : null);
 			}
 		} catch(Exception ex) {
 			return ResponseUtils.getResponseErrorFromException(ex, "GET Error");
