@@ -60,6 +60,8 @@ import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
 @Component(name = "com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer", service = IPOSerializerFactory.class, 
 	property = {"service.ranking:Integer=0"}, immediate = true)
 public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory {
+	
+	private int windowNo = -1;
 
 	/**
 	 * default constructor
@@ -191,6 +193,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
+		populateContextFromPO(json, view, po);
+		
 		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
@@ -303,6 +307,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
+		populateContextFromPO(json, view, po);
+
 		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
@@ -588,7 +594,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	
 	private boolean setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn) {
 		if (!column.isVirtualColumn() && (!Util.isEmpty(column.getDefaultValue(), true) || (viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true)))) {
-			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), 0, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
+			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
 						: column.getAD_Reference_ID(), 0, false, false, "");
@@ -610,4 +616,42 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		}
 		return null;
 	}
+	
+	public void setWindowNo(int windowNo) {
+		this.windowNo = windowNo;
+	}
+	
+	/**
+	 * Populate context from existing PO values for default value parsing
+	 * @param json input json object
+	 * @param view rest view
+	 * @param po existing po
+	 */
+    private void populateContextFromPO(JsonObject json, MRestView view, PO po) {
+    	Set<String> jsonFields = json.keySet();
+		MTable table = MTable.get(po.get_Table_ID());
+
+		// Add values from json to context for default value parsing
+		for(String jsonField : jsonFields) {
+			JsonElement field = json.get(jsonField);
+			if (field == null || field.isJsonArray() || field.isJsonObject())
+				continue;
+
+			String columnName = view != null ? view.toColumnName(jsonField) : jsonField;
+			if (columnName == null)
+				continue;
+
+			int colIdx = po.get_ColumnIndex(columnName);
+			if (colIdx < 0)
+				continue;
+
+			MColumn column = table.getColumn(columnName);
+			if (column == null)
+				continue;
+
+			Object value = TypeConverterUtils.fromJsonValue(column, field);
+			if (value != null)
+				Env.setContext(Env.getCtx(), windowNo, columnName, value.toString());
+		}
+    }
 }
