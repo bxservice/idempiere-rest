@@ -38,6 +38,7 @@ import org.adempiere.model.MInfoProcess;
 import org.adempiere.model.MInfoRelated;
 import org.compiere.model.MInfoColumn;
 import org.compiere.model.MInfoWindow;
+import org.compiere.model.MProcess;
 import org.compiere.model.MRole;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
@@ -250,7 +251,8 @@ public class InfoResourceImpl implements InfoResource {
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MInfoProcess.Table_Name, MInfoProcess.class);
 		for(MInfoProcess infoProcess : infoProcesses) {
 			JsonObject json = serializer.toJson(infoProcess);
-			String slug = TypeConverterUtils.slugify(infoProcess.getAD_Process().getValue());
+			MProcess process = MProcess.get(infoProcess.getAD_Process_ID());
+			String slug = TypeConverterUtils.slugify(process != null ? process.getValue() : "");
 			json.addProperty("slug", slug);
 			array.add(json);
 		}
@@ -289,7 +291,8 @@ public class InfoResourceImpl implements InfoResource {
 		IPOSerializer serializer = IPOSerializer.getPOSerializer(MInfoRelated.Table_Name, MInfoRelated.class);
 		for(MInfoRelated infoRelated : infoRelateds) {
 			JsonObject json = serializer.toJson(infoRelated);
-			String slug = TypeConverterUtils.slugify(infoRelated.getRelatedInfo().getName());
+			MInfoWindow relatedWindow = MInfoWindow.get(infoRelated.getRelatedInfo_ID(), null);
+			String slug = TypeConverterUtils.slugify(relatedWindow != null ? relatedWindow.getName() : "");
 			json.addProperty("slug", slug);
 			array.add(json);
 		}
