@@ -238,6 +238,8 @@ public class RequestFilter implements ContainerRequestFilter {
 			AD_Session_ID = claim.asInt();
 			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, AD_Session_ID);
 			MSession session = MSession.get(Env.getCtx());
+			if (session == null)
+				throw new JWTVerificationException("Invalid session claim");
 			if (session.isProcessed()) {
 				// is possible that the session was finished in a reboot instead of a logout
 				// if there is a REST_AuthToken or a REST_RefreshToken, then the user has not logged out
