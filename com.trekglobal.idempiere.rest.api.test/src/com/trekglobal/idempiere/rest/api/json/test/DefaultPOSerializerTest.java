@@ -25,18 +25,28 @@
 package com.trekglobal.idempiere.rest.api.json.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+
 import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.GridField;
 import org.compiere.model.MProduct;
+import org.compiere.model.MTable;
 import org.compiere.model.MUser;
+import org.compiere.model.X_C_OrderLine;
+import org.compiere.util.CLogger;
 import org.compiere.util.Env;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer;
 
 public class DefaultPOSerializerTest extends RestTestCase {
@@ -102,6 +112,49 @@ public class DefaultPOSerializerTest extends RestTestCase {
         assertThrows(AdempiereException.class, () -> {
             serializer.fromJson(json, gardenAdmin);
         });
+    }
+    
+    @Test
+    public void testLogMessageOnContextPopulation() {
+    	TestLogHandler logHandler = new TestLogHandler();
+        Logger logger = CLogger.getCLogger(GridField.class);
+        logger.addHandler(logHandler);
+
+        // Setup
+        DefaultPOSerializer serializer = new DefaultPOSerializer();
+      
+        // Create test JSON
+        JsonObject json = new JsonObject();
+        json.add("C_Order_ID", new JsonPrimitive(144));
+        json.add("description", new JsonPrimitive("Testing"));
+        
+        // Execute
+        serializer.fromJson(json, MTable.get(X_C_OrderLine.Table_ID), null);
+        
+        // Verify partial log message
+        String logContent = logHandler.getLogContent();
+        assertFalse(logContent.contains("WARNING"), "Log should not contain WARNING level");
+        assertFalse(logContent.contains("Default SQL variable parse"), "Log should not contain parse error message");
+    }
+    
+    // Custom handler to capture log messages
+    private class TestLogHandler extends Handler {
+        private StringBuilder log = new StringBuilder();
+
+        @Override
+        public void publish(LogRecord record) {
+            log.append(record.getLevel()).append(":").append(record.getMessage()).append("\n");
+        }
+
+        public String getLogContent() {
+            return log.toString();
+        }
+
+        @Override
+        public void flush() {}
+
+        @Override
+        public void close() throws SecurityException {}
     }
 
 }

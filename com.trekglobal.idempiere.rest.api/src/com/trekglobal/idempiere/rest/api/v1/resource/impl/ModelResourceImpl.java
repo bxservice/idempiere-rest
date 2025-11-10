@@ -404,6 +404,8 @@ public class ModelResourceImpl implements ModelResource {
 	public Response create(String tableName, String jsonText) {
 		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
 		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
+		int windowNo = RestUtils.getWindowNo();
+
 		try {
 			MRestView view = null;
 			if (useRestView) {
@@ -421,6 +423,7 @@ public class ModelResourceImpl implements ModelResource {
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+			serializer.setWindowNo(windowNo);
 			PO po = serializer.fromJson(jsonObject, table, view);
 			if (!RestUtils.hasRoleUpdateAccess(po.getAD_Client_ID(), po.getAD_Org_ID(), po.get_Table_ID(), 0, true))
 				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Update error", "Role does not have access","");
@@ -442,7 +445,7 @@ public class ModelResourceImpl implements ModelResource {
 			Map<String, JsonArray> detailMap = new LinkedHashMap<>();
 			Set<String> fields = jsonObject.keySet();
 			for(String field : fields) {
-				String strError = createChild(field, jsonObject, po, view, detailMap, trx);
+				String strError = createChild(field, jsonObject, po, view, detailMap, trx, windowNo);
 				if(strError != null)
 					return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", "Save error with exception: ", strError);
 			}
@@ -471,6 +474,7 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Server error");
 		} finally {
+			Env.clearWinContext(windowNo);
 			if (threadLocalTrxName == null)
 				trx.close();
 		}
@@ -486,7 +490,7 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param trx
 	 * @return
 	 */
-	private String createChild(String field, JsonObject jsonObject, PO po, MRestView view, Map<String, JsonArray> detailMap, Trx trx) {
+	private String createChild(String field, JsonObject jsonObject, PO po, MRestView view, Map<String, JsonArray> detailMap, Trx trx, int windowNo) {
 		JsonElement fieldElement = jsonObject.get(field);
 		if (fieldElement != null && fieldElement.isJsonArray()) {
 			String childTableName = field;
@@ -516,6 +520,7 @@ public class ModelResourceImpl implements ModelResource {
 
 			if (childTable != null && childTable.getAD_Table_ID() > 0) {
 				IPOSerializer childSerializer = IPOSerializer.getPOSerializer(childTableName, MTable.getClass(childTableName));
+				childSerializer.setWindowNo(windowNo);
 				JsonArray fieldArray = fieldElement.getAsJsonArray();
 				JsonArray savedArray = new JsonArray();
 				try {
@@ -544,7 +549,7 @@ public class ModelResourceImpl implements ModelResource {
 							Map<String, JsonArray> childDetailMap = new LinkedHashMap<>();
 							Set<String> fields = newChildJsonObject.keySet();
 							for(String childField : fields) {
-								String strError = createChild(childField, newChildJsonObject, childPO, finalChildView, childDetailMap, trx);
+								String strError = createChild(childField, newChildJsonObject, childPO, finalChildView, childDetailMap, trx, windowNo);
 								if(strError != null)
 									throw new AdempiereException(strError);
 							}
@@ -600,12 +605,15 @@ public class ModelResourceImpl implements ModelResource {
 
 		String threadLocalTrxName = ThreadLocalTrx.getTrxName();
 		Trx trx = threadLocalTrxName != null ? Trx.get(threadLocalTrxName, false) : Trx.get(Trx.createTrxName(), true);
+		int windowNo = RestUtils.getWindowNo();
+
 		try {
 			if (threadLocalTrxName == null)
 				trx.start();
 			Gson gson = new GsonBuilder().create();
 			JsonObject jsonObject = gson.fromJson(jsonText, JsonObject.class);
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
+			serializer.setWindowNo(windowNo);
 			po = serializer.fromJson(jsonObject, po, view);
 			po.set_TrxName(trx.getTrxName());
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
@@ -727,6 +735,7 @@ public class ModelResourceImpl implements ModelResource {
 			trx.rollback();
 			return ResponseUtils.getResponseErrorFromException(ex, "Update error");
 		} finally {
+			Env.clearWinContext(windowNo);
 			if (threadLocalTrxName == null)
 				trx.close();
 		}

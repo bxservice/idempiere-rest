@@ -27,7 +27,6 @@ package com.trekglobal.idempiere.rest.api.json;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -56,8 +55,6 @@ public class ModelHelper {
 	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
 	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
-	
-	private static final AtomicInteger windowNoAtomic = new AtomicInteger(1);
 	
 	private String tableName;
 	private String filter;
@@ -208,7 +205,7 @@ public class ModelHelper {
 	
 	private String parseContext(String whereClause, String context) {
 		String parsedWhereClause = whereClause;
-		int windowNo = windowNoAtomic.getAndIncrement();
+		int windowNo = RestUtils.getWindowNo();
 
 		for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
 			String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);

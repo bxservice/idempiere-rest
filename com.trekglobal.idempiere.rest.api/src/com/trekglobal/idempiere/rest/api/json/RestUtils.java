@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 import javax.ws.rs.core.Response.Status;
@@ -64,6 +65,8 @@ public class RestUtils {
 	private final static String UUID_REGEX="[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
 	private final static String EXPORT_UU_LOOKUP_SYSCONFIG_NAME = "REST_TABLES_EXPORT_LOOKUP_UU";
 
+	private static final AtomicInteger windowNoAtomic = new AtomicInteger(1);
+	
 	/**
 	 * @param value
 	 * @return true if value is a UUID identifier
@@ -530,5 +533,13 @@ public class RestUtils {
 	public static void removeSavedCtx(int sessionId) {
 		ctxSessionCache.remove(sessionId);
 	}
+    
+    /**
+     * Get a unique window number for context management
+     * @return unique window number
+     */
+    public static int getWindowNo() {
+        return windowNoAtomic.getAndIncrement();
+    }
 
 }
