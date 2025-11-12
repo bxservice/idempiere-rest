@@ -292,7 +292,8 @@ public class RestUtils {
 	}
 	
 	public static boolean hasRoleUpdateAccess(int AD_Client_ID, int AD_Org_ID, int AD_Table_ID, int Record_ID, boolean isNew) {
-		return MRole.getDefault(Env.getCtx(), false).canUpdate(AD_Client_ID, AD_Org_ID, AD_Table_ID, Record_ID, isNew);
+		return RequestFilter.isResourceAccessGranted() ||
+			MRole.getDefault(Env.getCtx(), false).canUpdate(AD_Client_ID, AD_Org_ID, AD_Table_ID, Record_ID, isNew);
 	}
 	
 	/**
@@ -303,7 +304,8 @@ public class RestUtils {
 	 * @return true if user has access
 	 */
 	public static boolean hasRoleColumnAccess(int AD_Table_ID, int AD_Column_ID, boolean readOnly) {
-		return MRole.getDefault(Env.getCtx(), false).isColumnAccess(AD_Table_ID, AD_Column_ID, readOnly);
+		return RequestFilter.isResourceAccessGranted() ||
+			MRole.getDefault(Env.getCtx(), false).isColumnAccess(AD_Table_ID, AD_Column_ID, readOnly);
 	}
 
 	/**
