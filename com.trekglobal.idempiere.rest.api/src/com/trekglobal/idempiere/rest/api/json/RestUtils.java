@@ -58,6 +58,7 @@ import org.compiere.util.Language;
 import org.compiere.util.Util;
 
 import com.trekglobal.idempiere.rest.api.model.MRestView;
+import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
 
 public class RestUtils {
 
@@ -248,6 +249,11 @@ public class RestUtils {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null || table.getAD_Table_ID()==0) {
 			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + tableName, Status.NOT_FOUND);
+		}
+		
+		// resource access granted through role resource access configuration
+		if (RequestFilter.isResourceAccessGranted()) {
+			return table;
 		}
 		
 		if (!hasAccess(table, isReadWrite)) {

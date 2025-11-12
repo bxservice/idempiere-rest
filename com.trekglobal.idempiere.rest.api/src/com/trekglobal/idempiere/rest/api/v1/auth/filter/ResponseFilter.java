@@ -47,6 +47,10 @@ public class ResponseFilter implements ContainerResponseFilter {
 
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
-		ServerContext.dispose();
+		try {
+			ServerContext.dispose();
+		} finally {
+			RequestFilter.clearResourceAccessGranted();
+		}		
 	}
 }
