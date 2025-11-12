@@ -77,6 +77,13 @@ public class RequestFilter implements ContainerRequestFilter {
 	public static final String LOGIN_NAME = "#LoginName";
 	public static final String LOGIN_CLIENTS = "#LoginClients";
 
+	private static final InheritableThreadLocal<Boolean> resourcAccessGranted = new InheritableThreadLocal<Boolean>() {
+		@Override
+		protected Boolean initialValue() {
+			return Boolean.FALSE;
+		}
+	};
+	
 	public RequestFilter() {
 	}
 
@@ -84,6 +91,7 @@ public class RequestFilter implements ContainerRequestFilter {
 	public void filter(ContainerRequestContext requestContext) throws IOException {
 		Properties ctx = new Properties();
 		ServerContext.setCurrentInstance(ctx);
+		resourcAccessGranted.set(Boolean.FALSE);
 		
 		if (   HttpMethod.OPTIONS.equals(requestContext.getMethod())
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
@@ -143,6 +151,8 @@ public class RequestFilter implements ContainerRequestFilter {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
 						if (!MRestResourceAccess.hasAccess(requestContext.getUriInfo().getPath(true), requestContext.getMethod())) {
 							requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+						} else {
+							resourcAccessGranted.set(Boolean.TRUE);
 						}
 					}
 				}
@@ -259,4 +269,19 @@ public class RequestFilter implements ContainerRequestFilter {
 		RestUtils.setSessionContextVariables(Env.getCtx());
 	}
 
+	/**
+	 * Is resource access granted through role resource access control
+	 * @return true if resource access is granted
+	 */
+	public static boolean isResourceAccessGranted() {
+		return resourcAccessGranted.get().booleanValue();
+	}
+	
+	/**
+	 * Clear resource access granted flag
+	 */
+	public static void clearResourceAccessGranted() {
+		resourcAccessGranted.remove();
+	}
+	
 }
