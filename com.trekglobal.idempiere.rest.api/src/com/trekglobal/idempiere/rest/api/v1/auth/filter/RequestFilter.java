@@ -77,7 +77,7 @@ public class RequestFilter implements ContainerRequestFilter {
 	public static final String LOGIN_NAME = "#LoginName";
 	public static final String LOGIN_CLIENTS = "#LoginClients";
 
-	private static final InheritableThreadLocal<Boolean> resourcAccessGranted = new InheritableThreadLocal<Boolean>() {
+	private static final ThreadLocal<Boolean> resourceAccessGranted = new ThreadLocal<Boolean>() {
 		@Override
 		protected Boolean initialValue() {
 			return Boolean.FALSE;
@@ -91,7 +91,7 @@ public class RequestFilter implements ContainerRequestFilter {
 	public void filter(ContainerRequestContext requestContext) throws IOException {
 		Properties ctx = new Properties();
 		ServerContext.setCurrentInstance(ctx);
-		resourcAccessGranted.set(Boolean.FALSE);
+		resourceAccessGranted.set(Boolean.FALSE);
 		
 		if (   HttpMethod.OPTIONS.equals(requestContext.getMethod())
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
@@ -152,7 +152,7 @@ public class RequestFilter implements ContainerRequestFilter {
 						if (!MRestResourceAccess.hasAccess(requestContext.getUriInfo().getPath(true), requestContext.getMethod())) {
 							requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 						} else {
-							resourcAccessGranted.set(Boolean.TRUE);
+							resourceAccessGranted.set(Boolean.TRUE);
 						}
 					}
 				}
@@ -274,14 +274,14 @@ public class RequestFilter implements ContainerRequestFilter {
 	 * @return true if resource access is granted
 	 */
 	public static boolean isResourceAccessGranted() {
-		return resourcAccessGranted.get().booleanValue();
+		return resourceAccessGranted.get().booleanValue();
 	}
 	
 	/**
 	 * Clear resource access granted flag
 	 */
 	public static void clearResourceAccessGranted() {
-		resourcAccessGranted.remove();
+		resourceAccessGranted.remove();
 	}
 	
 }
