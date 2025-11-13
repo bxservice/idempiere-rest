@@ -34,6 +34,8 @@ import org.adempiere.exceptions.CrossTenantException;
 import org.compiere.model.PO;
 import org.compiere.util.CLogger;
 
+import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestFilter;
+
 public class POParser {
 
 	private final static CLogger log = CLogger.getCLogger(POParser.class);
@@ -57,7 +59,8 @@ public class POParser {
 		this.tableName = tableName;
 		this.recordID = recordID;
 		if (isValidTable(isReadWrite))
-			po = RestUtils.getPO(tableName, recordID, fullyQualifiedWhere, isReadWrite);
+			po = RestUtils.getPO(tableName, recordID, fullyQualifiedWhere, 
+					(RequestFilter.isResourceAccessGranted() ? false : isReadWrite));
 	}
 	
 	public POParser(String tableName, String recordID, PO po) {
