@@ -47,10 +47,6 @@ public class ResponseFilter implements ContainerResponseFilter {
 
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
-		try {
-			ServerContext.dispose();
-		} finally {
-			RequestFilter.clearResourceAccessGranted();
-		}		
+		ServerContext.dispose();
 	}
 }
