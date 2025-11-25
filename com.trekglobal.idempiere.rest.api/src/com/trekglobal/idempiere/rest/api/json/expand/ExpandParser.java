@@ -294,11 +294,7 @@ public class ExpandParser {
 		MColumn column = MColumn.get(Env.getCtx(), tableName, childKeyColumn);
 		if (column == null)
 			throw new IDempiereRestException("Invalid column for expand: " + childKeyColumn, Status.BAD_REQUEST);
-		Serializable parentId;
-		if (masterTableName.equalsIgnoreCase(column.getReferenceTableName()))
-			parentId = (MTable.get(po.get_Table_ID()).isUUIDKeyTable() ? po.get_UUID() : po.get_ID());
-		else
-			parentId = (MTable.get(Env.getCtx(), column.getReferenceTableName()).isUUIDKeyTable() ? po.get_ValueAsString(parentKeyColumn) : po.get_ValueAsInt(parentKeyColumn));
+		Serializable parentId = getParentId(column, childKeyColumn, parentKeyColumn);
 		
 		String filter = getFilterClause(operators, childKeyColumn, parentId);
 		String orderBy = ExpandUtils.getOrderByClause(operators);
@@ -307,6 +303,26 @@ public class ExpandParser {
 		String label = ExpandUtils.getLabelClause(operators);
 
 		return new ModelHelper(tableName, filter, orderBy, top, skip, null, null, label);
+	}
+	
+	private Serializable getParentId(MColumn column, String childKeyColumn, String parentKeyColumn) {
+	    if (masterTableName.equalsIgnoreCase(column.getReferenceTableName()) || ExpandUtils.isRecordIDTableIDFK(childKeyColumn)) {
+	        return getIdForTable(MTable.get(po.get_Table_ID()), po, null);
+	    }
+	    
+	    MTable referenceTable = MTable.get(Env.getCtx(), column.getReferenceTableName());
+	    if (referenceTable != null) {
+	        return getIdForTable(referenceTable, po, parentKeyColumn);
+	    }
+	    
+	    return po.get_ID(); // fallback to normal ID
+	}
+	
+	private Serializable getIdForTable(MTable table, PO po, String keyColumn) {
+	    if (table.isUUIDKeyTable()) {
+	        return keyColumn != null ? po.get_ValueAsString(keyColumn) : po.get_UUID();
+	    }
+	    return keyColumn != null ? po.get_ValueAsInt(keyColumn) : po.get_ID();
 	}
 	
 	public String getFilterClause(List<String> operators, String keyColumnName, Serializable keyColumnValue) {

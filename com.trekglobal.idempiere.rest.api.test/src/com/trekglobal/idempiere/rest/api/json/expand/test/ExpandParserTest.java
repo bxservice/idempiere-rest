@@ -27,6 +27,8 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.I_C_BPartner;
 import org.compiere.model.MBPartner;
+import org.compiere.model.MInvoice;
+import org.compiere.model.MUser;
 import org.compiere.util.Env;
 import org.idempiere.test.DictionaryIDs;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,6 +138,24 @@ public class ExpandParserTest extends RestTestCase {
         assertEquals(
             "Record_ID eq 100 AND AD_Table_ID eq "+ + I_C_BPartner.Table_ID + " AND IsCustomer eq true",
             result);
+    }
+    
+    @Test
+    public void testExpandParserWithSpecialTables() {
+    	MInvoice poInvoice = MInvoice.get(104);
+        ExpandParser parser = new ExpandParser(poInvoice, "fact_acct.record_id($select=fact_acct_id),c_invoiceline");
+
+        assertEquals(2, parser.getTableNameSQLStatementMap().size());
+        assertEquals(2, parser.getTableNameChildArrayMap().size());
+    }
+    
+    @Test
+    public void testExpandParserWithSpecialExpand() {
+    	MUser user = MUser.get(100);
+        ExpandParser parser = new ExpandParser(user, "ad_user_roles($select=ad_role_id; $expand=ad_table_access.ad_role_id)");
+
+        assertEquals(2, parser.getTableNameSQLStatementMap().size());
+        assertEquals(1, parser.getTableNameChildArrayMap().size());
     }
     
 }
