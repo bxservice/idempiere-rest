@@ -73,7 +73,6 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 		
 		String orgHeader = requestContext.getHeaderString(MOIDCService.ORG_HEADER);
 		String roleHeader = requestContext.getHeaderString(MOIDCService.ROLE_HEADER);
-		String headerOrgValue = null;
 		
 		if (oidcService.isAuthorization_OIDC()) {
 			//resource_access.${keycloak_client_id}.roles
@@ -231,13 +230,17 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 		//get org from http header or if role has access to single org only
 		if (AD_Role_ID >= 0) {
 			if (AD_Org_ID == -1) {
-				if (!Util.isEmpty(headerOrgValue)) {
-					query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, headerOrgValue).first();
-					if (org != null) {
-						AD_Org_ID = org.getAD_Org_ID();
+				if (!Util.isEmpty(orgHeader)) {
+					if ("*".equals(orgHeader)) {
+						AD_Org_ID = 0;
 					} else {
-						throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
+						query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
+						MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
+						if (org != null) {
+							AD_Org_ID = org.getAD_Org_ID();
+						} else {
+							throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
+						}
 					}
 				} else {
 					AD_Org_ID = getSingleOrgIdOnly(AD_Client_ID, AD_Role_ID, user);

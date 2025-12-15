@@ -36,6 +36,7 @@ import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
 import org.adempiere.util.ServerContext;
@@ -56,6 +57,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.trekglobal.idempiere.rest.api.json.ResponseUtils;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
@@ -147,8 +149,8 @@ public class RequestFilter implements ContainerRequestFilter {
 					}
 				}
 			} catch (JWTVerificationException ex) {
-				ex.printStackTrace();
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(ex.getMessage()).build());
+				ex.printStackTrace();				
+				requestContext.abortWith(ResponseUtils.getResponseError(Status.UNAUTHORIZED, ex.getLocalizedMessage(), "", ""));
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());

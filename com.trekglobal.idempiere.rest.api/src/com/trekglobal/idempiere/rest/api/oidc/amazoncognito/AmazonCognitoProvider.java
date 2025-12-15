@@ -209,12 +209,16 @@ public class AmazonCognitoProvider extends AbstractOIDCProvider {
 		if (AD_Role_ID >= 0) {
 			if (AD_Org_ID == -1) {
 				if (!Util.isEmpty(orgHeader)) {
-					query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
-					if (org != null) {
-						AD_Org_ID = org.getAD_Org_ID();
+					if ("*".equals(orgHeader)) {
+						AD_Org_ID = 0;
 					} else {
-						throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
+						query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
+						MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
+						if (org != null) {
+							AD_Org_ID = org.getAD_Org_ID();
+						} else {
+							throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
+						}
 					}
 				} else {
 					AD_Org_ID = getSingleOrgIdOnly(AD_Client_ID, AD_Role_ID, user);
