@@ -148,7 +148,7 @@ public class RequestFilter implements ContainerRequestFilter {
 				}
 			} catch (JWTVerificationException ex) {
 				ex.printStackTrace();
-				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).entity(ex.getMessage()).build());
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				requestContext.abortWith(Response.status(Response.Status.INTERNAL_SERVER_ERROR).build());

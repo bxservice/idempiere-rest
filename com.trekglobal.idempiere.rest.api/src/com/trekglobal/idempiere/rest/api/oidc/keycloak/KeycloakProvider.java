@@ -176,10 +176,14 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 		} else {
 			//not resolving authorization details from access token, try http header
 			if (!Util.isEmpty(orgHeader)) {
-				Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
-				MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
-				if (org != null) {
-					AD_Org_ID = org.getAD_Org_ID();
+				if ("*".equals(orgHeader)) {
+					AD_Org_ID = 0;
+				} else {
+					Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND Value=?", null);
+					MOrg org = query.setOnlyActiveRecords(true).setParameters(AD_Client_ID, orgHeader).first();
+					if (org != null) {
+						AD_Org_ID = org.getAD_Org_ID();
+					}
 				}
 				if (AD_Org_ID == -1)
 					throw new JWTVerificationException("Invalid %s header".formatted(MOIDCService.ORG_HEADER));
@@ -254,7 +258,7 @@ public class KeycloakProvider extends AbstractOIDCProvider {
 			if (mRole.isUseUserOrgAccess()) {
 				mRole.setAD_User_ID(AD_User_ID);
 			}
-			if (!mRole.isOrgAccess(AD_Org_ID, false)) {
+			if (!mRole.isOrgAccess(AD_Org_ID, true)) {
 				throw new JWTVerificationException("Invalid user and organization combination");
 			}
 		}
