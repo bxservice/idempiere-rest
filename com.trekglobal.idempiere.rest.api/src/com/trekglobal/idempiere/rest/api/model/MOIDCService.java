@@ -262,6 +262,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		
 		//get user, role, tenant and org
 		authenticatedUser = service.getAuthenticatedUser(decodedJwt, requestContext, this);
+		if (s_revokeCache.containsKey(token)) {
+			throw new JWTVerificationException("Token has been revoked");
+		}
 		s_authCache.put(token, authenticatedUser);
 		
 		processAuthenticatedUser(requestContext, authenticatedUser);
@@ -392,6 +395,8 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	 * @return true if token found and removed
 	 */
 	public static boolean revokeToken(String token) {
+		if (Util.isEmpty(token))
+			return false;
 		AuthenticatedUser authenticatedUser = s_authCache.remove(token);
 		if (authenticatedUser != null) {
 			s_revokeCache.put(token, Boolean.TRUE);
