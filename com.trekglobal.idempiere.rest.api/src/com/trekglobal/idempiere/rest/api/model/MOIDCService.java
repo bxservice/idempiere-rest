@@ -77,6 +77,8 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	private static ImmutablePOCache<String, MOIDCService> s_issuerCache = new ImmutablePOCache<>(Table_Name, 10);
 	
 	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
+	
+	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 140, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 
 	/** HTTP header for AD_Role.Name */
 	public static final String ROLE_HEADER = "X-ID-Role";
@@ -228,6 +230,11 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	 * @param requestContext
 	 */
 	public void validateAccessToken(String token, ContainerRequestContext requestContext) {
+		// first check if token is revoked
+		if (s_revokeCache.containsKey(token)) {
+			throw new JWTVerificationException("Token has been revoked");
+		}
+		
 		AuthenticatedUser authenticatedUser = s_authCache.get(token);
 		if (authenticatedUser != null) {
 			processAuthenticatedUser(requestContext, authenticatedUser);
@@ -378,4 +385,20 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 			return null;
 		return getDecodedJWT(idToken);
 	}
+	
+	/**
+	 * Remove OAuth/OIDC token from authenticated cache
+	 * @param token the OAuth/OIDC token
+	 * @return true if token found and removed
+	 */
+	public static boolean revokeToken(String token) {
+		AuthenticatedUser authenticatedUser = s_authCache.remove(token);
+		if (authenticatedUser != null) {
+			s_revokeCache.put(token, Boolean.TRUE);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
 }
