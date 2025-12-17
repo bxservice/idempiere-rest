@@ -529,9 +529,9 @@ public class AuthServiceImpl implements AuthService {
 			if (MOrg.get(orgId) != null)
 				return orgId;
 		}
-		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND Name=?", null);
+		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND (Name=? OR Value=?)", null);
 		try {
-			orgId = query.setParameters(clientId, s.trim()).firstIdOnly();
+			orgId = query.setParameters(clientId, s.trim(), s.trim()).firstIdOnly();
 		} catch (Exception e) {
 			return -3;
 		}
@@ -591,8 +591,8 @@ public class AuthServiceImpl implements AuthService {
 			if (warehouseId == 0 || MWarehouse.get(warehouseId) != null)
 				return warehouseId;
 		}
-		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND Name=?", null);
-		warehouseId = query.setParameters(clientId, s.trim()).firstId();
+		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND (Name=? OR Value=?)", null);
+		warehouseId = query.setParameters(clientId, s.trim(), s.trim()).firstId();
 		if (warehouseId == -1) {
 			return -2;
 		} else {
