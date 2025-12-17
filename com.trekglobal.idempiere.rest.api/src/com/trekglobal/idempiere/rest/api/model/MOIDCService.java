@@ -78,7 +78,7 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	
 	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 	
-	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 140, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
+	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 
 	/** HTTP header for AD_Role.Name */
 	public static final String ROLE_HEADER = "X-ID-Role";
