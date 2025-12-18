@@ -353,7 +353,11 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
 	
 	            // Extract the JWKS URL
-	            jwksUrl = json.get("jwks_uri").getAsString();
+	            if (json.has("jwks_uri") && !json.get("jwks_uri").isJsonNull()) {
+	            	jwksUrl = json.get("jwks_uri").getAsString();
+	            } else {
+	            	throw new JWTVerificationException("Configuration endpoint did not return jwks_uri");
+	            }
 	        } catch (IOException | InterruptedException e) {
 	        	if (e instanceof InterruptedException) {
 	        		Thread.currentThread().interrupt();
