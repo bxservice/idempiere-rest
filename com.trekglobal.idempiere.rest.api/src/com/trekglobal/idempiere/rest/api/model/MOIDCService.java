@@ -76,11 +76,12 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 
 	private static ImmutablePOCache<String, MOIDCService> s_issuerCache = new ImmutablePOCache<>(Table_Name, 10);
 	
-	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
+	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, 
+			MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60));
 	
 	// revoke cache should live longer than auth cache
 	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 40, 
-			MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx()))*2);
+			MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60)*2);
 
 	// 24 hour cache for JwkProvider
 	private static CCache<String, JwkProvider> s_jwkProviderCache = new CCache<>("OIDC_JwkProvider_Cache", 20, 1440);
@@ -336,9 +337,12 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		if (provider == null) {
 			//get jwks from openid configuration endpoint
 			String jwksUrl = null;
-	        HttpClient httpClient = HttpClient.newBuilder().build();
+	        HttpClient httpClient = HttpClient.newBuilder()
+	        		.connectTimeout(java.time.Duration.ofSeconds(10))
+	        		.build();
 	        HttpRequest request = HttpRequest.newBuilder()
 	                .uri(URI.create(wellKnownUrl))
+	                .timeout(java.time.Duration.ofSeconds(30))
 	                .GET()
 	                .build();
 	
@@ -351,6 +355,9 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	            // Extract the JWKS URL
 	            jwksUrl = json.get("jwks_uri").getAsString();
 	        } catch (IOException | InterruptedException e) {
+	        	if (e instanceof InterruptedException) {
+	        		Thread.currentThread().interrupt();
+	        	}
 	        	throw new JWTVerificationException(e.getMessage(), e);            
 	        }
 	        
@@ -371,7 +378,18 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
         	//verify signature, audience and exp
             Jwk jwk = provider.get(decodedJwt.getKeyId());
 
-            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+            Algorithm algorithm = null;
+            String alg = decodedJwt.getAlgorithm();
+            if ("RS256".equals(alg)) {
+            	algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+            } else if ("RS384".equals(alg)) {
+            	algorithm = Algorithm.RSA384((RSAPublicKey) jwk.getPublicKey(), null);
+            } else if ("RS512".equals(alg)) {
+            	algorithm = Algorithm.RSA512((RSAPublicKey) jwk.getPublicKey(), null);
+            } else {
+            	throw new JWTVerificationException("Unsupported algorithm: " + alg);
+            }
+
             Verification verification = JWT.require(algorithm)
 					  .acceptExpiresAt(0)
 					  .withIssuer(getOIDC_IssuerURL());
