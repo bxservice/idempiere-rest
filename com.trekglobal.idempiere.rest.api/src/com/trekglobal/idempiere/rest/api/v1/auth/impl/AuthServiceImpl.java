@@ -591,7 +591,7 @@ public class AuthServiceImpl implements AuthService {
 			if (warehouseId == 0 || MWarehouse.get(warehouseId) != null)
 				return warehouseId;
 		}
-		Query query = new Query(Env.getCtx(), MOrg.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND (Name=? OR Value=?)", null);
+		Query query = new Query(Env.getCtx(), MWarehouse.Table_Name, "AD_Client_ID=? AND IsActive='Y' AND (Name=? OR Value=?)", null);
 		warehouseId = query.setParameters(clientId, s.trim(), s.trim()).firstId();
 		if (warehouseId == -1) {
 			return -2;
