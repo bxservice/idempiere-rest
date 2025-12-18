@@ -78,7 +78,12 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	
 	private static CCache<String, AuthenticatedUser> s_authCache = new CCache<>("AuthenticatedUser_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
 	
-	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 40, MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx())));
+	// revoke cache should live longer than auth cache
+	private static CCache<String, Boolean> s_revokeCache = new CCache<>("Revoke_Token_Cache", 40, 
+			MSysConfig.getIntValue("REST_TOKEN_EXPIRE_IN_MINUTES", 60, Env.getAD_Client_ID(Env.getCtx()))*2);
+
+	// 24 hour cache for JwkProvider
+	private static CCache<String, JwkProvider> s_jwkProviderCache = new CCache<>("OIDC_JwkProvider_Cache", 20, 1440);
 
 	/** HTTP header for AD_Role.Name */
 	public static final String ROLE_HEADER = "X-ID-Role";
@@ -198,13 +203,12 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		
 		Claim iss = decoded.getClaim("iss");
 		Claim aud = decoded.getClaim("aud");
-		Claim azp = decoded.getClaim("azp");
 		
 		Claim client_id = decoded.getClaim("client_id");
 		
 		MOIDCService service = null;
 		if (isWithStringValue(alg) && isWithStringValue(typ) && "JWT".equals(typ.asString()) && isWithStringValue(kid) &&
-			isWithStringValue(iss) && isWithStringValue(aud) && isWithStringValue(azp)) {
+			isWithStringValue(iss) && isWithStringValue(aud)) {
 			service = fromIssuerAndAudience(iss.asString(), aud.asString());
 			if (service == null)
 				throw new JWTVerificationException("No matching OpenID Connect service configuration for access token");			
@@ -326,57 +330,66 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	}
 	
 	private DecodedJWT getDecodedJWT(String token) {
-		//get jwks from openid configuration endpoint
-		String jwksUrl = null;
 		String wellKnownUrl = getOIDC_ConfigurationURL();
-        HttpClient httpClient = HttpClient.newBuilder().build();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(wellKnownUrl))
-                .GET()
-                .build();
-
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            // Parse the JSON response
-            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
-
-            // Extract the JWKS URL
-            jwksUrl = json.get("jwks_uri").getAsString();
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);            
-        }
-        
-        DecodedJWT decodedJwt = null;
-        if (jwksUrl != null) {
-        	decodedJwt = JWT.decode(token);
-        	try {
-	        	//verify signature, audience and exp
-	        	JwkProvider provider = new UrlJwkProvider(new URL(jwksUrl));
-	            Jwk jwk = provider.get(decodedJwt.getKeyId());
+		JwkProvider provider = s_jwkProviderCache.get(wellKnownUrl);
+		
+		if (provider == null) {
+			//get jwks from openid configuration endpoint
+			String jwksUrl = null;
+	        HttpClient httpClient = HttpClient.newBuilder().build();
+	        HttpRequest request = HttpRequest.newBuilder()
+	                .uri(URI.create(wellKnownUrl))
+	                .GET()
+	                .build();
 	
-	            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-	            Verification verification = JWT.require(algorithm)
-						  .acceptExpiresAt(0)
-						  .withIssuer(getOIDC_IssuerURL());
-	            Claim aud = decodedJwt.getClaim("aud");
-	            if (isWithStringValue(aud)) {
-	            	verification.withAudience(getOIDC_Audience());
-	            } else {
-	            	Claim client_id = decodedJwt.getClaim("client_id");
-	            	 if (isWithStringValue(client_id))
-	            		 verification.withClaim("client_id", getOIDC_Audience());
-	            }
-	            JWTVerifier verifier = verification.build();
-	            decodedJwt = verifier.verify(decodedJwt);
-            } catch (JWTVerificationException | JwkException | MalformedURLException e) {
-            	if (e instanceof JWTVerificationException)
-            		throw (JWTVerificationException)e;
-            	else
-            		throw new JWTVerificationException(e.getMessage(), e);
+	        try {
+	            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+	
+	            // Parse the JSON response
+	            JsonObject json = new Gson().fromJson(response.body(), JsonObject.class);
+	
+	            // Extract the JWKS URL
+	            jwksUrl = json.get("jwks_uri").getAsString();
+	        } catch (IOException | InterruptedException e) {
+	        	throw new JWTVerificationException(e.getMessage(), e);            
+	        }
+	        
+	        if (jwksUrl != null) {
+	        	try {
+					provider = new UrlJwkProvider(new URL(jwksUrl));
+					s_jwkProviderCache.put(wellKnownUrl, provider);
+				} catch (MalformedURLException e) {
+					throw new JWTVerificationException(e.getMessage(), e);
+				}
+	        } else {
+	        	throw new JWTVerificationException("Failed to retrieve jwks_uri from Configuration URL");
+	        }
+		}
+        
+        DecodedJWT decodedJwt = JWT.decode(token);
+    	try {
+        	//verify signature, audience and exp
+            Jwk jwk = provider.get(decodedJwt.getKeyId());
+
+            Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+            Verification verification = JWT.require(algorithm)
+					  .acceptExpiresAt(0)
+					  .withIssuer(getOIDC_IssuerURL());
+            Claim aud = decodedJwt.getClaim("aud");
+            if (isWithStringValue(aud)) {
+            	verification.withAudience(getOIDC_Audience());
+            } else {
+            	Claim client_id = decodedJwt.getClaim("client_id");
+            	 if (isWithStringValue(client_id))
+            		 verification.withClaim("client_id", getOIDC_Audience());
             }
-        } else {
-        	throw new JWTVerificationException("Failed to retrieve jwks_uri from Configuration URL");
+            JWTVerifier verifier = verification.build();
+            decodedJwt = verifier.verify(decodedJwt);
+        } catch (JWTVerificationException | JwkException e) {
+        	if (e instanceof JWTVerificationException)
+        		throw (JWTVerificationException)e;
+        	else
+        		throw new JWTVerificationException(e.getMessage(), e);
         }
         
         return decodedJwt;
@@ -397,13 +410,11 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 	public static boolean revokeToken(String token) {
 		if (Util.isEmpty(token))
 			return false;
+		// Always add to revoke cache to handle race condition where token is being validated
+		// but not yet in auth cache.
+		s_revokeCache.put(token, Boolean.TRUE);
 		AuthenticatedUser authenticatedUser = s_authCache.remove(token);
-		if (authenticatedUser != null) {
-			s_revokeCache.put(token, Boolean.TRUE);
-			return true;
-		} else {
-			return false;
-		}
+		return authenticatedUser != null;
 	}
 	
 }
