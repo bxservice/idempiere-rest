@@ -387,14 +387,29 @@ public class RestUtils {
 	}
 	
 	public static String getKeyColumnName(String tableName) {
+		return getKeyColumnName(tableName, false);
+	}
+		
+	/**
+	 * Get the primary key column name for a table.
+	 * @param tableName the table name
+	 * @param nullForMultipleKeys if true, return null when table has zero or multiple primary keys; 
+	 *                             if false, throw an exception in those cases
+	 * @return the primary key column name, or null if nullForMultipleKeys is true and table has != 1 primary key
+	 * @throws IDempiereRestException if nullForMultipleKeys is false and table has zero or multiple primary keys
+	 */
+	public static String getKeyColumnName(String tableName, boolean nullForMultipleKeys) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null)
 			throw new IDempiereRestException("Invalid Table Name", "The requested table name is invalid or does not exist. Please verify the table name and try again.", Status.BAD_REQUEST);
 		
 		String[] keyColumns = table.getKeyColumns();
 		
-		if (keyColumns.length <= 0 || keyColumns.length > 1)
+		if (keyColumns.length <= 0 || keyColumns.length > 1) {
+			if (nullForMultipleKeys)
+				return null;
 			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has none or more than one primary key: " + tableName, Status.INTERNAL_SERVER_ERROR);
+		}
 
 		return keyColumns[0];
 	}

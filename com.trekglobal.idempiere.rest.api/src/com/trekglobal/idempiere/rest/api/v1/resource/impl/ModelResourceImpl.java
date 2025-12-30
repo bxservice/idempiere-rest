@@ -1178,10 +1178,12 @@ public class ModelResourceImpl implements ModelResource {
 	
 	private PO loadPO(String tableName, JsonObject jsonObject) {
 		PO po = null;
-		String idColumn = RestUtils.getKeyColumnName(tableName);
+		// For tables with multiple primary keys, fall back to UUID-based lookup
+		// since a single numeric ID column is not available
+		String idColumn = RestUtils.getKeyColumnName(tableName, true);
 		String uidColumn = PO.getUUIDColumnName(tableName);
 		JsonElement idElement = jsonObject.get("id");											
-		if (idElement != null && idElement.isJsonPrimitive()) {
+		if (idColumn != null && idElement != null && idElement.isJsonPrimitive()) {
 			Query query = new Query(Env.getCtx(), tableName, idColumn + "=?", null);
 			query.setApplyAccessFilter(true, false);
 			po = query.setParameters(idElement.getAsInt()).first();
