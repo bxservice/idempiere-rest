@@ -387,14 +387,21 @@ public class RestUtils {
 	}
 	
 	public static String getKeyColumnName(String tableName) {
+		return getKeyColumnName(tableName, false);
+	}
+		
+	public static String getKeyColumnName(String tableName, boolean nullForMultipleKeys) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table == null)
 			throw new IDempiereRestException("Invalid Table Name", "The requested table name is invalid or does not exist. Please verify the table name and try again.", Status.BAD_REQUEST);
 		
 		String[] keyColumns = table.getKeyColumns();
 		
-		if (keyColumns.length <= 0 || keyColumns.length > 1)
+		if (keyColumns.length <= 0 || keyColumns.length > 1) {
+			if (nullForMultipleKeys)
+				return null;
 			throw new IDempiereRestException("Wrong detail", "Cannot expand to the detail table because it has none or more than one primary key: " + tableName, Status.INTERNAL_SERVER_ERROR);
+		}
 
 		return keyColumns[0];
 	}
