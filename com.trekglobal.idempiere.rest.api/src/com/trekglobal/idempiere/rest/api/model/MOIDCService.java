@@ -437,12 +437,14 @@ public class MOIDCService extends X_REST_OIDCService implements ImmutablePOSuppo
 		// but not yet in auth cache.
 		s_revokeCache.put(token, Boolean.TRUE);
 		AuthenticatedUser authenticatedUser = s_authCache.remove(token);
-		int sessionId = authenticatedUser.getsessionId();
-		if (sessionId > 0) {
-			Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, sessionId);		
-			MSession session = new MSession(Env.getCtx(), sessionId, null);
-			session.setWebSession(session.getWebSession() + "-logout");
-			session.logout();
+		if (authenticatedUser != null) {
+			int sessionId = authenticatedUser.getsessionId();
+			if (sessionId > 0) {
+				Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, sessionId);		
+				MSession session = new MSession(Env.getCtx(), sessionId, null);
+				session.setWebSession(session.getWebSession() + "-logout");
+				session.logout();
+			}
 		}
 		
 		return authenticatedUser != null;
