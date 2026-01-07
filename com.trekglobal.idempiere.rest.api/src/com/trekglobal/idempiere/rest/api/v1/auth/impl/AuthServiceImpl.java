@@ -989,6 +989,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, sessionId);
 		MSession session = new MSession(Env.getCtx(), sessionId, null);
+		session.setWebSession(session.getWebSession() + "-logout");
 		session.logout();
 		RestUtils.removeSavedCtx(sessionId);
 
