@@ -243,6 +243,11 @@ public class RequestFilter implements ContainerRequestFilter {
 			if (session == null)
 				throw new JWTVerificationException("Invalid session claim");
 			if (session.isProcessed()) {
+				if (session.getWebSession().endsWith("-logout")) {
+					// session was logged out
+					requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+					return;
+				}
 				// is possible that the session was finished in a reboot instead of a logout
 				// if there is a REST_AuthToken or a REST_RefreshToken, then the user has not logged out
 				MAuthToken authToken = MAuthToken.get(Env.getCtx(), token);

@@ -71,6 +71,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
+import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.v1.auth.AuthService;
@@ -947,6 +948,15 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public Response tokenLogout(LogoutParameters logout) {
 		String token = logout.getToken();
+		
+		// check if this is an oAuth/OIDC token
+		if (MOIDCService.revokeToken(token)) {
+			JsonObject okResponse = new JsonObject();
+			okResponse.addProperty("summary", "OK");
+			
+			return Response.ok(okResponse.toString()).build();
+		}
+		
 		Algorithm algorithm = Algorithm.HMAC512(TokenUtils.getTokenSecret());
 		JWTVerifier verifier = JWT.require(algorithm)
 		        .withIssuer(TokenUtils.getTokenIssuer())
@@ -979,6 +989,7 @@ public class AuthServiceImpl implements AuthService {
 		}
 		Env.setContext(Env.getCtx(), Env.AD_SESSION_ID, sessionId);
 		MSession session = new MSession(Env.getCtx(), sessionId, null);
+		session.setWebSession(session.getWebSession() + "-logout");
 		session.logout();
 		RestUtils.removeSavedCtx(sessionId);
 
