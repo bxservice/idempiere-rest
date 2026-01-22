@@ -52,7 +52,6 @@ public class ModelHelper {
 	
 	private final static CLogger log = CLogger.getCLogger(ModelHelper.class);
 	private static final int DEFAULT_QUERY_TIMEOUT = 60 * 2;
-	private static final int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 	private static final String CONTEXT_VARIABLES_SEPARATOR = ",";
 	private static final String CONTEXT_NAMEVALUE_SEPARATOR = ":";
 	
@@ -141,6 +140,7 @@ public class ModelHelper {
 		query.setQueryTimeout(DEFAULT_QUERY_TIMEOUT);
 		rowCount = query.count();
 		pageCount = 1;
+		int MAX_RECORDS_SIZE = MSysConfig.getIntValue("REST_MAX_RECORDS_SIZE", 100);
 		if (MAX_RECORDS_SIZE > 0 && (top > MAX_RECORDS_SIZE || top <= 0))
 			top = MAX_RECORDS_SIZE;
 
