@@ -37,6 +37,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.MTree_Base;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
@@ -62,6 +63,7 @@ public class ExpandParser {
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonElement> tableNameChildArrayMap = new HashMap<>();
 	private MRestView view;
+	private final static CLogger log = CLogger.getCLogger(ExpandParser.class);
 	
 	public ExpandParser(PO po, String expandParameter) {
 		this(po, null, expandParameter);
@@ -159,6 +161,12 @@ public class ExpandParser {
 			tableName = MTree_Base.get(po.get_ValueAsInt("AD_Tree_ID")).getSourceTableName(true);
 		}
 		String foreignTableID = po.get_ValueAsString(columnName);
+		if (Util.isEmpty(foreignTableID) && po.isPartial() && !po.isColumnLoaded(columnName)) {
+			// the foreign key was not included, reload the PO
+			log.warning("For performance reasons, it is recommended to include foreign keys in the $select clause when expanding master records. Reloaded PO to get value for column: " + columnName);
+			po.load(po.get_TrxName());
+			foreignTableID = po.get_ValueAsString(columnName);
+		}
 		
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
 
