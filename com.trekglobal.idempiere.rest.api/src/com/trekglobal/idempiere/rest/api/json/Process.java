@@ -32,6 +32,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
@@ -46,6 +48,7 @@ import org.compiere.model.MPInstance;
 import org.compiere.model.MPInstancePara;
 import org.compiere.model.MProcess;
 import org.compiere.model.MProcessPara;
+import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.print.MPrintFormat;
 import org.compiere.process.ProcessInfo;
@@ -112,8 +115,29 @@ public class Process {
 						iParam.setP_Number(((Number)value).intValue());
 					else if (value instanceof Timestamp)
 						iParam.setP_Date((Timestamp) value);
-					else
-						iParam.setP_String(value.toString());
+					else {
+						String valueStr = value.toString();
+						if (   processPara.getAD_Reference_ID() == DisplayType.FileName
+							&& valueStr.startsWith("base64:")) {
+							// verify if the fileName exists
+							try {
+								byte[] decodedBytes = java.util.Base64.getDecoder().decode(valueStr.substring(7));
+								if (decodedBytes != null && decodedBytes.length > 0) {
+									// create a temp file with the decoded content and set the filename to the temp file
+									String prefix = MSysConfig.getValue(MSysConfig.UPLOAD_TEMP_FILENAME_PREFIX, "idempiere_", Env.getAD_Client_ID(Env.getCtx())) + "RESTUploadedFile";
+									Path tempFile = Files.createTempFile(prefix, ".bin");
+									tempFile.toFile().deleteOnExit();
+									// Write decoded bytes to temp file
+									Files.write(tempFile, decodedBytes);
+									// write the bytes to the temp file
+									valueStr = tempFile.toAbsolutePath().toString();
+								}
+							} catch (Exception e) {
+								throw new AdempiereException(processPara.getName() + " is not a valid base64 encoded file content: " + e.getMessage(), e);
+							}
+						}
+						iParam.setP_String(valueStr);
+					}
 				}
 			}
 			if (processPara.isRange()) {
