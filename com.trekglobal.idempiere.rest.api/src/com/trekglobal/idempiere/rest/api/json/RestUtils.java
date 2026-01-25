@@ -457,11 +457,21 @@ public class RestUtils {
 		// Context session not found in cache
 		Login login = new Login(ctx);
 		int orgId = Env.getAD_Org_ID(ctx);
-		KeyNamePair orgKNPair = new KeyNamePair(orgId, MOrg.get(orgId).getName());
-        KeyNamePair warehouseKNPair = null;
-        int whId = Env.getContextAsInt(ctx, Env.M_WAREHOUSE_ID);
-        if (whId > 0)
-            warehouseKNPair = new KeyNamePair(whId, MWarehouse.get(whId).getName());
+		KeyNamePair orgKNPair = null;
+		if (orgId > 0) {
+			MOrg org = MOrg.get(orgId);
+			if (org != null) {
+				orgKNPair = new KeyNamePair(orgId, org.getName());
+			}
+		}
+		KeyNamePair warehouseKNPair = null;
+		int whId = Env.getContextAsInt(ctx, Env.M_WAREHOUSE_ID);
+		if (whId > 0) {
+			MWarehouse wh = MWarehouse.get(whId);
+			if (wh != null) {
+				warehouseKNPair = new KeyNamePair(whId, wh.getName());
+			}
+		}
 		login.loadPreferences(orgKNPair, warehouseKNPair, null, null);
 
 		ModelValidationEngine.get().afterLoadPreferences(ctx);
