@@ -29,6 +29,7 @@ import org.compiere.model.I_C_BPartner;
 import org.compiere.model.MBPartner;
 import org.compiere.model.MInvoice;
 import org.compiere.model.MUser;
+import org.compiere.process.DocumentEngine;
 import org.compiere.util.Env;
 import org.idempiere.test.DictionaryIDs;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,6 +144,8 @@ public class ExpandParserTest extends RestTestCase {
     @Test
     public void testExpandParserWithSpecialTables() {
     	MInvoice poInvoice = MInvoice.get(104);
+    	if (!poInvoice.isPosted())
+			DocumentEngine.postImmediate(Env.getCtx(), Env.getAD_Client_ID(Env.getCtx()), MInvoice.Table_ID, 104, true, null);
         ExpandParser parser = new ExpandParser(poInvoice, "fact_acct.record_id($select=fact_acct_id),c_invoiceline");
 
         assertEquals(2, parser.getTableNameSQLStatementMap().size());
