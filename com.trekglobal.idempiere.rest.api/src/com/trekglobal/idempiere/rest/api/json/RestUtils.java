@@ -43,7 +43,6 @@ import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.MWarehouse;
-import org.compiere.model.ModelValidationEngine;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CCache;
@@ -473,8 +472,6 @@ public class RestUtils {
 			}
 		}
 		login.loadPreferences(orgKNPair, warehouseKNPair, null, null);
-
-		ModelValidationEngine.get().afterLoadPreferences(ctx);
 
 		if (sessionId > 0) {
 			Properties saveCtx = new Properties();
