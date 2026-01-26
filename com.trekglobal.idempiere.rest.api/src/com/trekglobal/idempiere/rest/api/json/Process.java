@@ -119,7 +119,6 @@ public class Process {
 						String valueStr = value.toString();
 						if (   processPara.getAD_Reference_ID() == DisplayType.FileName
 							&& valueStr.startsWith("base64:")) {
-							// verify if the fileName exists
 							try {
 								byte[] decodedBytes = java.util.Base64.getDecoder().decode(valueStr.substring(7));
 								if (decodedBytes != null && decodedBytes.length > 0) {
@@ -127,9 +126,7 @@ public class Process {
 									String prefix = MSysConfig.getValue(MSysConfig.UPLOAD_TEMP_FILENAME_PREFIX, "idempiere_", Env.getAD_Client_ID(Env.getCtx())) + "RESTUploadedFile";
 									Path tempFile = Files.createTempFile(prefix, ".bin");
 									tempFile.toFile().deleteOnExit();
-									// Write decoded bytes to temp file
 									Files.write(tempFile, decodedBytes);
-									// write the bytes to the temp file
 									valueStr = tempFile.toAbsolutePath().toString();
 								}
 							} catch (Exception e) {
