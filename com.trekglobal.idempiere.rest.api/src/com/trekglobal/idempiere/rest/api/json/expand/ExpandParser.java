@@ -160,13 +160,12 @@ public class ExpandParser {
 		if ("Node_ID".equalsIgnoreCase(columnName) && po.get_ValueAsInt("AD_Tree_ID") > 0) {
 			tableName = MTree_Base.get(po.get_ValueAsInt("AD_Tree_ID")).getSourceTableName(true);
 		}
-		String foreignTableID = po.get_ValueAsString(columnName);
-		if (Util.isEmpty(foreignTableID) && po.isPartial() && !po.isColumnLoaded(columnName)) {
+		if (po.is_Partial() && !po.is_ColumnLoaded(columnName)) {
 			// the foreign key was not included, reload the PO
 			log.warning("For performance reasons, it is recommended to include foreign keys in the $select clause when expanding master records. Reloaded PO to get value for column: " + columnName);
 			po.load(po.get_TrxName());
-			foreignTableID = po.get_ValueAsString(columnName);
 		}
+		String foreignTableID = po.get_ValueAsString(columnName);
 		
 		Query query = RestUtils.getQuery(tableName, foreignTableID, true, false);
 
