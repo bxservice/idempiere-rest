@@ -28,7 +28,6 @@ package com.trekglobal.idempiere.rest.api.json;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,23 +37,21 @@ import java.util.logging.Level;
 
 import javax.ws.rs.core.Response.Status;
 
-import org.compiere.model.MAcctSchema;
-import org.compiere.model.MAcctSchemaElement;
-import org.compiere.model.MClientInfo;
 import org.compiere.model.MColumn;
-import org.compiere.model.MCountry;
+import org.compiere.model.MOrg;
 import org.compiere.model.MRole;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
-import org.compiere.model.MUserPreference;
+import org.compiere.model.MWarehouse;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CCache;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
-import org.compiere.util.Ini;
+import org.compiere.util.KeyNamePair;
 import org.compiere.util.Language;
+import org.compiere.util.Login;
 import org.compiere.util.Util;
 
 import com.trekglobal.idempiere.rest.api.model.MRestView;
@@ -457,68 +454,24 @@ public class RestUtils {
 		}
 
 		// Context session not found in cache
-		if (Util.isEmpty(Env.getContext(ctx, Env.DATE)))
-			Env.setContext(ctx, Env.DATE, new Timestamp(System.currentTimeMillis()));
-
-		boolean roleSet = ! Util.isEmpty(Env.getContext(ctx, Env.AD_ROLE_ID));
-		if (roleSet) {
-			MRole role = MRole.getDefault();
-			Env.setContext(ctx, Env.SHOW_ACCOUNTING, role.isShowAcct());
-			Env.setPredefinedVariables(ctx, -1, role.getPredefinedContextVariables());
-			if (role.isShowAcct())
-				Env.setContext(ctx, Env.SHOW_ACCOUNTING, Ini.getProperty(Ini.P_SHOW_ACCT));
-			else
-				Env.setContext(ctx, Env.SHOW_ACCOUNTING, "N");
-			Env.setContext(ctx, Env.SHOW_ADVANCED, MRole.getDefault().isAccessAdvanced());
-		}
-
-		int clientId = Env.getAD_Client_ID(ctx);
+		Login login = new Login(ctx);
 		int orgId = Env.getAD_Org_ID(ctx);
-		if (clientId > 0) {
-			MClientInfo clientInfo = MClientInfo.get(ctx, clientId);
-			/** Define AcctSchema , Currency, HasAlias **/
-			if (clientInfo.getC_AcctSchema1_ID() > 0) {
-				MAcctSchema primary = MAcctSchema.get(ctx, clientInfo.getC_AcctSchema1_ID());
-				Env.setContext(ctx, Env.C_ACCTSCHEMA_ID, primary.getC_AcctSchema_ID());
-				Env.setContext(ctx, Env.C_CURRENCY_ID, primary.getC_Currency_ID());
-				Env.setContext(ctx, Env.HAS_ALIAS, primary.isHasAlias());
-				MAcctSchemaElement[] els = MAcctSchemaElement.getAcctSchemaElements(primary);
-				for (MAcctSchemaElement el : els)
-					Env.setContext(ctx, "$Element_" + el.getElementType(), "Y");
-			}
-			MAcctSchema[] ass = MAcctSchema.getClientAcctSchema(ctx, clientId);
-			if (ass != null && ass.length > 1) {
-				for (MAcctSchema as : ass) {
-					if (as.getAD_OrgOnly_ID() != 0) {
-						if (as.isSkipOrg(orgId)) {
-							continue;
-						} else  {
-							Env.setContext(ctx, Env.C_ACCTSCHEMA_ID, as.getC_AcctSchema_ID());
-							Env.setContext(ctx, Env.C_CURRENCY_ID, as.getC_Currency_ID());
-							Env.setContext(ctx, Env.HAS_ALIAS, as.isHasAlias());
-							MAcctSchemaElement[] els = MAcctSchemaElement.getAcctSchemaElements(as);
-							for (MAcctSchemaElement el : els)
-								Env.setContext(ctx, "$Element_" + el.getElementType(), "Y");
-							break;
-						}
-					}
-				}
+		KeyNamePair orgKNPair = null;
+		if (orgId > 0) {
+			MOrg org = MOrg.get(orgId);
+			if (org != null) {
+				orgKNPair = new KeyNamePair(orgId, org.getName());
 			}
 		}
-
-		Env.setContext(ctx, Env.SHOW_TRANSLATION, Ini.getProperty(Ini.P_SHOW_TRL));
-		Env.setContext(ctx, Env.DEVELOPER_MODE, Util.isDeveloperMode() ? "Y" : "N");
-
-		if (Env.getAD_User_ID(ctx) > 0) {
-			MUserPreference userPreference = MUserPreference.getUserPreference(Env.getAD_User_ID(ctx), Env.getAD_Client_ID(ctx));
-			userPreference.fillPreferences();
+		KeyNamePair warehouseKNPair = null;
+		int whId = Env.getContextAsInt(ctx, Env.M_WAREHOUSE_ID);
+		if (whId > 0) {
+			MWarehouse wh = MWarehouse.get(whId);
+			if (wh != null) {
+				warehouseKNPair = new KeyNamePair(whId, wh.getName());
+			}
 		}
-
-		Env.setContext(ctx, Env.C_COUNTRY_ID, MCountry.getDefault().getC_Country_ID());
-
-		// TODO: Preferences?  // can have impact on performance, driven by SysConfig?
-		// TODO: Defaults?     // can have impact on performance, driven by SysConfig?
-		// TODO: ModelValidationEngine.get().afterLoadPreferences(m_ctx);    // is this necessary?
+		login.loadPreferences(orgKNPair, warehouseKNPair, null, null);
 
 		if (sessionId > 0) {
 			Properties saveCtx = new Properties();
