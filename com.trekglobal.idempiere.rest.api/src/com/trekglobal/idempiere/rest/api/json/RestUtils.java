@@ -457,7 +457,7 @@ public class RestUtils {
 		Login login = new Login(ctx);
 		int orgId = Env.getAD_Org_ID(ctx);
 		KeyNamePair orgKNPair = null;
-		if (orgId > 0) {
+		if (orgId >= 0) {
 			MOrg org = MOrg.get(orgId);
 			if (org != null) {
 				orgKNPair = new KeyNamePair(orgId, org.getName());
