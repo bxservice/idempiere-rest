@@ -107,33 +107,47 @@ public class Process {
 			if (element == null)
 				element = jsonObject.get(columnName);
 			if (element != null) {			
-				Object value = TypeConverterUtils.fromJsonValue(gridField, element);
-				if (value != null) {
-					if (value instanceof BigDecimal)
-						iParam.setP_Number((BigDecimal)value);
-					else if (value instanceof Number)
-						iParam.setP_Number(((Number)value).intValue());
-					else if (value instanceof Timestamp)
-						iParam.setP_Date((Timestamp) value);
-					else {
-						String valueStr = value.toString();
-						if (   processPara.getAD_Reference_ID() == DisplayType.FileName
-							&& valueStr.startsWith("base64:")) {
-							try {
-								byte[] decodedBytes = java.util.Base64.getDecoder().decode(valueStr.substring(7));
-								if (decodedBytes != null && decodedBytes.length > 0) {
-									// create a temp file with the decoded content and set the filename to the temp file
-									String prefix = MSysConfig.getValue(MSysConfig.UPLOAD_TEMP_FILENAME_PREFIX, "idempiere_", Env.getAD_Client_ID(Env.getCtx())) + "RESTUploadedFile";
-									Path tempFile = Files.createTempFile(prefix, ".bin");
-									tempFile.toFile().deleteOnExit();
-									Files.write(tempFile, decodedBytes);
-									valueStr = tempFile.toAbsolutePath().toString();
-								}
-							} catch (Exception e) {
-								throw new AdempiereException(processPara.getName() + " is not a valid base64 encoded file content: " + e.getMessage(), e);
+				// Handle FileName type with JSON object containing fileName and fileContent
+				if (processPara.getAD_Reference_ID() == DisplayType.FileName && element.isJsonObject()) {
+					JsonObject fileObject = element.getAsJsonObject();
+					JsonElement fileContentElement = fileObject.get("fileContent");
+					if (fileContentElement != null && fileContentElement.isJsonPrimitive()) {
+						try {
+							String base64Content = fileContentElement.getAsString();
+							byte[] decodedBytes = java.util.Base64.getDecoder().decode(base64Content);
+							if (decodedBytes != null && decodedBytes.length > 0) {
+								// Determine file extension from filename if provided
+								JsonElement filenameElement = fileObject.get("fileName");
+								String fileName;
+								if (filenameElement != null && filenameElement.isJsonPrimitive())
+									fileName = filenameElement.getAsString();
+								else
+									fileName = "RESTUploadedFile.bin";
+								// Create a temp file with the decoded content
+								String prefix = MSysConfig.getValue(MSysConfig.UPLOAD_TEMP_FILENAME_PREFIX, "idempiere_", Env.getAD_Client_ID(Env.getCtx()));
+								Path tempFile = Files.createTempFile(prefix, "_" + fileName);
+								tempFile.toFile().deleteOnExit();
+								Files.write(tempFile, decodedBytes);
+								iParam.setP_String(tempFile.toAbsolutePath().toString());
 							}
+						} catch (Exception e) {
+							throw new AdempiereException(processPara.getName() + " is not a valid base64 encoded file content: " + e.getMessage(), e);
 						}
-						iParam.setP_String(valueStr);
+					} else {
+						throw new AdempiereException(processPara.getName() + " requires 'fileContent' element with base64 encoded content");
+					}
+				} else {
+					Object value = TypeConverterUtils.fromJsonValue(gridField, element);
+					if (value != null) {
+						if (value instanceof BigDecimal)
+							iParam.setP_Number((BigDecimal)value);
+						else if (value instanceof Number)
+							iParam.setP_Number(((Number)value).intValue());
+						else if (value instanceof Timestamp)
+							iParam.setP_Date((Timestamp) value);
+						else {
+							iParam.setP_String(value.toString());
+						}
 					}
 				}
 			}
