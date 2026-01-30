@@ -37,6 +37,7 @@ import org.compiere.model.MTable;
 import org.compiere.model.MTree_Base;
 import org.compiere.model.PO;
 import org.compiere.model.Query;
+import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
@@ -62,6 +63,7 @@ public class ExpandParser {
 	private Map<String, String> tableNameSQLStatementMap = new HashMap<>();
 	private Map<String, JsonElement> tableNameChildArrayMap = new HashMap<>();
 	private MRestView view;
+	private final static CLogger log = CLogger.getCLogger(ExpandParser.class);
 	
 	public ExpandParser(PO po, String expandParameter) {
 		this(po, null, expandParameter);
@@ -157,6 +159,11 @@ public class ExpandParser {
 		//handle ad_treenode and ad_tree
 		if ("Node_ID".equalsIgnoreCase(columnName) && po.get_ValueAsInt("AD_Tree_ID") > 0) {
 			tableName = MTree_Base.get(po.get_ValueAsInt("AD_Tree_ID")).getSourceTableName(true);
+		}
+		if (po.is_Partial() && !po.is_ColumnLoaded(columnName)) {
+			// the foreign key was not included, reload the PO
+			log.warning("For performance reasons, it is recommended to include foreign keys in the $select clause when expanding master records. Reloaded PO to get value for column: " + columnName);
+			po.load(po.get_TrxName());
 		}
 		String foreignTableID = po.get_ValueAsString(columnName);
 		
