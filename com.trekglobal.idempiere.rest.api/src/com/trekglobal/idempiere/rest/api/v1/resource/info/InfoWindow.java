@@ -494,10 +494,12 @@ public class InfoWindow {
 						int cnt = DB.getSQLValueEx(null, "SELECT Count(*) From AD_Column WHERE IsActive='Y' AND AD_Client_ID=0 AND Upper(ColumnName)=? AND AD_Reference_ID=?", column.toUpperCase(), DisplayType.ChosenMultipleSelectionList);
 						if (cnt > 0) {
 							SQLFragment filter = DB.intersectFilterForCSV(columnName, pString);
-							builder.append(filter.toSQLWithParameters());
+							builder.append(filter.sqlClause());
+							statementParameters.addAll(filter.parameters());
 						} else {
 							SQLFragment filter = DB.inFilterForCSV(columnName, pString);
-							builder.append(filter.toSQLWithParameters());
+							builder.append(filter.sqlClause());
+							statementParameters.addAll(filter.parameters());
 						}
 					} 
 					else if (mInfoColumn.getAD_Reference_ID() == DisplayType.ChosenMultipleSelectionTable || mInfoColumn.getAD_Reference_ID() == DisplayType.ChosenMultipleSelectionSearch)
@@ -506,12 +508,14 @@ public class InfoWindow {
 						if (columnName.endsWith("_ID"))
 						{						
 							SQLFragment filter = DB.inFilterForCSV(columnName, pString);
-							builder.append(filter.toSQLWithParameters());
+							builder.append(filter.sqlClause());
+							statementParameters.addAll(filter.parameters());
 						}
 						else
 						{
 							SQLFragment filter = DB.intersectFilterForCSV(columnName, pString);
-							builder.append(filter.toSQLWithParameters());
+							builder.append(filter.sqlClause());
+							statementParameters.addAll(filter.parameters());
 						}
 					}
 					else
