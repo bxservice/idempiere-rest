@@ -58,6 +58,7 @@ import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Msg;
 import org.compiere.util.ValueNamePair;
+import org.idempiere.db.util.SQLFragment;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -90,8 +91,6 @@ public class InfoWindow {
 	private String tableName;
 	private Map<String, JsonElement> queryParameters;
 	private boolean useAnd;
-	private List<Object> statementParameters = null;
-	private List<MInfoColumn> statementParameterColumns = null;
 	
 	/**
 	 * 
@@ -417,9 +416,10 @@ public class InfoWindow {
 		
 	}
 	
-	private String buildQuerySQL(int start, int end) {
+	private SQLFragment buildQuerySQL(int start, int end) {
 		String dataSql;
-		String dynWhere = getSQLWhere();
+		SQLFragment dynFilter = getSQLFilter();
+		String dynWhere = dynFilter.sqlClause();
         StringBuilder sql = new StringBuilder (m_sqlMain);
         if (dynWhere.length() > 0)
             sql.append(dynWhere);   //  includes first AND
@@ -441,10 +441,10 @@ public class InfoWindow {
         	dataSql = DB.getDatabase().addPagingSQL(dataSql, start, end);
         }
                 
-		return dataSql;
+        return new SQLFragment(dataSql, dynFilter.parameters());
 	}
 	
-	private String getSQLWhere() {
+	private SQLFragment getSQLFilter() {
 		StringBuilder builder = new StringBuilder();
 		MTable table = MTable.get(Env.getCtx(), tableName);
 		if (table.getColumnIndex("IsActive") >=0 ) {
@@ -454,8 +454,7 @@ public class InfoWindow {
 			builder.append(tableInfos[0].getSynonym()).append(".IsActive='Y'");
 		}
 		int count = 0;
-		statementParameters = new ArrayList<Object>();
-		statementParameterColumns = new ArrayList<MInfoColumn>();
+		List<Object> statementParameters = new ArrayList<Object>();
 		for(Entry<String, JsonElement> entries : queryParameters.entrySet()) {
 			String name = entries.getKey();
 			for(GridField gridField : gridFields) {
@@ -493,21 +492,26 @@ public class InfoWindow {
 						if (column.indexOf(".") > 0)
 							column = column.substring(column.indexOf(".")+1);
 						int cnt = DB.getSQLValueEx(null, "SELECT Count(*) From AD_Column WHERE IsActive='Y' AND AD_Client_ID=0 AND Upper(ColumnName)=? AND AD_Reference_ID=?", column.toUpperCase(), DisplayType.ChosenMultipleSelectionList);
-						if (cnt > 0)
-							builder.append(DB.intersectClauseForCSV(columnName, pString));
-						else
-							builder.append(DB.inClauseForCSV(columnName, pString));
+						if (cnt > 0) {
+							SQLFragment filter = DB.intersectFilterForCSV(columnName, pString);
+							builder.append(filter.toSQLWithParameters());
+						} else {
+							SQLFragment filter = DB.inFilterForCSV(columnName, pString);
+							builder.append(filter.toSQLWithParameters());
+						}
 					} 
 					else if (mInfoColumn.getAD_Reference_ID() == DisplayType.ChosenMultipleSelectionTable || mInfoColumn.getAD_Reference_ID() == DisplayType.ChosenMultipleSelectionSearch)
 					{
 						String pString = value.toString();
 						if (columnName.endsWith("_ID"))
 						{						
-							builder.append(DB.inClauseForCSV(columnName, pString));
+							SQLFragment filter = DB.inFilterForCSV(columnName, pString);
+							builder.append(filter.toSQLWithParameters());
 						}
 						else
 						{
-							builder.append(DB.intersectClauseForCSV(columnName, pString));
+							SQLFragment filter = DB.intersectFilterForCSV(columnName, pString);
+							builder.append(filter.toSQLWithParameters());
 						}
 					}
 					else
@@ -539,8 +543,7 @@ public class InfoWindow {
 						} else {
 							builder.append(" ?");
 						}
-						statementParameters.add(value);
-						statementParameterColumns.add(mInfoColumn);
+						statementParameters.add(toParameterValue(value, mInfoColumn.getQueryOperator()));
 					}
 					break;
 				}
@@ -551,10 +554,20 @@ public class InfoWindow {
 		}
 		String sql = builder.toString();
 		if (sql.indexOf("@") >= 0) {
+			String preParse = sql;
+			List<Object> parameters = new ArrayList<Object>();
 			sql = Env.parseContext(Env.getCtx(), 0, sql, true, true);
+			sql = Env.parseContextForSql(Env.getCtx(), 0, sql, true, true, parameters);
+			if (parameters.size() > 0) {
+				if (statementParameters.size() > 0) {
+					statementParameters = Env.mergeParameters(preParse, sql, statementParameters.toArray(), parameters.toArray());
+				} else {
+					statementParameters = parameters;
+				}
+			}
 		}
 		
-		return sql;
+		return new SQLFragment(sql, statementParameters);
 	}
 
 	private MInfoColumn findInfoColumn(GridField gridField) {
@@ -597,13 +610,12 @@ public class InfoWindow {
 		int pagesToSkip = pageNo - 1;
 		int start = (pageSize*pagesToSkip) + 1;
 		int end = (pageSize * (pagesToSkip+1)) + 1;
-		String sql = buildQuerySQL(start, end);
+		SQLFragment sql = buildQuerySQL(start, end);
 		JsonArray array = new JsonArray();
-		try (PreparedStatement pstmt = DB.prepareStatement(sql, null)) {
-			for(int i = 0; i < statementParameters.size(); i++) {
-				Object value = statementParameters.get(i);
-				MInfoColumn infoColumn = statementParameterColumns.get(i);
-				setParameter(pstmt, i+1, value, infoColumn.getQueryOperator());
+		try (PreparedStatement pstmt = DB.prepareStatement(sql.sqlClause(), null)) {
+			for(int i = 0; i < sql.parameters().size(); i++) {
+				Object value = sql.parameters().get(i);
+				setParameter(pstmt, i+1, value);
 			}
 			pstmt.setQueryTimeout(defaultQueryTimeout);			
 			ResultSet rs = pstmt.executeQuery();
@@ -659,13 +671,20 @@ public class InfoWindow {
 	 * @param pstmt
 	 * @param parameterIndex
 	 * @param value
-	 * @param queryOperator
 	 * @throws SQLException
 	 */
-	private void setParameter (PreparedStatement pstmt, int parameterIndex, Object value, String queryOperator) throws SQLException {
+	private void setParameter (PreparedStatement pstmt, int parameterIndex, Object value) throws SQLException {
 		if (value instanceof Boolean) {					
 			pstmt.setString(parameterIndex, ((Boolean) value).booleanValue() ? "Y" : "N");
-		} else if (value instanceof String) {
+		} else if (value instanceof String valueStr) {
+			pstmt.setString(parameterIndex, valueStr);
+		} else {
+			pstmt.setObject(parameterIndex, value);
+		}
+	}
+	
+	private Object toParameterValue(Object value, String queryOperator) {
+		if (value instanceof String) {
 			StringBuilder valueStr = new StringBuilder(value.toString());
 			if (queryOperator.equals(X_AD_InfoColumn.QUERYOPERATOR_Like)) {
 				if (!valueStr.toString().endsWith("%"))
@@ -676,9 +695,8 @@ public class InfoWindow {
 				if (!valueStr.toString().endsWith("%"))
 					valueStr.append("%");
 			}
-			pstmt.setString(parameterIndex, valueStr.toString());
-		} else {
-			pstmt.setObject(parameterIndex, value);
+			return valueStr.toString();
 		}
+		return value;
 	}
 }
