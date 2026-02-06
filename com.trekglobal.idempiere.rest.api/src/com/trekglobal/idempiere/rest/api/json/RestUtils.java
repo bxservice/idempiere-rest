@@ -451,6 +451,9 @@ public class RestUtils {
 				setCtxFromSavedCtx(ctx, savedCtx);
 				return;
 			}
+		} else {
+			// no session yet, can be in the login process
+			return;
 		}
 
 		// Context session not found in cache
