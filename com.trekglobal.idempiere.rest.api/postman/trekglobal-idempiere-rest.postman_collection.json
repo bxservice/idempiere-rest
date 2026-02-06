@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "acb847ec-4d55-4823-9a6c-e9a087f3e786",
+		"_postman_id": "bc47a50e-32e6-48f5-8467-5fd3fdcd29bf",
 		"name": "trekglobal-idempiere-rest",
 		"description": "Import or create an environment with the variables: host, port, protocol, userName, password, clientId, roleId, organizationId, warehouseId, language, sysuserName and syspassword\n\nRun POST api/v1/auth/tokens to get the first authentication token.\n\nThen run PUT api/v1/auth/tokens to get the second authentication token.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "8597989"
+		"_exporter_id": "7631578"
 	},
 	"item": [
 		{
@@ -1337,7 +1337,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n    \"Name\": \"Monroe\",\n     \"C_Location_ID\": {\n        \"id\": 125,  // if id = 0 a new C_Location is created an linked to the record\n        \"address1\": \"address 1\",\n        \"address2\": \"address 2\",\n        \"address3\": \"address 3\",\n        \"address4\": \"address 4\",\n        \"address5\": \"address 5\",\n        \"postal\": \"postal\",\n        \"postal_add\": \"add\",\n        \"c_country_id\": 100,\n        \"c_region_id\": 102,\n        \"regionname\": \"RN\",\n        \"c_city_id\": 0,\n        \"city\": \"Near Village\",\n        \"comments\": \"comments\",\n        \"isactive\": true\n    }\n}"
+					"raw": "{\n    \"Name\": \"Monroe\",\n     \"C_Location_ID\": {\n        \"id\": 125,  // if id = 0 a new C_Location is created an linked to the record\n        \"address1\": \"address 1\",\n        \"address2\": \"address 2\",\n        \"address3\": \"address 3\",\n        \"address4\": \"address 4\",\n        \"address5\": \"address 5\",\n        \"postal\": \"postal\",\n        \"Postal_Add\": \"add\",\n        \"C_Country_ID\": 100,\n        \"C_Region_ID\": 102,\n        \"RegionName\": \"RN\",\n        \"C_City_ID\": 0,\n        \"city\": \"Near Village\",\n        \"comments\": \"comments\",\n        \"IsActive\": true\n    }\n}"
 				},
 				"url": {
 					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_bpartner_location/117",
@@ -1700,7 +1700,7 @@
 					}
 				],
 				"url": {
-					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows?$filter=name eq 'Bank / Cash'",
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows?$filter=name eq 'Bank/Cash'",
 					"protocol": "{{protocol}}",
 					"host": [
 						"{{host}}"
@@ -1714,7 +1714,7 @@
 					"query": [
 						{
 							"key": "$filter",
-							"value": "name eq 'Bank / Cash'"
+							"value": "name eq 'Bank/Cash'"
 						}
 					]
 				},
