@@ -63,6 +63,7 @@ import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
 import org.compiere.wf.MWorkflow;
+import org.idempiere.db.util.SQLFragment;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -748,7 +749,7 @@ public class WindowResourceImpl implements WindowResource {
 		IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 		if (!Util.isEmpty(filter, true)) {
 			MQuery gridTabQuery = new MQuery(gridTab.getTableName());
-			gridTabQuery.addRestriction(filter);
+			gridTabQuery.addRestriction(new SQLFragment(filter));
 			gridTab.setQuery(gridTabQuery);
 			gridTab.query(false);
 		} else {
@@ -1109,7 +1110,7 @@ public class WindowResourceImpl implements WindowResource {
 						gridTab.query(false);
 					} else {
 						MQuery query = new MQuery("");
-			    		query.addRestriction("1=2");
+			    		query.addRestriction(new SQLFragment("1=2"));
 						query.setRecordCount(0);
 						gridTab.setQuery(query);
 						gridTab.query(false);
