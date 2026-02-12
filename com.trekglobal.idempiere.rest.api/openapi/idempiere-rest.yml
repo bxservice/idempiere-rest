@@ -5378,12 +5378,7 @@ paths:
           schema:
             type: string
           description: json for info window query parameters
-        - name: $where_clause
-          in: query
-          schema:
-            type: string
-          description: where clause for info window
-        - name: $order_by
+        - name: $orderby
           in: query
           schema:
             type: string
