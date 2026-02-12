@@ -5393,6 +5393,10 @@ paths:
         '200':
           description: Successful response
           headers:
+            X-Array-Count:
+              schema:
+                type: integer
+              description: total number of records
             X-Page:
               schema:
                 type: integer
@@ -5414,6 +5418,9 @@ paths:
               schema:
                 type: object
                 properties:
+                  row-count:
+                    type: integer
+                    description: total number of records
                   infowindow-records:
                     type: array
                     items:
