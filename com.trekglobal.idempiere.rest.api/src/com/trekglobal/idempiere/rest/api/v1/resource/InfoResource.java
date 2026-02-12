@@ -59,9 +59,7 @@ public interface InfoResource {
 	/**
 	 * Get records
 	 * @param infoSlug infowindow name slug
-	 * @param searchValue optional free text search value
 	 * @param parameters optional query parameters (in json {property:value} format)
-	 * @param whereClause optional whereClause
 	 * @param orderBy optional order by clause
 	 * @param pageNo
 	 * @return json array of records
