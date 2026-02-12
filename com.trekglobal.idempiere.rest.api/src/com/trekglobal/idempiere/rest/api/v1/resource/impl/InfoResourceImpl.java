@@ -127,7 +127,7 @@ public class InfoResourceImpl implements InfoResource {
 	}
 
 	@Override
-	public Response getInfoWindowRecords(String infoSlug, String parameters, String whereClause, String orderBy, int pageNo) {
+	public Response getInfoWindowRecords(String infoSlug, String parameters, String orderBy, int pageNo) {
 		Query query = new Query(Env.getCtx(), MInfoWindow.Table_Name, "slugify(name)=?", null);
 		query.setOnlyActiveRecords(true).setApplyAccessFilter(true);
 		MInfoWindow infoWindowModel = query.setParameters(infoSlug).first();
@@ -163,7 +163,7 @@ public class InfoResourceImpl implements InfoResource {
 			}
 		}
 		
-		InfoWindow infoWindow = new InfoWindow(infoWindowModel, whereClause, orderBy, true);
+		InfoWindow infoWindow = new InfoWindow(infoWindowModel, null, orderBy, true);
 		infoWindow.setQueryParameters(paraMap);
 		QueryResponse queryResponse = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
 		JsonArray array = queryResponse.getRecords();

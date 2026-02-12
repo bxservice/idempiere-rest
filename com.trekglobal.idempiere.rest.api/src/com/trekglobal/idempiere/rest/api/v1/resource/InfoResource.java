@@ -66,7 +66,7 @@ public interface InfoResource {
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("$parameters") String parameters, @QueryParam("$where_clause") String whereClause, 
+	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("$parameters") String parameters, 
 			@QueryParam("$order_by") String orderBy, @DefaultValue("0") @QueryParam("$page_no") int pageNo);
 	
 
