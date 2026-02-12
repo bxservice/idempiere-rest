@@ -168,10 +168,12 @@ public class InfoResourceImpl implements InfoResource {
 		QueryResponse queryResponse = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
 		JsonArray array = queryResponse.getRecords();
 		JsonObject json = new JsonObject();
+		json.addProperty("row-count", array.size());
 		json.add("infowindow-records", array);
 		ResponseBuilder response = Response.ok(json.toString());
 		if (array.size() > 0) {
 			pageNo = queryResponse.getPageNo();
+			response.header("X-Array-Count", array.size());
 			response.header("X-Page", pageNo);
 			response.header("X-Per-Page", DEFAULT_PAGE_SIZE);
 			if (queryResponse.isHasNextPage()) {
