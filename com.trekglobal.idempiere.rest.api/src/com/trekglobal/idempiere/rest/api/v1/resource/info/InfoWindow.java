@@ -99,9 +99,8 @@ public class InfoWindow {
 	 * @param orderBy
 	 * @param and
 	 */
-	public InfoWindow(MInfoWindow iw, String whereClause, String orderBy, boolean and) {
+	public InfoWindow(MInfoWindow iw, String orderBy, boolean and) {
 		infoWindowModel = iw; 
-		p_whereClause = whereClause;
 		p_orderBy = orderBy;
 		useAnd = and;
 		loadInfoDefinition();

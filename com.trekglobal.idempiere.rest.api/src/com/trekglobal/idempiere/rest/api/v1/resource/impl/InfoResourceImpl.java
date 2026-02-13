@@ -163,7 +163,7 @@ public class InfoResourceImpl implements InfoResource {
 			}
 		}
 		
-		InfoWindow infoWindow = new InfoWindow(infoWindowModel, null, orderBy, true);
+		InfoWindow infoWindow = new InfoWindow(infoWindowModel, orderBy, true);
 		infoWindow.setQueryParameters(paraMap);
 		QueryResponse queryResponse = infoWindow.executeQuery(DEFAULT_PAGE_SIZE, pageNo, DEFAULT_QUERY_TIMEOUT);
 		JsonArray array = queryResponse.getRecords();
