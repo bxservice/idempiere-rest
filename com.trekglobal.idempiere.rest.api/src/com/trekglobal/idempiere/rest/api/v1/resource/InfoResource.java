@@ -59,15 +59,13 @@ public interface InfoResource {
 	/**
 	 * Get records
 	 * @param infoSlug infowindow name slug
-	 * @param searchValue optional free text search value
 	 * @param parameters optional query parameters (in json {property:value} format)
-	 * @param whereClause optional whereClause
 	 * @param orderBy optional order by clause
 	 * @param pageNo
 	 * @return json array of records
 	 */
-	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("$parameters") String parameters, @QueryParam("$where_clause") String whereClause, 
-			@QueryParam("$order_by") String orderBy, @DefaultValue("0") @QueryParam("$page_no") int pageNo);
+	public Response getInfoWindowRecords(@PathParam("slug") String infoSlug, @QueryParam("$parameters") String parameters, 
+			@QueryParam(QueryOperators.ORDERBY) String orderBy, @DefaultValue("0") @QueryParam("$page_no") int pageNo);
 	
 
 	@Path("{slug}/columns")
