@@ -595,6 +595,7 @@ public class InfoWindow {
 	 * <p>
 	 * If validation succeeds, p_orderBy is modified to contain the SQL select clauses instead of column names.
 	 * If any column name is invalid, p_orderBy is set to null and the method returns false.
+	 * Sort directions are validated to prevent SQL injection (only ASC and DESC are allowed).
 	 * </p>
 	 * 
 	 * @return true if p_orderBy is valid and was successfully transformed, false if invalid or empty
@@ -619,7 +620,20 @@ public class InfoWindow {
 				int spaceIndex = part.indexOf(' ');
 				if (spaceIndex > 0) {
 					columnName = part.substring(0, spaceIndex).trim();
-					sortDirection = " " + part.substring(spaceIndex).trim();
+					String rawDirection = part.substring(spaceIndex).trim();
+					
+					// Validate sort direction to prevent SQL injection
+					if (!rawDirection.isEmpty()) {
+						String upperDirection = rawDirection.toUpperCase();
+						if ("ASC".equals(upperDirection) || "DESC".equals(upperDirection)) {
+							sortDirection = " " + upperDirection;
+						} else {
+							// Invalid sort direction - potential SQL injection attempt
+							p_orderBy = null;
+							log.log(Level.WARNING, "Invalid sort direction in order by clause: " + rawDirection);
+							return false;
+						}
+					}
 				}
 
 				// Check if the column name matches any info column
@@ -627,7 +641,7 @@ public class InfoWindow {
 				for (MInfoColumn infoColumn : infoColumns) {
 					
 					// Only consider displayed columns for ORDER BY - same as in UI
-					if (!infoColumn.isDisplayed()) {
+					if (!infoColumn.isDisplayed(Env.getCtx(), 0)) {
 						continue;
 					}
 					
@@ -652,7 +666,7 @@ public class InfoWindow {
 				// If any column is invalid, return false
 				if (!found) {
 					p_orderBy = null;
-					log.log(Level.WARNING, "Invalid order by clause.");
+					log.log(Level.WARNING, "Invalid column name in order by clause: " + columnName);
 					return false;
 				}
 			}
