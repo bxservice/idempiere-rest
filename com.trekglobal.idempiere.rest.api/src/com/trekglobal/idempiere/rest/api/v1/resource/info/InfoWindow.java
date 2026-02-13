@@ -57,6 +57,7 @@ import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Msg;
+import org.compiere.util.Util;
 import org.compiere.util.ValueNamePair;
 import org.idempiere.db.util.SQLFragment;
 
@@ -209,8 +210,10 @@ public class InfoWindow {
 				
 		columnInfos = list;
 		
+		validateOrderByParameter(); 
+		
 		prepareQuery(list.toArray(new ColumnInfo[0]), infoWindowModel.getFromClause(), p_whereClause, 
-				p_orderBy != null ? p_orderBy : infoWindowModel.getOrderByClause());		
+				p_orderBy != null ? p_orderBy : infoWindowModel.getOrderByClause());
 	}
 	
 	private ColumnInfo toColumnInfo(MInfoColumn infoColumn, GridField gridField) {
@@ -428,6 +431,10 @@ public class InfoWindow {
         	sql.delete(index, sql.length());
         }
         
+        if (!Util.isEmpty(m_sqlOrder, true)) {
+			sql.append(m_sqlOrder);
+		}
+        
         dataSql = Msg.parseTranslation(Env.getCtx(), sql.toString());    //  Variables
         String alias = tableName;
         if (tableInfos[0].getSynonym() != null && tableInfos[0].getSynonym().trim().length() > 0) {
@@ -571,6 +578,92 @@ public class InfoWindow {
 		}
 		
 		return new SQLFragment(sql, statementParameters);
+	}
+	
+	/**
+	 * Validates the ORDER BY parameter against info columns and transforms column names to their SQL select clauses.
+	 * <p>
+	 * This method checks if p_orderBy contains valid column names that exist in the infoColumns array.
+	 * It supports multiple formats:
+	 * <ul>
+	 * <li>Single column: "name"</li>
+	 * <li>Single column with sort direction: "name desc"</li>
+	 * <li>Multiple columns: "name,value"</li>
+	 * <li>Multiple columns with sort directions: "name, value desc"</li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * If validation succeeds, p_orderBy is modified to contain the SQL select clauses instead of column names.
+	 * If any column name is invalid, p_orderBy is set to null and the method returns false.
+	 * </p>
+	 * 
+	 * @return true if p_orderBy is valid and was successfully transformed, false if invalid or empty
+	 */
+	private boolean validateOrderByParameter() {
+		if (!Util.isEmpty(p_orderBy, true)) {
+			String orderByClause = p_orderBy.trim();
+			
+			// Split by comma to handle multiple columns (e.g., "name, value desc")
+			String[] orderByParts = orderByClause.split(",");
+			StringBuilder validatedOrderBy = new StringBuilder();
+			
+			for (String part : orderByParts) {
+				part = part.trim();
+				if (part.isEmpty()) {
+					continue;
+				}
+				
+				// Extract column name and sort direction (ASC/DESC)
+				String columnName = part;
+				String sortDirection = "";
+				int spaceIndex = part.indexOf(' ');
+				if (spaceIndex > 0) {
+					columnName = part.substring(0, spaceIndex).trim();
+					sortDirection = " " + part.substring(spaceIndex).trim();
+				}
+
+				// Check if the column name matches any info column
+				boolean found = false;
+				for (MInfoColumn infoColumn : infoColumns) {
+					
+					// Only consider displayed columns for ORDER BY - same as in UI
+					if (!infoColumn.isDisplayed()) {
+						continue;
+					}
+					
+					if (infoColumn.getColumnName().equalsIgnoreCase(columnName)) {
+						String selectClause = infoColumn.getSelectClause();
+						// Remove any AS clause from select clause for ORDER BY
+						int asIndex = selectClause.toUpperCase().lastIndexOf(" AS ");
+						if (asIndex > 0) {
+							selectClause = selectClause.substring(0, asIndex).trim();
+						}
+						
+						// Append to the validated ORDER BY clause
+						if (validatedOrderBy.length() > 0) {
+							validatedOrderBy.append(", ");
+						}
+						validatedOrderBy.append(selectClause).append(sortDirection);
+						found = true;
+						break;
+					}
+				}
+				
+				// If any column is invalid, return false
+				if (!found) {
+					p_orderBy = null;
+					log.log(Level.WARNING, "Invalid order by clause.");
+					return false;
+				}
+			}
+			
+			// Set the validated ORDER BY clause
+			p_orderBy = validatedOrderBy.length() > 0 ? validatedOrderBy.toString() : null;
+			return p_orderBy != null;
+		}
+		
+		p_orderBy = null;
+		return false;
 	}
 
 	private MInfoColumn findInfoColumn(GridField gridField) {
