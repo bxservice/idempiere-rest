@@ -748,8 +748,13 @@ public class WindowResourceImpl implements WindowResource {
 	private QueryResult query(GridTab gridTab, String filter, String sortColumn, int pageNo) {
 		IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 		if (!Util.isEmpty(filter, true)) {
+			IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+			ConvertedQuery convertedStatement = converter.convertStatement(gridTab.getTableName(), filter);
+			if (log.isLoggable(Level.INFO))
+				log.info("Where Clause: " + convertedStatement.getWhereClause());
 			MQuery gridTabQuery = new MQuery(gridTab.getTableName());
-			gridTabQuery.addRestriction(new SQLFragment(filter));
+			gridTabQuery.addRestriction(
+					new SQLFragment(convertedStatement.getWhereClause(), convertedStatement.getParameters()));
 			gridTab.setQuery(gridTabQuery);
 			gridTab.query(false);
 		} else {
