@@ -425,6 +425,11 @@ public class ModelResourceImpl implements ModelResource {
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(tableName, MTable.getClass(tableName));
 			serializer.setWindowNo(windowNo);
 			PO po = serializer.fromJson(jsonObject, table, view);
+			if (po.getAD_Client_ID() != Env.getAD_Client_ID(Env.getCtx())) {
+				log.log(Level.SEVERE, "Tenant " + Env.getAD_Client_ID(Env.getCtx()) + " attempt to create record for tenant: " + po.getAD_Client_ID(), 
+						new CrossTenantException(true, po.get_TableName(), -1));
+				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Update error", "You are not allowed to create a record for another tenant","");
+			}
 			if (!RestUtils.hasRoleUpdateAccess(po.getAD_Client_ID(), po.getAD_Org_ID(), po.get_Table_ID(), 0, true))
 				return ResponseUtils.getResponseError(Status.FORBIDDEN, "Update error", "Role does not have access","");
 
