@@ -313,6 +313,14 @@ public class WindowResourceImpl implements WindowResource {
 	
 	@Override
 	public Response getWindowRecords(String windowSlug, String filter, String sortColumn, int pageNo) {
+		try {
+			return doGetWindowRecords(windowSlug, filter, sortColumn, pageNo);
+		} catch (Exception ex) {
+			return ResponseUtils.getResponseErrorFromException(ex, "Internal Server Error");
+		}	
+	}
+
+	private Response doGetWindowRecords(String windowSlug, String filter, String sortColumn, int pageNo) {
 		MRole role = MRole.getDefault();
 		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
 		query.setApplyAccessFilter(true).setOnlyActiveRecords(true);
@@ -370,6 +378,15 @@ public class WindowResourceImpl implements WindowResource {
 	
 	@Override
 	public Response getChildTabRecords(String windowSlug, String tabSlug, int recordId, String childTabSlug,
+			String filter, String sortColumn, int pageNo) {
+		try {
+			return doGetChildTabRecords(windowSlug, tabSlug, recordId, childTabSlug, filter, sortColumn, pageNo);
+		} catch (Exception ex) {
+			return ResponseUtils.getResponseErrorFromException(ex, "Internal Server Error");
+		}
+	}
+
+	private Response doGetChildTabRecords(String windowSlug, String tabSlug, int recordId, String childTabSlug,
 			String filter, String sortColumn, int pageNo) {
 		MRole role = MRole.getDefault();
 		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
@@ -748,8 +765,23 @@ public class WindowResourceImpl implements WindowResource {
 	private QueryResult query(GridTab gridTab, String filter, String sortColumn, int pageNo) {
 		IGridTabSerializer serializer = IGridTabSerializer.getGridTabSerializer(gridTab.getAD_Tab_UU());
 		if (!Util.isEmpty(filter, true)) {
+			IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
+			ConvertedQuery convertedStatement = converter.convertStatement(gridTab.getTableName(), filter);
+			if (log.isLoggable(Level.INFO))
+				log.info("Where Clause: " + convertedStatement.getWhereClause());
 			MQuery gridTabQuery = new MQuery(gridTab.getTableName());
-			gridTabQuery.addRestriction(new SQLFragment(filter));
+			var queryParam = convertedStatement.getParameters();
+			// change boolean to Y/N
+			List<Object> paramList = new ArrayList<>();
+			for(Object param : queryParam) {
+				if(param instanceof Boolean b) {
+					paramList.add(b ? "Y" : "N");
+				} else {
+					paramList.add(param);
+				}
+			}
+			gridTabQuery.addRestriction(
+					new SQLFragment(convertedStatement.getWhereClause(), paramList));
 			gridTab.setQuery(gridTabQuery);
 			gridTab.query(false);
 		} else {
