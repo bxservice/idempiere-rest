@@ -1,12 +1,12 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: REST API
+Bundle-Name: iDempiere REST API
 Bundle-SymbolicName: com.trekglobal.idempiere.rest.api
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 1.0.0.qualifier
 Bundle-Activator: com.trekglobal.idempiere.rest.api.Activator
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-Vendor: Trek Global
-Automatic-Module-Name: org.idempiere.rest.api
+Automatic-Module-Name: com.trekglobal.idempiere.rest.api
 Import-Package: com.sun.xml.txw2,
  com.sun.xml.txw2.annotation,
  com.sun.xml.txw2.output,
