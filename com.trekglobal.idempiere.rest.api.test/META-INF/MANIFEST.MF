@@ -4,7 +4,7 @@ Bundle-Name: Trek Extensions Test
 Bundle-SymbolicName: com.trekglobal.idempiere.rest.api.test
 Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: TREKGLOBAL
-Automatic-Module-Name: com.trekglobal.extension.test
+Automatic-Module-Name: com.trekglobal.idempiere.rest.api.test
 Bundle-Activator: com.trekglobal.idempiere.rest.api.json.test.Activator
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Import-Package: com.google.gson;version="[2.9.0,3.0.0]",
@@ -29,4 +29,4 @@ Import-Package: com.google.gson;version="[2.9.0,3.0.0]",
  org.osgi.framework;version="[1.10.0,2.0.0)",
  org.osgi.util.tracker;version="[1.5.0,2.0.0)"
 Require-Bundle: org.adempiere.base;bundle-version="11.0.0",
- com.trekglobal.idempiere.rest.api;bundle-version="0.1.0"
+ com.trekglobal.idempiere.rest.api;bundle-version="1.0.0"
