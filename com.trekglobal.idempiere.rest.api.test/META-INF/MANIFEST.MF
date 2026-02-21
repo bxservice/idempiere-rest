@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Trek Extensions Test
 Bundle-SymbolicName: com.trekglobal.idempiere.rest.api.test
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 1.0.0.qualifier
 Bundle-Vendor: TREKGLOBAL
 Automatic-Module-Name: com.trekglobal.extension.test
 Bundle-Activator: com.trekglobal.idempiere.rest.api.json.test.Activator
