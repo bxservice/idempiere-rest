@@ -40,9 +40,12 @@ import javax.ws.rs.core.Response.Status;
 
 import org.compiere.model.DataStatusEvent;
 import org.compiere.model.DataStatusListener;
+import org.adempiere.base.Core;
+import org.adempiere.base.IColumnCallout;
 import org.compiere.model.GridField;
 import org.compiere.model.GridTab;
 import org.compiere.model.GridWindow;
+import org.compiere.model.MColumn;
 import org.compiere.model.MField;
 import org.compiere.model.MPInstance;
 import org.compiere.model.MProcess;
@@ -287,8 +290,20 @@ public class WindowResourceImpl implements WindowResource {
 			List<MField> fields = query.setParameters(prmCopy).list();
 			JsonArray fieldArray = new JsonArray();
 			IPOSerializer serializer = IPOSerializer.getPOSerializer(MField.Table_Name, MTable.getClass(MField.Table_Name));
+			Map<Integer, Boolean> hasCalloutCache = new HashMap<>();
 			for(MField field : fields ) {
 				JsonObject jsonObject = serializer.toJson(field, FIELD_SELECT_COLUMNS, null);
+				boolean hasCallout = hasCalloutCache.computeIfAbsent(field.getAD_Column_ID(), columnId -> {
+					MColumn column = MColumn.get(Env.getCtx(), columnId);
+					boolean result = !Util.isEmpty(column.getCallout(), true);
+					if (!result) {
+						String tableName = MTable.getTableName(Env.getCtx(), column.getAD_Table_ID());
+						List<IColumnCallout> callouts = Core.findCallout(tableName, column.getColumnName());
+						result = callouts != null && !callouts.isEmpty();
+					}
+					return result;
+				});
+				jsonObject.addProperty("hasCallout", hasCallout);
 				fieldArray.add(jsonObject);
 			}
 
