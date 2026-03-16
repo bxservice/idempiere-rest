@@ -4406,6 +4406,10 @@ paths:
                     "doc-action": "CO"
                   }
       responses:
+        '200':
+          description: Dry run successful 
+          content:
+            application/json: {}
         '201':
           description: Successful response
           content:
@@ -4416,30 +4420,30 @@ paths:
           $ref: '#/components/responses/ServerError'
   /windows/{windowSlug}/{id}:
     parameters:
+      - name: windowSlug
+        in: path
+        required: true
+        description: slugify window name
+        schema:
+          type: string
+        examples:
+          bankCashWindow:
+            value: 'bank-cash'
+      - name: id
+        in: path
+        required: true
+        description: record id
+        schema:
+          type: integer
+        examples:
+          bankCash_100:
+            value: 100
       - $ref: '#/components/parameters/locale'
     get:
       tags:
         - Windows
       summary: Get record by id
-      parameters:
-        - name: windowSlug
-          in: path
-          required: true
-          description: slugify window name
-          schema:
-            type: string
-          examples:
-            bankCashWindow:
-              value: 'bank-cash'
-        - name: id
-          in: path
-          required: true
-          description: record id
-          schema:
-            type: integer
-          examples:
-            bankCash_100:
-              value: 100
+      parameters:        
         - name: $expand
           in: query
           schema:
@@ -4459,6 +4463,37 @@ paths:
           $ref: '#/components/responses/ServerError'
         '404':
           $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Windows
+      summary: Update window record by id (tab 0)
+      parameters:
+        - name: $save
+          in: query
+          description: optional flag to save changes to database
+          schema:
+            type: boolean
+            default: true
+          required: false
+      requestBody:
+        content:
+          application/json:
+            examples:
+              bankCashWindow:
+                value:
+                  {
+                      "Name": "My MoneyBank"
+                  }
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+        '500':
+          $ref: '#/components/responses/ServerError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /windows/{windowSlug}/{id}/print:
     parameters:
       - $ref: '#/components/parameters/locale'
@@ -4690,6 +4725,10 @@ paths:
                       }
                   }
       responses:
+        '200':
+          description: Dry run successful 
+          content:
+            application/json: {}
         '201':
           description: Successful response
           content:
