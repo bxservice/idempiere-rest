@@ -34,6 +34,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -145,9 +146,10 @@ public interface WindowResource {
 	 * @param windowSlug slug of window name
 	 * @param recordId
 	 * @param jsonText json representation of data to process
+	 * @param save optional flag to save record, default true
 	 * @return json representation of updated record
 	 */
-	public Response updateWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, String jsonText);
+	public Response updateWindowRecord(@PathParam("windowSlug") String windowSlug, @PathParam("recordId") int recordId, String jsonText, @QueryParam("$save") @DefaultValue("true") boolean save);
 	
 	@Path("{windowSlug}")
 	@POST
@@ -159,9 +161,10 @@ public interface WindowResource {
 	 *   doc-action (document action to execute)
 	 * @param windowSlug slug of window name
 	 * @param jsonText json representation of data to process
+	 * @param save optional flag to save record, default true
 	 * @return json representation of created record
 	 */
-	public Response createWindowRecord(@PathParam("windowSlug") String windowSlug, String jsonText);
+	public Response createWindowRecord(@PathParam("windowSlug") String windowSlug, String jsonText, @QueryParam("$save") @DefaultValue("true") boolean save);
 	
 	@Path("{windowSlug}/{recordId}")
 	@DELETE
@@ -186,9 +189,10 @@ public interface WindowResource {
 	 * @param tabSlug slug of tab name
 	 * @param recordId
 	 * @param jsonText json representation of data to process
+	 * @param save optional flag to save record, default true
 	 * @return json representation of updated record
 	 */
-	public Response updateTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, String jsonText);
+	public Response updateTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, String jsonText, @QueryParam("$save") @DefaultValue("true") boolean save);
 	
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}/{childTabSlug}")
 	@POST
@@ -201,10 +205,11 @@ public interface WindowResource {
 	 * @param recordId id of parent record
 	 * @param childTabSlug slug of child tab name
 	 * @param jsonText json representation of created record
+	 * @param save optional flag to save record, default true
 	 * @return json representation of created record
 	 */
 	public Response createChildTabRecord(@PathParam("windowSlug") String windowSlug, @PathParam("tabSlug") String tabSlug, @PathParam("recordId") int recordId, 
-			@PathParam("childTabSlug") String childTabSlug, String jsonText);
+			@PathParam("childTabSlug") String childTabSlug, String jsonText, @QueryParam("$save") @DefaultValue("true") boolean save);
 	
 	@Path("{windowSlug}/tabs/{tabSlug}/{recordId}")
 	@DELETE
