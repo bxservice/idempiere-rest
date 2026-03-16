@@ -4383,7 +4383,7 @@ paths:
       parameters:
         - name: $save
           in: query
-          description: optional flag to save changes to database
+          description: If false, applies default values and callouts without persisting changes to the database
           schema:
             type: boolean
             default: true
@@ -4470,7 +4470,7 @@ paths:
       parameters:
         - name: $save
           in: query
-          description: optional flag to save changes to database
+          description: If false, applies default values and callouts without persisting changes to the database
           schema:
             type: boolean
             default: true
@@ -4581,7 +4581,7 @@ paths:
       parameters:
         - name: $save
           in: query
-          description: optional flag to save changes to database
+          description: If false, applies default values and callouts without persisting changes to the database
           schema:
             type: boolean
             default: true
@@ -4699,7 +4699,7 @@ paths:
       parameters:
         - name: $save
           in: query
-          description: optional flag to save changes to database
+          description: If false, applies default values and callouts without persisting changes to the database
           schema:
             type: boolean
             default: true
