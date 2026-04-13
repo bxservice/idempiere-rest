@@ -100,6 +100,9 @@ public class RequestFilter implements ContainerRequestFilter {
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
 					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/logout")
 					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().startsWith("v1/webhooks/")
+					)
 			) {
 			return;
 		}
