@@ -44,6 +44,7 @@ import org.compiere.model.MLookupFactory;
 import org.compiere.model.MPAttributeLookup;
 import org.compiere.model.MPaymentLookup;
 import org.compiere.model.MProcessPara;
+import org.compiere.model.MRefTable;
 import org.compiere.model.MRole;
 import org.compiere.model.MTable;
 import org.compiere.model.MValRule;
@@ -93,12 +94,12 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object fromJsonValue(MColumn column, JsonElement value) {
-		return fromJsonValue(column.getAD_Reference_ID(), column.getReferenceTableName(), value);
+		return fromJsonValue(column.getAD_Reference_ID(), column.getReferenceTableName(), value, column.getAD_Reference_Value_ID());
 	}
 
 	@Override
 	public Object fromJsonValue(GridField field, JsonElement value) {
-		return fromJsonValue(field.getDisplayType(), getReferenceTableNameFromField(field), value);
+		return fromJsonValue(field.getDisplayType(), getReferenceTableNameFromField(field), value, field.getAD_Reference_Value_ID());
 	}
 	
 	private String getReferenceTableNameFromField(GridField field) {
@@ -225,17 +226,20 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		return lookup;
 	}
 	
-	private Object fromJsonValue(int displayType, String refTableName, JsonElement value) {
+	private Object fromJsonValue(int displayType, String refTableName, JsonElement value, int AD_Reference_Value_ID) {
 		if (value != null && value.isJsonObject()) {
 			if (displayType == DisplayType.ChosenMultipleSelectionSearch || displayType == DisplayType.ChosenMultipleSelectionTable) {
-				return fromJsonValueForChosenMultipleSelectionTable(refTableName, value.getAsJsonObject());
+				return fromJsonValueForChosenMultipleSelectionTable(refTableName, value.getAsJsonObject(), AD_Reference_Value_ID);
 			}
 			JsonObject ref = value.getAsJsonObject();
-			Object id = findRecordId(ref, refTableName);
+			Object id = findRecordId(ref, refTableName, AD_Reference_Value_ID);
 			if (id != null)
 				return id;
 			else
 				throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
+		} else if (value != null && value.isJsonArray() &&
+			(displayType == DisplayType.ChosenMultipleSelectionSearch || displayType == DisplayType.ChosenMultipleSelectionTable)) {
+			return fromJsonValueForChosenMultipleSelectionTable(refTableName, value, AD_Reference_Value_ID);
 		} else if (value != null && value.isJsonPrimitive()) {
 			JsonPrimitive primitive = (JsonPrimitive) value;
 			if (primitive.isNumber())
@@ -251,15 +255,23 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		}
 	}
 
-	private Object fromJsonValueForChosenMultipleSelectionTable(String refTableName, JsonObject value) {
-		JsonElement selections = value.get("selections");
-		if (selections != null && selections.isJsonArray()) {
-			JsonArray array = selections.getAsJsonArray();
+	private Object fromJsonValueForChosenMultipleSelectionTable(String refTableName, JsonElement value, int AD_Reference_Value_ID) {
+		JsonArray array = null;
+		if (value.isJsonArray()) {
+			array = value.getAsJsonArray();
+		} else if (value instanceof JsonObject objectValue) {
+			JsonElement selections = objectValue.get("selections");
+			if (selections != null && selections.isJsonArray()) {
+				array = selections.getAsJsonArray();
+			}
+		}
+		
+		if (array != null) {
 			StringBuilder sb = new StringBuilder();
 			for (JsonElement el : array) {
 				if (el.isJsonObject()) {
 					JsonObject ref = el.getAsJsonObject();
-					Object id = findRecordId(ref, refTableName);
+					Object id = findRecordId(ref, refTableName, AD_Reference_Value_ID);
 					if (id != null) {
 						if (sb.length() > 0)
 							sb.append(",");
@@ -287,7 +299,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		throw new AdempiereException("Could not convert value " + value + " for " + refTableName);
 	}
 
-	private Object findRecordId(JsonObject ref, String refTableName) {
+	private Object findRecordId(JsonObject ref, String refTableName, int AD_Reference_Value_ID) {
 		JsonElement idField = ref.get("id");
 		if (idField != null) {
 			JsonPrimitive primitive = (JsonPrimitive) idField;
@@ -298,7 +310,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		}
 		JsonElement identifier = ref.get("identifier");
 		if (identifier != null && !Util.isEmpty(refTableName) && !identifier.isJsonNull()) {
-			int id = findId(refTableName, identifier);
+			int id = findId(refTableName, identifier, AD_Reference_Value_ID);
 			if (id >= 0)
 				return id;
 		}
@@ -329,13 +341,30 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 	 * @param identifier
 	 * @return
 	 */
-	private int findId(String tableName, JsonElement identifier) {
+	private int findId(String tableName, JsonElement identifier, int AD_Reference_Value_ID) {
 		MTable table = MTable.get(Env.getCtx(), tableName);
+		// check identifier first for backward compatibility
 		String[] identifiers = table.getIdentifierColumns();
 		if (identifiers != null && identifiers.length > 0) {
 			MColumn column = table.getColumn(identifiers[0]);
-			return getFirstIdOnly(table, column, identifier);
+			int id = getFirstIdOnly(table, column, identifier);
+			if (id >= 0)
+				return id;
 		}
+
+		// check refTable display column
+		if (AD_Reference_Value_ID > 0) {
+			MRefTable refTable = MRefTable.get(AD_Reference_Value_ID);
+			if (refTable != null) {
+				int columnId = refTable.getAD_Display();
+				if (columnId > 0) {
+					MColumn column = MColumn.get(Env.getCtx(), columnId);
+					if (column != null)
+						return getFirstIdOnly(table, column, identifier);
+				}
+			}
+		}
+
 		return -1;
 	}
 
