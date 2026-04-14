@@ -640,7 +640,7 @@ public class ModelResourceImpl implements ModelResource {
 			final int parentId = po.get_ID();
 			for(String field : fields) {
 				JsonElement fieldElement = jsonObject.get(field);
-				if (fieldElement != null && fieldElement.isJsonArray()) {					
+				if (fieldElement != null && fieldElement.isJsonArray() && po.get_ColumnIndex(field) == -1) {
 					MRestView childView = null;
 					if (view != null) {
 						//find child view definition

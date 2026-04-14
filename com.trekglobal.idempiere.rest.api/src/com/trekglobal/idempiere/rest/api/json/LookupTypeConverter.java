@@ -99,7 +99,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 
 	@Override
 	public Object fromJsonValue(GridField field, JsonElement value) {
-		return fromJsonValue(field.getDisplayType(), getReferenceTableNameFromField(field), value);
+		return fromJsonValue(field.getDisplayType(), getReferenceTableNameFromField(field), value, field.getAD_Reference_Value_ID());
 	}
 	
 	private String getReferenceTableNameFromField(GridField field) {
@@ -226,10 +226,6 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		return lookup;
 	}
 	
-	private Object fromJsonValue(int displayType, String refTableName, JsonElement value) {
-		return fromJsonValue(displayType, refTableName, value, 0);
-	}
-
 	private Object fromJsonValue(int displayType, String refTableName, JsonElement value, int AD_Reference_Value_ID) {
 		if (value != null && value.isJsonObject()) {
 			if (displayType == DisplayType.ChosenMultipleSelectionSearch || displayType == DisplayType.ChosenMultipleSelectionTable) {
