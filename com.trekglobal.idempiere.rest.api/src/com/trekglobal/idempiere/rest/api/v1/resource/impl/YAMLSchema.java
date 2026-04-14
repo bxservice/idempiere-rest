@@ -450,6 +450,8 @@ public class YAMLSchema {
 		String label = Msg.getElement(Env.getCtx(), column.getColumnName());
 		builder.append(" ".repeat(offset)).append("oneOf:\n");
 		builder.append(" ".repeat(offset+2)).append("- type: object\n");
+		builder.append(" ".repeat(offset+4)).append("required:\n");
+		builder.append(" ".repeat(offset+6)).append(" - selections\n");
 		builder.append(" ".repeat(offset+4)).append("properties:\n");
 		builder.append(" ".repeat(offset+6)).append("propertyLabel: \n");
 		builder.append(" ".repeat(offset+8)).append("type: string\n");
