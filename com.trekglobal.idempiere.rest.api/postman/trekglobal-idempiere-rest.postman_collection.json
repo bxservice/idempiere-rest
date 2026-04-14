@@ -2153,6 +2153,55 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/windows/sales-order dry run",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" }\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/sales-order",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"sales-order"
+					],
+					"query": [
+						{
+							"key": "$save",
+							"value": "false"
+						}
+					]
+				},
+				"description": "Example to post sales order without saving to DB."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/forms",
 			"request": {
 				"method": "GET",
