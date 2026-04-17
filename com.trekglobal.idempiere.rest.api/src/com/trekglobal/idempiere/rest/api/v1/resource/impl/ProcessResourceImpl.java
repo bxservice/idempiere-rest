@@ -57,6 +57,7 @@ import org.compiere.util.Env;
 import org.compiere.util.Msg;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
+import org.idempiere.tracking.AuditTraceContext;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -314,6 +315,7 @@ public class ProcessResourceImpl implements ProcessResource {
 	private class BackgroundJobRunnable implements Runnable
 	{
 		private Properties m_ctx;
+		private String m_externalTraceId;
 		private ProcessInfo m_pi;
 		
 		private BackgroundJobRunnable(Properties ctx, ProcessInfo pi) 
@@ -331,6 +333,7 @@ public class ProcessResourceImpl implements ProcessResource {
 			Env.setContext(m_ctx, Env.DATE, ctx.getProperty(Env.DATE));
 			RestUtils.setSessionContextVariables(m_ctx);
 
+			m_externalTraceId = AuditTraceContext.getExternalTraceId();
 			m_pi = pi;
 		}
 		
@@ -338,9 +341,12 @@ public class ProcessResourceImpl implements ProcessResource {
 		public void run() {
 			try {
 				ServerContext.setCurrentInstance(m_ctx);
+				if (!Util.isEmpty(m_externalTraceId))
+					AuditTraceContext.setExternalTraceId(m_externalTraceId);
 				doRun();
 			} finally {
 				ServerContext.dispose();
+				AuditTraceContext.clear();
 			}
 		}
 		
