@@ -28,6 +28,7 @@ package com.trekglobal.idempiere.rest.api.json;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.Date;
 
 import javax.ws.rs.core.Response.Status;
@@ -45,6 +46,7 @@ import com.google.gson.JsonElement;
  *
  */
 public class DateTypeConverter implements ITypeConverter<Date> {
+	private static final String TIMESTAMP_WITH_TIMEZONE_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z' or yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 	public static final String ISO8601_DATE_PATTERN = "yyyy-MM-dd";
 	public static final String ISO8601_TIME_PATTERN = "HH:mm:ss'Z'";
 	public static final String ISO8601_DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
@@ -56,6 +58,11 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	}
 
 	public Object toJsonValue(int displayType, Date value) {
+		if (DisplayType.isTimestampWithTimeZone(displayType) && value != null) {
+			//Instant.toString will use either "yyyy-MM-dd'T'HH:mm:ss'Z'" or "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" depending on the milliseconds value
+			return value.toInstant().toString();
+		}
+
 		String pattern = getPattern(displayType);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
@@ -77,6 +84,18 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	}
 
 	private Timestamp fromJsonValue(int displayType, JsonElement value) {
+		if (DisplayType.isTimestampWithTimeZone(displayType) && value != null) {
+			try {
+				//Instant.parse support both "yyyy-MM-dd'T'HH:mm:ss'Z'" and "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" 
+				return Timestamp.from(Instant.parse(value.getAsString()));
+			} catch (Exception e) {
+				throw new IDempiereRestException("Invalid ISO Timestamp. ", 
+					"The " + DisplayType.getDescription(displayType) 
+					+ " pattern should be: " + TIMESTAMP_WITH_TIMEZONE_PATTERN + ". Exception: " + e.getLocalizedMessage(), 
+					Status.BAD_REQUEST);
+			}
+		}
+
 		String pattern = getPattern(displayType);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
