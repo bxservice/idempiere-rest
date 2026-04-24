@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -103,6 +104,16 @@ public class ModelHelper {
 	}
 	
 	public List<PO> getPOsFromRequest(String[] includeColumns) {
+		Query query = buildQueryFromRequest(includeColumns);
+		return query.list();
+	}
+
+	public Stream<PO> getStreamFromRequest(String[] includeColumns) {
+		Query query = buildQueryFromRequest(includeColumns);
+		return query.stream();
+	}
+
+	private Query buildQueryFromRequest(String[] includeColumns) {
 		String whereClause = getRequestWhereClause();
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		MTable table = RestUtils.getTableAndCheckAccess(tableName);
@@ -155,7 +166,7 @@ public class ModelHelper {
 			query.selectColumns(includeColumns);
 		
 		sqlStatement= query.getSQL();
-		return query.list();
+		return query;
 	}
 	
 	private String getRequestWhereClause() {
