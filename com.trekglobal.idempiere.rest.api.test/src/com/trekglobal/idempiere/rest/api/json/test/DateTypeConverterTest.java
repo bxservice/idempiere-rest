@@ -77,6 +77,15 @@ public class DateTypeConverterTest extends RestTestCase {
     }
 
     @Test
+    public void toJsonValueFormatsDateCorrectlyForTimestampWithTimeZoneDisplayType() {
+        when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.TimestampWithTimeZone);
+        Date date = new Date();
+        String expected = date.toInstant().toString();
+        Object result = converter.toJsonValue(mockColumn, date);
+        assertEquals(expected, result);
+    }
+
+    @Test
     public void toJsonValueReturnsNullForNullDate() {
         when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.Date);
         Object result = converter.toJsonValue(mockColumn, null);
@@ -102,6 +111,15 @@ public class DateTypeConverterTest extends RestTestCase {
     }
 
     @Test
+    public void fromJsonValueParsesValidTimestampStringForTimestampWithTimeZoneDisplayType() {
+        when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.TimestampWithTimeZone);
+        String timestampString = "2023-10-01T12:34:56.789Z";
+        JsonPrimitive jsonValue = new JsonPrimitive(timestampString);
+        Timestamp result = (Timestamp) converter.fromJsonValue(mockColumn, jsonValue);
+        assertEquals(timestampString, result.toInstant().toString());
+    }
+
+    @Test
     public void fromJsonValueThrowsExceptionForInvalidDateString() {
         when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.Date);
         JsonPrimitive jsonValue = new JsonPrimitive("invalid-date");
@@ -110,6 +128,18 @@ public class DateTypeConverterTest extends RestTestCase {
             fail("Expected IDempiereRestException to be thrown");
         } catch (IDempiereRestException e) {
             assertTrue(e.getTitle().contains("Invalid date"));
+        }
+    }
+
+    @Test
+    public void fromJsonValueThrowsExceptionForInvalidTimestampString() {
+        when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.TimestampWithTimeZone);
+        JsonPrimitive jsonValue = new JsonPrimitive("invalid-timestamp");
+        try {
+            converter.fromJsonValue(mockColumn, jsonValue);
+            fail("Expected IDempiereRestException to be thrown");
+        } catch (IDempiereRestException e) {
+            assertTrue(e.getTitle().contains("Invalid ISO Timestamp"));
         }
     }
 
