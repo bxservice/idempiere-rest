@@ -108,9 +108,33 @@ public class ModelHelper {
 		return query.list();
 	}
 
+	/**
+	 * Returns a lazily-evaluated {@link Stream} of POs matching the request.
+	 * <p>
+	 * The returned stream is backed by an open JDBC {@code ResultSet}; the caller
+	 * <b>must</b> close it (preferably via try-with-resources) to release the
+	 * underlying database resources. Failure to do so will leak cursors and
+	 * connections.
+	 *
+	 * @param includeColumns columns to select; may be {@code null} or empty
+	 * @return a stream of matching POs that must be closed by the caller
+	 */
 	public Stream<PO> getStreamFromRequest(String[] includeColumns) {
 		Query query = buildQueryFromRequest(includeColumns);
 		return query.stream();
+	}
+
+	/**
+	 * Convenience wrapper: returns a stream of POs using the helper's
+	 * current filter/ordering, with no specific columns requested.
+	 * <p>
+	 * Note: This is just a shorthand for {@code getStreamFromRequest(null)}. The
+	 * stream contract (caller must close it) remains the same.
+	 *
+	 * @return a stream of matching POs that must be closed by the caller
+	 */
+	public Stream<PO> getStreamFromRequest() {
+		return getStreamFromRequest(null);
 	}
 
 	private Query buildQueryFromRequest(String[] includeColumns) {
