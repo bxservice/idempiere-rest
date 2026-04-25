@@ -150,4 +150,14 @@ public class DateTypeConverterTest extends RestTestCase {
         assertNull(result);
     }
 
+    @Test
+    public void fromJsonValueRoundTripsNanoPrecisionForTimestampWithTimeZoneDisplayType() {
+        when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.TimestampWithTimeZone);
+        String timestampString = "2023-10-01T12:34:56.123456789Z";
+        JsonPrimitive jsonValue = new JsonPrimitive(timestampString);
+        Timestamp result = (Timestamp) converter.fromJsonValue(mockColumn, jsonValue);
+        assertEquals(timestampString, result.toInstant().toString());
+        // and serialization round-trip
+        assertEquals(timestampString, converter.toJsonValue(mockColumn, result));
+    }
 }

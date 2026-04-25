@@ -61,7 +61,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	public Object toJsonValue(int displayType, Date value) {
 		if (DisplayType.isTimestampWithTimeZone(displayType) && value != null) {
 			//Instant.toString will use the ISO_INSTANT_HINT format
- 			return value.toInstant().toString();
+			return value.toInstant().toString();
 		}
 
 		String pattern = getPattern(displayType);
