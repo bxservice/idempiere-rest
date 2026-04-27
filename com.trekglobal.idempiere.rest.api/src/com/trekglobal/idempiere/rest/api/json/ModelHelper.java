@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.ws.rs.core.Response.Status;
 
@@ -103,6 +104,40 @@ public class ModelHelper {
 	}
 	
 	public List<PO> getPOsFromRequest(String[] includeColumns) {
+		Query query = buildQueryFromRequest(includeColumns);
+		return query.list();
+	}
+
+	/**
+	 * Returns a lazily-evaluated {@link Stream} of POs matching the request.
+	 * <p>
+	 * The returned stream is backed by an open JDBC {@code ResultSet}; the caller
+	 * <b>must</b> close it (preferably via try-with-resources) to release the
+	 * underlying database resources. Failure to do so will leak cursors and
+	 * connections.
+	 *
+	 * @param includeColumns columns to select; may be {@code null} or empty
+	 * @return a stream of matching POs that must be closed by the caller
+	 */
+	public Stream<PO> getStreamFromRequest(String[] includeColumns) {
+		Query query = buildQueryFromRequest(includeColumns);
+		return query.stream();
+	}
+
+	/**
+	 * Convenience wrapper: returns a stream of POs using the helper's
+	 * current filter/ordering, with no specific columns requested.
+	 * <p>
+	 * Note: This is just a shorthand for {@code getStreamFromRequest(null)}. The
+	 * stream contract (caller must close it) remains the same.
+	 *
+	 * @return a stream of matching POs that must be closed by the caller
+	 */
+	public Stream<PO> getStreamFromRequest() {
+		return getStreamFromRequest(null);
+	}
+
+	private Query buildQueryFromRequest(String[] includeColumns) {
 		String whereClause = getRequestWhereClause();
 		IQueryConverter converter = IQueryConverter.getQueryConverter("DEFAULT");
 		MTable table = RestUtils.getTableAndCheckAccess(tableName);
@@ -155,7 +190,7 @@ public class ModelHelper {
 			query.selectColumns(includeColumns);
 		
 		sqlStatement= query.getSQL();
-		return query.list();
+		return query;
 	}
 	
 	private String getRequestWhereClause() {
