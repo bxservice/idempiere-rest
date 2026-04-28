@@ -29,6 +29,8 @@ import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,13 +106,18 @@ public class ConvertedQuery {
 				if (parameter.contains("'"))
 					parameter = extractFromStringValue(parameter);
 
-				// ISO8601_DATETIME_PATTERN or ISO_INSTANT format
+				// ISO_INSTANT (with zone/offset) or ISO8601_DATETIME (local datetime)
 				if (parameter.contains("T") 
 					&& (DisplayType.DateTime == displayType || DisplayType.TimestampWithTimeZone == displayType)) {
 					try {
 						date = Timestamp.from(Instant.parse(parameter));
 					} catch (DateTimeParseException e) {
-						date = dateFormat.parse(parameter);
+						try {
+							LocalDateTime localDateTime = LocalDateTime.parse(parameter, DateTimeFormatter.ISO_DATE_TIME);
+							date = Timestamp.valueOf(localDateTime);
+						} catch (DateTimeParseException ex) {
+							date = dateTimeFormat.parse(parameter);
+						}
 					}
 				} else {
 					try {
