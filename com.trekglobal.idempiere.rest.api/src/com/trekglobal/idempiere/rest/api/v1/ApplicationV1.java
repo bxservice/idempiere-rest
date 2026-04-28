@@ -41,6 +41,7 @@ import com.trekglobal.idempiere.rest.api.v1.auth.filter.RequestSetLanguageFilter
 import com.trekglobal.idempiere.rest.api.v1.auth.filter.ResponseFilter;
 import com.trekglobal.idempiere.rest.api.v1.auth.impl.AuthServiceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.BatchRequestResourseImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.CalloutResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.CacheResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ChartResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.FileResourceImpl;
@@ -100,7 +101,8 @@ public class ApplicationV1 extends Application {
         classes.add(UploadResourceImpl.class);
         classes.add(BatchRequestResourseImpl.class);
         classes.add(HealthResourceImpl.class);
-        
+        classes.add(CalloutResourceImpl.class);
+
         IServicesHolder<ResourceExtension> list = Service.locator().list(ResourceExtension.class);
         for (IServiceReferenceHolder<ResourceExtension> holder : list.getServiceReferences()) {
         	ResourceExtension service = holder.getService();
