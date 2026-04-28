@@ -28,6 +28,8 @@ package com.trekglobal.idempiere.rest.api.json.filter;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -93,7 +95,7 @@ public class ConvertedQuery {
 				addParameter(new BigDecimal(parameter));
 			else if (DisplayType.isDate(displayType)) //	Timestamps
 			{
-				// Try Timestamp format - then date format
+				// Try ISO8601_DATETIME/Timestamp format - then date format
 				java.util.Date date = null;
 				SimpleDateFormat dateTimeFormat = DisplayType.getTimestampFormat_Default();
 				SimpleDateFormat dateFormat = DisplayType.getDateFormat_JDBC();
@@ -101,14 +103,25 @@ public class ConvertedQuery {
 				//If the value comes with ' remove them
 				if (parameter.contains("'"))
 					parameter = extractFromStringValue(parameter);
-				try {
-					if (displayType == DisplayType.Date) {
+
+				// ISO8601_DATETIME_PATTERN or ISO_INSTANT format
+				if (parameter.contains("T") 
+					&& (DisplayType.DateTime == displayType || DisplayType.TimestampWithTimeZone == displayType)) {
+					try {
+						date = Timestamp.from(Instant.parse(parameter));
+					} catch (DateTimeParseException e) {
 						date = dateFormat.parse(parameter);
-					} else {
-						date = dateTimeFormat.parse(parameter);
 					}
-				} catch (java.text.ParseException e) {
-					date = dateFormat.parse(parameter);
+				} else {
+					try {
+						if (displayType == DisplayType.Date) {
+							date = dateFormat.parse(parameter);
+						} else {
+							date = dateTimeFormat.parse(parameter);
+						}
+					} catch (java.text.ParseException e) {
+						date = dateFormat.parse(parameter);
+					}
 				}
 				addParameter(new Timestamp (date.getTime()));
 			}
