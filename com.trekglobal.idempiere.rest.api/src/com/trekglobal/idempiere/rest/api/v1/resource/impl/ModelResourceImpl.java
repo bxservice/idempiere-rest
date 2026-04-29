@@ -497,7 +497,7 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	private String createChild(String field, JsonObject jsonObject, PO po, MRestView view, Map<String, JsonArray> detailMap, Trx trx, int windowNo) {
 		JsonElement fieldElement = jsonObject.get(field);
-		if (fieldElement != null && fieldElement.isJsonArray()) {
+		if (fieldElement != null && fieldElement.isJsonArray() && po.get_ColumnIndex(field) == -1) {
 			String childTableName = field;
 			MRestView childView = null;
 			if (view != null) {
@@ -640,7 +640,7 @@ public class ModelResourceImpl implements ModelResource {
 			final int parentId = po.get_ID();
 			for(String field : fields) {
 				JsonElement fieldElement = jsonObject.get(field);
-				if (fieldElement != null && fieldElement.isJsonArray()) {					
+				if (fieldElement != null && fieldElement.isJsonArray() && po.get_ColumnIndex(field) == -1) {
 					MRestView childView = null;
 					if (view != null) {
 						//find child view definition

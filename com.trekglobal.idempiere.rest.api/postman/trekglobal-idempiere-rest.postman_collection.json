@@ -2153,6 +2153,55 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/windows/sales-order dry run",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"isSOTrx\": true,\n\t\"C_DocTypeTarget_ID\": { \"identifier\": \"Standard Order\" },\n\t\"C_BPartner_ID\" : { \"identifier\": \"C&W Construction\" }\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/windows/sales-order",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"windows",
+						"sales-order"
+					],
+					"query": [
+						{
+							"key": "$save",
+							"value": "false"
+						}
+					]
+				},
+				"description": "Example to post sales order without saving to DB."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/forms",
 			"request": {
 				"method": "GET",
@@ -5611,7 +5660,106 @@
 				}
 			},
 			"response": []
-		}
+		},
+		{
+		  "name": "api/v1/models/{table name} - timestamp eq filter",
+		  "request": {
+			"method": "GET",
+			"header": [
+			  {
+				"key": "Content-Type",
+				"value": "application/json",
+				"type": "text"
+			  },
+			  {
+				"key": "Accept",
+				"value": "application/json",
+				"type": "text"
+			  },
+			  {
+				"key": "Authorization",
+				"value": "Bearer {{authToken}}",
+				"type": "text"
+			  }
+			],
+			"url": {
+			  "raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?$filter=created eq '2003-01-08T15:06:11'&$select=name,created",
+			  "protocol": "{{protocol}}",
+			  "host": [
+				"{{host}}"
+			  ],
+			  "port": "{{port}}",
+			  "path": [
+				"api",
+				"v1",
+				"models",
+				"c_tax"
+			  ],
+			  "query": [
+				{
+				  "key": "$filter",
+				  "value": "created eq '2003-01-08T15:06:11'"
+				},
+				{
+				  "key": "$select",
+				  "value": "name,created",
+				  "type": "text"
+				}
+			  ]
+			},
+			"description": "Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100."
+		  },
+		  "response": []
+		},
+		{
+		  "name": "api/v1/models/{table name} - timestamp range filter",
+		  "request": {
+			"method": "GET",
+			"header": [
+			  {
+				"key": "Content-Type",
+				"value": "application/json",
+				"type": "text"
+			  },
+			  {
+				"key": "Accept",
+				"value": "application/json",
+				"type": "text"
+			  },
+			  {
+				"key": "Authorization",
+				"value": "Bearer {{authToken}}",
+				"type": "text"
+			  }
+			],
+			"url": {
+			  "raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_tax?$filter=created ge '2003-01-08T01:06:11Z' and created lt '2003-01-09T23:20:21Z'&$select=name,created",
+			  "protocol": "{{protocol}}",
+			  "host": [
+				"{{host}}"
+			  ],
+			  "port": "{{port}}",
+			  "path": [
+				"api",
+				"v1",
+				"models",
+				"c_tax"
+			  ],
+			  "query": [
+				{
+				  "key": "$filter",
+				  "value": "created ge '2003-01-08T01:06:11Z' and created lt '2003-01-09T23:20:21Z'"
+				},
+				{
+				  "key": "$select",
+				  "value": "name,created"
+				}
+			  ]
+			},
+			"description": "Get records for table with optional filter, orderBy and pageNo parameter. Default page size is 100."
+		  },
+		  "response": []
+		}		
 	],
 	"event": [
 		{

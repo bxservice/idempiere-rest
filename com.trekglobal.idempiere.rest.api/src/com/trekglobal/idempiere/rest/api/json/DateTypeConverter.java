@@ -28,6 +28,8 @@ package com.trekglobal.idempiere.rest.api.json;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 import javax.ws.rs.core.Response.Status;
@@ -40,7 +42,7 @@ import com.google.gson.JsonElement;
 
 /**
  * 
- * Type converter for DisplayType.Date and DisplayType.DateTime
+ * Type converter for DisplayType.Date, DisplayType.DateTime and DisplayType.TimestampWithTimeZone
  * @author hengsin
  *
  */
@@ -49,6 +51,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	public static final String ISO8601_TIME_PATTERN = "HH:mm:ss'Z'";
 	public static final String ISO8601_DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
+	private static final String ISO_INSTANT_HINT = "yyyy-MM-dd'T'HH:mm:ss[.SSSSSSSSS]'Z'";
 	/**
 	 * 
 	 */
@@ -56,6 +59,11 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	}
 
 	public Object toJsonValue(int displayType, Date value) {
+		if (DisplayType.isTimestampWithTimeZone(displayType) && value != null) {
+			//Instant.toString will use the ISO_INSTANT_HINT format
+			return value.toInstant().toString();
+		}
+
 		String pattern = getPattern(displayType);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
@@ -77,6 +85,18 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	}
 
 	private Timestamp fromJsonValue(int displayType, JsonElement value) {
+		if (DisplayType.isTimestampWithTimeZone(displayType) && value != null) {
+			try {
+				//Instant.parse use the ISO_INSTANT_HINT format
+				return Timestamp.from(Instant.parse(value.getAsString()));
+			} catch (DateTimeParseException e) {
+				throw new IDempiereRestException("Invalid ISO Timestamp. ", 
+					"The " + DisplayType.getDescription(displayType) 
+					+ " pattern should be: " + ISO_INSTANT_HINT + ". Exception: " + e.getLocalizedMessage(), 
+					Status.BAD_REQUEST);
+			}
+		}
+
 		String pattern = getPattern(displayType);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {

@@ -503,12 +503,12 @@ public class WindowResourceImpl implements WindowResource {
 	}
 	
 	@Override
-	public Response updateWindowRecord(String windowSlug, int recordId, String jsonText) {
-		return updateTabRecord(windowSlug, null, recordId, jsonText);
+	public Response updateWindowRecord(String windowSlug, int recordId, String jsonText, boolean save) {
+		return updateTabRecord(windowSlug, null, recordId, jsonText, save);
 	}
 
 	@Override
-	public Response createWindowRecord(String windowSlug, String jsonText) {
+	public Response createWindowRecord(String windowSlug, String jsonText, boolean save) {
 		MRole role = MRole.getDefault();
 		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
 		query.setApplyAccessFilter(true).setOnlyActiveRecords(true);
@@ -545,7 +545,7 @@ public class WindowResourceImpl implements WindowResource {
 		try {
 			if (threadLocalTrxName == null)
 				trx.start();
-			return createTabRecord(gridWindow, null, null, jsonObject, trx, (threadLocalTrxName != null));
+			return createTabRecord(gridWindow, null, null, jsonObject, trx, (threadLocalTrxName != null), save);
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -564,7 +564,7 @@ public class WindowResourceImpl implements WindowResource {
 	}
 
 	@Override
-	public Response updateTabRecord(String windowSlug, String tabSlug, int recordId, String jsonText) {
+	public Response updateTabRecord(String windowSlug, String tabSlug, int recordId, String jsonText, boolean save) {
 		MRole role = MRole.getDefault();
 		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
 		query.setApplyAccessFilter(true).setOnlyActiveRecords(true);
@@ -600,7 +600,7 @@ public class WindowResourceImpl implements WindowResource {
 		try {
 			if (threadLocalTrxName == null)
 				trx.start();
-			return updateTabRecord(gridWindow, tabSlug, recordId, jsonObject, trx, (threadLocalTrxName != null));
+			return updateTabRecord(gridWindow, tabSlug, recordId, jsonObject, trx, (threadLocalTrxName != null), save);
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -615,7 +615,7 @@ public class WindowResourceImpl implements WindowResource {
 
 	@Override
 	public Response createChildTabRecord(String windowSlug, String tabSlug, int recordId, String childTabSlug,
-			String jsonText) {
+			String jsonText, boolean save) {
 		MRole role = MRole.getDefault();
 		Query query = new Query(Env.getCtx(), MWindow.Table_Name, "slugify(name)=?", null);
 		query.setApplyAccessFilter(true).setOnlyActiveRecords(true);
@@ -673,7 +673,7 @@ public class WindowResourceImpl implements WindowResource {
 		try {
 			if (threadLocalTrxName == null)
 				trx.start();
-			return createTabRecord(gridWindow, parentTab, childTabSlug, jsonObject, trx, (threadLocalTrxName != null));
+			return createTabRecord(gridWindow, parentTab, childTabSlug, jsonObject, trx, (threadLocalTrxName != null), save);
 		} catch (Exception ex) {
 			trx.rollback();
 			log.log(Level.SEVERE, ex.getMessage(), ex);
@@ -941,7 +941,7 @@ public class WindowResourceImpl implements WindowResource {
 		return serializer;
 	}
 	
-	private Response updateTabRecord(GridWindow gridWindow, String tabSlug, int recordId, JsonObject jsonObject, Trx trx, boolean threadLocalTrx)
+	private Response updateTabRecord(GridWindow gridWindow, String tabSlug, int recordId, JsonObject jsonObject, Trx trx, boolean threadLocalTrx, boolean save)
 			throws SQLException {
 		Response errorResponse = null;
 		GridTab headerTab = null;
@@ -971,7 +971,7 @@ public class WindowResourceImpl implements WindowResource {
 					break;
 				}				
 				serializer.fromJson(jsonObject, gridTab);
-				if (gridTab.needSave(true, true)) {
+				if (save && gridTab.needSave(true, true)) {
 					ErrorDataStatusListener edsl = new ErrorDataStatusListener();
 					gridTab.getTableModel().addDataStatusListener(edsl);
 					try {
@@ -1017,7 +1017,7 @@ public class WindowResourceImpl implements WindowResource {
 									gridTab.setValue(gridTab.getLinkColumnName(), recordId);
 								}
 								serializer.fromJson(childJsonObject, gridTab);
-								if (gridTab.needSave(true, true)) {
+								if (save && gridTab.needSave(true, true)) {
 									if (!gridTab.dataSave(false))  {
 										error[0] = Boolean.TRUE;
 										return;
@@ -1056,10 +1056,17 @@ public class WindowResourceImpl implements WindowResource {
 			return errorResponse;
 		}
 		
-		String error = runDocAction(headerTab, jsonObject, trx.getTrxName());
+		String error = null;
+		if (save) {
+			error = runDocAction(headerTab, jsonObject, trx.getTrxName());
+		}
 		if (Util.isEmpty(error, true)) {
-			if (!threadLocalTrx)
-				trx.commit(true);
+			if (!threadLocalTrx) {
+				if (save)
+					trx.commit(true);
+				else
+					trx.rollback();
+			}
 		} else {
 			trx.rollback();
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -1110,7 +1117,7 @@ public class WindowResourceImpl implements WindowResource {
 		return false;
 	}
 	
-	private Response createTabRecord(GridWindow gridWindow, GridTab parentTab, String tabSlug, JsonObject jsonObject, Trx trx, boolean threadLocalTrx) throws SQLException {
+	private Response createTabRecord(GridWindow gridWindow, GridTab parentTab, String tabSlug, JsonObject jsonObject, Trx trx, boolean threadLocalTrx, boolean save) throws SQLException {
 		GridTab headerTab = null;
 		Map<String, JsonArray> childMap = new LinkedHashMap<String, JsonArray>();
 		for(int i = 0; i < gridWindow.getTabCount(); i++) {
@@ -1162,17 +1169,19 @@ public class WindowResourceImpl implements WindowResource {
 								.build();
 					}
 					serializer.fromJson(jsonObject, gridTab);
-					if (!gridTab.dataSave(false))  {
-						trx.rollback();
-						String error = edsl.getError();
-						return Response.status(Status.INTERNAL_SERVER_ERROR)
-								.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
-										.append(!Util.isEmpty(error) ? "Save error with exception: " : "")
-										.append(!Util.isEmpty(error) ? error : "")
-										.build().toString())
-								.build();
-					} else {
-						gridTab.dataRefresh(false);
+					if (save) {
+						if (!gridTab.dataSave(false))  {
+							trx.rollback();
+							String error = edsl.getError();
+							return Response.status(Status.INTERNAL_SERVER_ERROR)
+									.entity(new ErrorBuilder().status(Status.INTERNAL_SERVER_ERROR).title("Save error")
+											.append(!Util.isEmpty(error) ? "Save error with exception: " : "")
+											.append(!Util.isEmpty(error) ? error : "")
+											.build().toString())
+									.build();
+						} else {
+							gridTab.dataRefresh(false);
+						}
 					}
 				} finally {
 					gridTab.removeDataStatusListener(edsl);
@@ -1205,11 +1214,13 @@ public class WindowResourceImpl implements WindowResource {
 								}
 								gridTab.setValue(gridTab.getLinkColumnName(), finalHeaderTab.getKeyID(0));								
 								serializer.fromJson(childJsonObject, gridTab);
-								if (!gridTab.dataSave(false))  {
-									error[0] = Boolean.TRUE;
-									return;
-								} else {
-									gridTab.dataRefresh(false);
+								if (save) {
+									if (!gridTab.dataSave(false))  {
+										error[0] = Boolean.TRUE;
+										return;
+									} else {
+										gridTab.dataRefresh(false);
+									}
 								}
 								childJsonObject = serializer.toJson(gridTab);
 								updatedArray.add(childJsonObject);
@@ -1237,10 +1248,17 @@ public class WindowResourceImpl implements WindowResource {
 			}
 		}
 		
-		String error = runDocAction(headerTab, jsonObject, trx.getTrxName());
+		String error = null;
+		if (save) {
+			error = runDocAction(headerTab, jsonObject, trx.getTrxName());
+		}
 		if (Util.isEmpty(error, true)) {
-			if (!threadLocalTrx)
-				trx.commit(true);
+			if (!threadLocalTrx) {
+				if (save)
+					trx.commit(true);
+				else
+					trx.rollback();
+			}
 		} else {
 			trx.rollback();
 			return Response.status(Status.INTERNAL_SERVER_ERROR)
@@ -1258,7 +1276,7 @@ public class WindowResourceImpl implements WindowResource {
 				}
 			}
 		}
-		ResponseBuilder responseBuilder = Response.status(Status.CREATED);
+		ResponseBuilder responseBuilder = save ? Response.status(Status.CREATED) : Response.status(Status.OK);
 		if (updatedJsonObject != null)
 			return responseBuilder.entity(updatedJsonObject.toString()).build();
 		else
