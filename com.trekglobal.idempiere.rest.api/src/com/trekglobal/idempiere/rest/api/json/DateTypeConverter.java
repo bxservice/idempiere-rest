@@ -29,8 +29,6 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
 
@@ -104,7 +102,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 			String text = value.getAsString();
 			try {
 				// Accept ISO-8601 offsets, including trailing 'Z'
-				return Timestamp.from(OffsetDateTime.parse(text, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant());
+				return Timestamp.from(Instant.parse(text));
 			} catch (DateTimeParseException ex) {
 				// Fallback to legacy format for backward compatibility
 			}
