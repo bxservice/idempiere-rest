@@ -32,7 +32,7 @@ public class X_REST_Webhook_In_Log extends PO implements I_REST_Webhook_In_Log, 
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20260413L;
+	private static final long serialVersionUID = 20260429L;
 
     /** Standard Constructor */
     public X_REST_Webhook_In_Log (Properties ctx, int REST_Webhook_In_Log_ID, String trxName)

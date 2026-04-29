@@ -111,6 +111,13 @@ public class WebhookEventHandler extends AbstractEventHandler {
 
 		instance = this;
 
+		if (MTable.getTable_ID(MRestWebhookOut.Table_Name) == 0) {
+			if (log.isLoggable(Level.INFO))
+				log.info("WebhookEventHandler: " + MRestWebhookOut.Table_Name
+						+ " table not present yet (2Pack not imported?), deferring registration");
+			return;
+		}
+
 		List<MRestWebhookOutEvent> subscriptions =
 				MRestWebhookOutEvent.getAllActiveSubscriptions(Env.getCtx());
 

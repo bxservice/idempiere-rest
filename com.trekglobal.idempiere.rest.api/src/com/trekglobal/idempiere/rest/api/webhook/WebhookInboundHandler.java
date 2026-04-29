@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
+import org.adempiere.exceptions.DBException;
 import org.compiere.model.MSysConfig;
 import org.compiere.process.ProcessInfo;
 import org.compiere.process.ProcessInfoParameter;
@@ -64,6 +65,7 @@ public class WebhookInboundHandler {
 	private static final CLogger log = CLogger.getCLogger(WebhookInboundHandler.class);
 
 	public static final String REST_WEBHOOK_INBOUND_ENABLED = "REST_WEBHOOK_INBOUND_ENABLED";
+	public static final String REST_WEBHOOK_TRUSTED_PROXIES = "REST_WEBHOOK_TRUSTED_PROXIES";
 	public static final String PROCESS_PARAM_PAYLOAD = "WebhookPayload";
 
 	private WebhookInboundHandler() {
@@ -91,9 +93,15 @@ public class WebhookInboundHandler {
 					.build();
 		}
 
+		// Resolve real client IP through X-Forwarded-For when the immediate caller
+		// is a trusted proxy (system-level config — infrastructure-wide, not per tenant).
+		String trustedProxies = MSysConfig.getValue(REST_WEBHOOK_TRUSTED_PROXIES, "none", 0);
+		String xForwardedFor = getHeader(headers, "X-Forwarded-For");
+		String clientIp = WebhookIPAllowlist.resolveClientIp(remoteAddr, xForwardedFor, trustedProxies);
+
 		// IP allowlist check
-		if (!WebhookIPAllowlist.isAllowed(inbound.getAllowedIPs(), remoteAddr)) {
-			log.warning("Inbound webhook " + endpointKey + " rejected IP: " + remoteAddr);
+		if (!WebhookIPAllowlist.isAllowed(inbound.getAllowedIPs(), clientIp)) {
+			log.warning("Inbound webhook " + endpointKey + " rejected IP: " + clientIp);
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity("{\"error\":\"IP not allowed\"}")
 					.build();
@@ -123,6 +131,23 @@ public class WebhookInboundHandler {
 		}
 
 		String webhookMsgId = getHeader(headers, "webhook-id");
+		boolean hasMsgId = !Util.isEmpty(webhookMsgId, true);
+		if (inbound.isVerifySignature() && !hasMsgId) {
+			// Standard Webhooks spec mandates webhook-id when signing is on.
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity("{\"error\":\"Missing webhook-id header\"}")
+					.build();
+		}
+		if (!hasMsgId) {
+			// Raw mode without webhook-id: generate synthetic ID so the unique
+			// constraint holds. Dedup is effectively disabled — operator opted out
+			// by not configuring signature verification or by using a provider
+			// that doesn't follow Standard Webhooks.
+			webhookMsgId = "synth_" + java.util.UUID.randomUUID().toString().replace("-", "");
+			if (log.isLoggable(Level.FINE))
+				log.fine("Inbound webhook " + endpointKey
+						+ " has no webhook-id; dedup skipped, synthetic id=" + webhookMsgId);
+		}
 
 		// -----------------------------------------------------------------------
 		// PHASE 1: Dedup check + log entry creation — committed before process runs.
@@ -133,9 +158,7 @@ public class WebhookInboundHandler {
 		String trxName = Trx.createTrxName("webhook_in");
 		Trx trx = Trx.get(trxName, true);
 		try {
-			// Soft dedup check inside the transaction
-			if (webhookMsgId != null
-					&& MRestWebhookInLog.isDuplicate(ctx, inbound.get_ID(), webhookMsgId, trxName)) {
+			if (hasMsgId && MRestWebhookInLog.isDuplicate(ctx, inbound.get_ID(), webhookMsgId, trxName)) {
 				return Response.ok("{\"status\":\"duplicate\"}").build();
 			}
 
@@ -144,14 +167,13 @@ public class WebhookInboundHandler {
 			logEntry.setREST_Webhook_In_ID(inbound.get_ID());
 			logEntry.setWebhookMessageId(webhookMsgId);
 			logEntry.setPayload(body);
-			if (!Util.isEmpty(remoteAddr, true))
-				logEntry.setRemoteAddr(remoteAddr);
+			if (!Util.isEmpty(clientIp, true))
+				logEntry.setRemoteAddr(clientIp);
 
 			try {
 				logEntry.saveEx();
 			} catch (Exception e) {
-				// Hard dedup: unique constraint violation on (Inbound_ID, MessageId)
-				if (e.getMessage() != null && e.getMessage().contains("unique")) {
+				if (DBException.isUniqueContraintError(e)) {
 					log.info("Duplicate webhook detected via constraint for " + endpointKey
 							+ " msgId=" + webhookMsgId);
 					return Response.ok("{\"status\":\"duplicate\"}").build();

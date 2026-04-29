@@ -29,6 +29,8 @@ import org.adempiere.base.Core;
 import org.adempiere.plugin.utils.Incremental2PackActivator;
 import org.osgi.framework.BundleContext;
 
+import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
+
 /**
  * 
  * @author hengsin
@@ -50,5 +52,11 @@ public class Activator extends Incremental2PackActivator {
 		super.afterPackIn();
 		context.registerService(Activator.class, this, null);
 	}
-		
+
+	@Override
+	public void stop(BundleContext context) throws Exception {
+		WebhookDispatcher.shutdown();
+		super.stop(context);
+	}
+
 }

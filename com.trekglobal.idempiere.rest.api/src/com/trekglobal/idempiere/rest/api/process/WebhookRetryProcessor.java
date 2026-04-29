@@ -96,6 +96,12 @@ public class WebhookRetryProcessor extends SvrProcess {
 				}
 			} catch (Exception e) {
 				log.log(Level.WARNING, "Retry failed for delivery " + delivery.get_ID(), e);
+				try {
+					delivery.markFailed(0, null,
+							"Dispatcher error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+				} catch (Exception markErr) {
+					log.log(Level.SEVERE, "Failed to mark delivery " + delivery.get_ID() + " as failed", markErr);
+				}
 				failed++;
 			}
 		}

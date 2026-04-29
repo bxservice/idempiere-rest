@@ -67,11 +67,48 @@ public final class WebhookIPAllowlist {
 				if (isInCIDR(remoteAddr, trimmed))
 					return true;
 			} else {
-				if (trimmed.equals(remoteAddr))
+				if (isSameAddress(trimmed, remoteAddr))
 					return true;
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Resolve the real client IP, honoring an X-Forwarded-For chain only when
+	 * the immediate caller ({@code remoteAddr}) is itself in
+	 * {@code trustedProxies}. Walks the chain right-to-left and returns the
+	 * first hop that is NOT a trusted proxy — so a malicious client cannot
+	 * inject a fake IP further left in the chain.
+	 *
+	 * <p>If no proxies are trusted, or the caller is not a trusted proxy, or
+	 * the chain is empty, returns {@code remoteAddr} unchanged.
+	 *
+	 * @param remoteAddr the connection-level remote address
+	 * @param xForwardedFor raw X-Forwarded-For header value (comma-separated, nullable)
+	 * @param trustedProxies comma-separated IPs/CIDRs of proxies allowed to set XFF (nullable)
+	 * @return the resolved client IP, or {@code remoteAddr} when no XFF hop can be trusted
+	 */
+	public static String resolveClientIp(String remoteAddr, String xForwardedFor, String trustedProxies) {
+		if (remoteAddr == null || remoteAddr.trim().isEmpty())
+			return remoteAddr;
+		if (trustedProxies == null || trustedProxies.trim().isEmpty()
+				|| "none".equalsIgnoreCase(trustedProxies.trim()))
+			return remoteAddr;
+		if (!isAllowed(trustedProxies, remoteAddr))
+			return remoteAddr;
+		if (xForwardedFor == null || xForwardedFor.trim().isEmpty())
+			return remoteAddr;
+
+		String[] hops = xForwardedFor.split(",");
+		for (int i = hops.length - 1; i >= 0; i--) {
+			String hop = hops[i].trim();
+			if (hop.isEmpty())
+				continue;
+			if (!isAllowed(trustedProxies, hop))
+				return hop;
+		}
+		return remoteAddr;
 	}
 
 	/**
@@ -171,6 +208,16 @@ public final class WebhookIPAllowlist {
 
 			return true;
 		} catch (UnknownHostException | NumberFormatException e) {
+			return false;
+		}
+	}
+
+	private static boolean isSameAddress(String a, String b) {
+		try {
+			byte[] aBytes = normalize(parseNumericAddress(a.trim()));
+			byte[] bBytes = normalize(parseNumericAddress(b.trim()));
+			return Arrays.equals(aBytes, bBytes);
+		} catch (UnknownHostException e) {
 			return false;
 		}
 	}

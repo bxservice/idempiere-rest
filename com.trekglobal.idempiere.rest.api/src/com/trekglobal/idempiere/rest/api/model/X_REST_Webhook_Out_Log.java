@@ -32,7 +32,7 @@ public class X_REST_Webhook_Out_Log extends PO implements I_REST_Webhook_Out_Log
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20260413L;
+	private static final long serialVersionUID = 20260429L;
 
     /** Standard Constructor */
     public X_REST_Webhook_Out_Log (Properties ctx, int REST_Webhook_Out_Log_ID, String trxName)
@@ -188,6 +188,8 @@ public class X_REST_Webhook_Out_Log extends PO implements I_REST_Webhook_Out_Log
 	public static final String DELIVERYSTATUS_Abandoned = "A";
 	/** Failed = F */
 	public static final String DELIVERYSTATUS_Failed = "F";
+	/** In Progress = I */
+	public static final String DELIVERYSTATUS_InProgress = "I";
 	/** Pending = P */
 	public static final String DELIVERYSTATUS_Pending = "P";
 	/** Success = S */

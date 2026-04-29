@@ -33,12 +33,15 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.adempiere.util.ServerContext;
 import org.compiere.model.MSysConfig;
 import org.compiere.util.CLogger;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Util;
 
@@ -61,14 +64,47 @@ public class WebhookDispatcher {
 			.followRedirects(HttpClient.Redirect.NEVER) // Standard Webhooks: don't follow redirects
 			.build();
 
+	/**
+	 * Dedicated pool for async dispatch — keeps blocking HttpClient.send calls
+	 * off the shared ForkJoinPool. Bounded queue + CallerRunsPolicy provides
+	 * backpressure when retry bursts saturate the workers.
+	 */
+	private static final ThreadPoolExecutor dispatchExecutor = new ThreadPoolExecutor(
+			4, 16, 60L, TimeUnit.SECONDS,
+			new LinkedBlockingQueue<>(500),
+			r -> {
+				Thread t = new Thread(r, "webhook-dispatcher");
+				t.setDaemon(true);
+				return t;
+			},
+			new ThreadPoolExecutor.CallerRunsPolicy());
+
 	private WebhookDispatcher() {}
 
 	/**
-	 * Dispatch a delivery asynchronously using CompletableFuture.
+	 * Gracefully shut down the dispatch thread pool. Called from the bundle
+	 * Activator's stop() so threads don't leak across bundle redeploys.
+	 * Waits up to 10 seconds for in-flight HTTP calls to finish, then forces
+	 * shutdown.
+	 */
+	public static void shutdown() {
+		dispatchExecutor.shutdown();
+		try {
+			if (!dispatchExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+				dispatchExecutor.shutdownNow();
+			}
+		} catch (InterruptedException e) {
+			dispatchExecutor.shutdownNow();
+			Thread.currentThread().interrupt();
+		}
+	}
+
+	/**
+	 * Dispatch a delivery asynchronously on the dedicated webhook dispatcher pool.
 	 * Called from afterCommit listener or retry processor.
 	 */
 	public static void dispatchAsync(int deliveryId, int AD_Client_ID) {
-		CompletableFuture.runAsync(() -> {
+		dispatchExecutor.execute(() -> {
 			try {
 				Properties ctx = new Properties();
 				ServerContext.setCurrentInstance(ctx);
@@ -108,6 +144,40 @@ public class WebhookDispatcher {
 			log.info("Webhook endpoint paused, skipping dispatch for delivery " + deliveryId);
 			return false;
 		}
+
+		// Atomic claim: transition the row to IN_PROGRESS so concurrent workers
+		// (event afterCommit vs scheduler) won't pick up the same delivery.
+		// Always autocommit so the claim is visible immediately regardless of
+		// the caller's transaction. The WHERE matches either:
+		//   (a) a Pending row that's due (initial dispatch or retry), or
+		//   (b) a stuck IN_PROGRESS row whose worker died (Updated older than
+		//       STALE_INPROGRESS_MS) — natural recovery, no sweeper job needed.
+		Timestamp staleThreshold = new Timestamp(
+				System.currentTimeMillis() - MRestWebhookOutLog.STALE_INPROGRESS_MS);
+		int claimed = DB.executeUpdateEx(
+				"UPDATE " + MRestWebhookOutLog.Table_Name
+				+ " SET DeliveryStatus = ?, Updated = getDate()"
+				+ " WHERE REST_Webhook_Out_Log_ID = ?"
+				+ "   AND ("
+				+ "     (DeliveryStatus = ? AND (NextRetryAt IS NULL OR NextRetryAt <= getDate()))"
+				+ "     OR (DeliveryStatus = ? AND Updated <= ?)"
+				+ "   )",
+				new Object[] {
+						MRestWebhookOutLog.DELIVERYSTATUS_InProgress,
+						deliveryId,
+						MRestWebhookOutLog.DELIVERYSTATUS_Pending,
+						MRestWebhookOutLog.DELIVERYSTATUS_InProgress,
+						staleThreshold
+				},
+				null);
+		if (claimed != 1) {
+			log.info("Webhook delivery " + deliveryId
+					+ " already claimed by another worker or no longer dispatchable, skipping");
+			return false;
+		}
+		// Reload so the PO reflects the post-claim state and subsequent
+		// markSuccess/markFailed/markAbandoned saves don't conflict on Updated.
+		delivery.load(null);
 
 		String msgId = delivery.getWebhookMessageId();
 		String payload = delivery.getPayload();

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.compiere.model.MSysConfig;
 import org.compiere.model.Query;
 
 /**
@@ -42,11 +43,23 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	private static final long serialVersionUID = 20260411L;
 
 	/**
+	 * Window after which an IN_PROGRESS row is considered stuck (worker died
+	 * mid-flight) and may be reclaimed. Must be longer than the worst-case
+	 * HTTP timeout. 5 minutes covers the default 15s timeout with comfortable
+	 * margin and avoids reclaiming healthy long-running calls.
+	 */
+	public static final long STALE_INPROGRESS_MS = 5L * 60L * 1000L;
+
+	/**
 	 * Backoff delays in seconds, indexed by attempt number.
 	 * Attempt 0 = immediate (first delivery), then exponential growth up to 24h.
 	 * {0s, 5s, 5m, 30m, 2h, 5h, 10h, 14h, 20h, 24h}
 	 */
 	public static final int[] BACKOFF_DELAYS = {0, 5, 300, 1800, 7200, 18000, 36000, 50400, 72000, 86400};
+
+	/** SysConfig: max stored length (chars) for ResponseBody and ErrorMessage. */
+	public static final String REST_WEBHOOK_LOG_MAX_LENGTH = "REST_WEBHOOK_LOG_MAX_LENGTH";
+	private static final int DEFAULT_LOG_MAX_LENGTH = 2000;
 
 	public MRestWebhookOutLog(Properties ctx, int REST_Webhook_Out_Log_ID, String trxName) {
 		super(ctx, REST_Webhook_Out_Log_ID, trxName);
@@ -61,19 +74,24 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	}
 
 	/**
-	 * Get pending deliveries that are due for retry.
+	 * Get deliveries that need processing: due Pending rows plus stuck
+	 * IN_PROGRESS rows whose worker likely died mid-flight (Updated older
+	 * than {@link #STALE_INPROGRESS_MS}).
+	 *
 	 * @param ctx context
 	 * @param maxAttempts maximum number of attempts before abandoning
 	 * @param trxName transaction name
-	 * @return list of deliveries with DeliveryStatus=P, NextRetryAt<=now, Attempts<maxAttempts
+	 * @return list of deliveries due for dispatch or recovery
 	 */
 	public static List<MRestWebhookOutLog> getPendingRetries(Properties ctx, int maxAttempts, String trxName) {
+		Timestamp staleThreshold = new Timestamp(System.currentTimeMillis() - STALE_INPROGRESS_MS);
 		return new Query(ctx, Table_Name,
-				"DeliveryStatus=?"
-				+ " AND (NextRetryAt IS NULL OR NextRetryAt<=getDate())"
-				+ " AND Attempts<?",
+				"("
+				+ "  (DeliveryStatus=? AND (NextRetryAt IS NULL OR NextRetryAt<=getDate()))"
+				+ "  OR (DeliveryStatus=? AND Updated<=?)"
+				+ ") AND Attempts<?",
 				trxName)
-				.setParameters(DELIVERYSTATUS_Pending, maxAttempts)
+				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts)
 				.setOrderBy("NextRetryAt NULLS FIRST, Created")
 				.list();
 	}
@@ -84,9 +102,10 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	 * @param responseBody response body from endpoint
 	 */
 	public void markSuccess(int httpStatus, String responseBody) {
+		int maxLen = getConfiguredMaxLogLength();
 		setDeliveryStatus(DELIVERYSTATUS_Success);
 		setHttpStatus(httpStatus);
-		setResponseBody(truncate(responseBody, 2000));
+		setResponseBody(truncate(responseBody, maxLen));
 		setAttempts(getAttempts() + 1);
 		setNextRetryAt(null);
 		setErrorMessage(null);
@@ -101,10 +120,12 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	 */
 	public void markFailed(int httpStatus, String responseBody, String errorMessage) {
 		int nextAttempt = getAttempts() + 1;
+		int maxLen = getConfiguredMaxLogLength();
+
 		setDeliveryStatus(DELIVERYSTATUS_Pending);
 		setHttpStatus(httpStatus);
-		setResponseBody(truncate(responseBody, 2000));
-		setErrorMessage(truncate(errorMessage, 2000));
+		setResponseBody(truncate(responseBody, maxLen));
+		setErrorMessage(truncate(errorMessage, maxLen));
 		setAttempts(nextAttempt);
 
 		long delaySec = getBackoffDelay(nextAttempt);
@@ -146,8 +167,16 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	private static String truncate(String value, int maxLen) {
 		if (value == null)
 			return null;
+		if (maxLen == 0)
+			return null;
 		if (value.length() <= maxLen)
 			return value;
 		return value.substring(0, maxLen);
+	}
+
+	private int getConfiguredMaxLogLength() {
+		int maxLen = MSysConfig.getIntValue(REST_WEBHOOK_LOG_MAX_LENGTH,
+				DEFAULT_LOG_MAX_LENGTH, getAD_Client_ID());
+		return maxLen < 0 ? DEFAULT_LOG_MAX_LENGTH : maxLen;
 	}
 }

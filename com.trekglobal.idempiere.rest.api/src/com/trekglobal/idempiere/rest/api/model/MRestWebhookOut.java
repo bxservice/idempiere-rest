@@ -28,9 +28,12 @@ import java.util.List;
 import java.util.Properties;
 
 import org.compiere.model.Query;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
+import org.compiere.util.Util;
 
 import com.trekglobal.idempiere.rest.api.webhook.WebhookEventHandler;
+import com.trekglobal.idempiere.rest.api.webhook.WebhookSignature;
 
 /**
  * Business model for REST_Webhook_Out.
@@ -73,30 +76,72 @@ public class MRestWebhookOut extends X_REST_Webhook_Out {
 	}
 
 	/**
-	 * Increment the consecutive failure counter. If the counter reaches
-	 * MaxConsecutiveFailures (when > 0), the endpoint is automatically paused.
+	 * Atomically increment the consecutive failure counter and pause the endpoint
+	 * if the threshold is reached. Uses a single SQL UPDATE so concurrent
+	 * dispatches don't lose increments.
 	 */
-	private static final int DEFAULT_MAX_CONSECUTIVE_FAILURES = 50;
-
 	public void incrementFailure() {
-		setConsecutiveFailures(getConsecutiveFailures() + 1);
-		setLastFailureAt(new Timestamp(System.currentTimeMillis()));
 		int max = getMaxConsecutiveFailures();
-		if (max <= 0) max = DEFAULT_MAX_CONSECUTIVE_FAILURES;
-		if (getConsecutiveFailures() >= max) {
-			setIsPaused(true);
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		if (max > 0) {
+			DB.executeUpdateEx(
+					"UPDATE " + Table_Name
+					+ " SET ConsecutiveFailures = ConsecutiveFailures + 1,"
+					+ "     LastFailureAt = ?,"
+					+ "     IsPaused = CASE WHEN ConsecutiveFailures + 1 >= ? THEN 'Y' ELSE IsPaused END"
+					+ " WHERE REST_Webhook_Out_ID = ?",
+					new Object[] { now, max, get_ID() }, get_TrxName());
+		} else {
+			DB.executeUpdateEx(
+					"UPDATE " + Table_Name
+					+ " SET ConsecutiveFailures = ConsecutiveFailures + 1,"
+					+ "     LastFailureAt = ?"
+					+ " WHERE REST_Webhook_Out_ID = ?",
+					new Object[] { now, get_ID() }, get_TrxName());
 		}
-		saveEx();
 	}
 
 	/**
-	 * Record a successful delivery. Resets the consecutive failure counter
-	 * and updates the last success timestamp.
+	 * Atomically reset the consecutive failure counter and stamp the last success
+	 * timestamp.
 	 */
 	public void recordSuccess() {
-		setConsecutiveFailures(0);
-		setLastSuccessAt(new Timestamp(System.currentTimeMillis()));
-		saveEx();
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		DB.executeUpdateEx(
+				"UPDATE " + Table_Name
+				+ " SET ConsecutiveFailures = 0,"
+				+ "     LastSuccessAt = ?"
+				+ " WHERE REST_Webhook_Out_ID = ?",
+				new Object[] { now, get_ID() }, get_TrxName());
+	}
+
+	/**
+	 * Auto-generate a Standard Webhooks-format secret when this endpoint is
+	 * configured as Standard Webhook and no secret was provided. Follows the
+	 * same convention as Stripe/Svix: sender generates, operator copies the
+	 * value to share with the receiver.
+	 *
+	 * <p>If the operator pasted a specific secret (e.g., one dictated by an
+	 * upstream provider), it is preserved as-is. Auto-gen only fires when the
+	 * field is empty.
+	 *
+	 * <p>Raw mode endpoints ({@code IsStandardWebhook='N'}) don't need a
+	 * secret — no signing happens — so we leave the field alone.
+	 */
+	@Override
+	protected boolean beforeSave(boolean newRecord) {
+		if (getConsecutiveFailures() < 0) {
+			log.saveError("Error", "ConsecutiveFailures cannot be negative");
+			return false;
+		}
+		if (getMaxConsecutiveFailures() < 0) {
+			log.saveError("Error", "MaxConsecutiveFailures cannot be negative");
+			return false;
+		}
+		if (isStandardWebhook() && Util.isEmpty(getWebhookSecret(), true)) {
+			setWebhookSecret(WebhookSignature.generateSecret());
+		}
+		return true;
 	}
 
 	@Override

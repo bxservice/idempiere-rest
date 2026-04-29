@@ -31,7 +31,7 @@ public class X_REST_Webhook_In extends PO implements I_REST_Webhook_In, I_Persis
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20260413L;
+	private static final long serialVersionUID = 20260429L;
 
     /** Standard Constructor */
     public X_REST_Webhook_In (Properties ctx, int REST_Webhook_In_ID, String trxName)
@@ -220,7 +220,7 @@ public class X_REST_Webhook_In extends PO implements I_REST_Webhook_In, I_Persis
 	}
 
 	/** Set Endpoint Key.
-		@param EndpointKey Unique URL path segment. The full URL is /api/v1/webhooks/{EndpointKey}. Use lowercase with hyphens (e.g., pix-bb, boleto-itau, whatsapp-zapme). Must be URL-safe.
+		@param EndpointKey Unique URL path segment. Full URL is /api/v1/webhooks/{EndpointKey}. Use lowercase with hyphens (e.g. pix-bb). Must be URL-safe.
 	*/
 	public void setEndpointKey (String EndpointKey)
 	{
@@ -228,7 +228,7 @@ public class X_REST_Webhook_In extends PO implements I_REST_Webhook_In, I_Persis
 	}
 
 	/** Get Endpoint Key.
-		@return Unique URL path segment. The full URL is /api/v1/webhooks/{EndpointKey}. Use lowercase with hyphens (e.g., pix-bb, boleto-itau, whatsapp-zapme). Must be URL-safe.
+		@return Unique URL path segment. Full URL is /api/v1/webhooks/{EndpointKey}. Use lowercase with hyphens (e.g. pix-bb). Must be URL-safe.
 	  */
 	public String getEndpointKey()
 	{
@@ -330,16 +330,16 @@ public class X_REST_Webhook_In extends PO implements I_REST_Webhook_In, I_Persis
 		return (String)get_Value(COLUMNNAME_REST_Webhook_In_UU);
 	}
 
-	/** Set Webhook Secret.
-		@param WebhookSecret HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Set Webhook Signing Secret.
+		@param WebhookSecret HMAC-SHA256 secret used to sign outbound webhook payloads.
 	*/
 	public void setWebhookSecret (String WebhookSecret)
 	{
 		set_Value (COLUMNNAME_WebhookSecret, WebhookSecret);
 	}
 
-	/** Get Webhook Secret.
-		@return HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Get Webhook Signing Secret.
+		@return HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public String getWebhookSecret()
 	{

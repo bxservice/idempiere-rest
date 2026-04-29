@@ -142,18 +142,18 @@ public interface I_REST_Webhook_In
     public static final String COLUMNNAME_EndpointKey = "EndpointKey";
 
 	/** Set Endpoint Key.
-	  * Unique URL path segment. The full URL is /api/v1/webhooks/
+	  * Unique URL path segment. Full URL is /api/v1/webhooks/
 {
 EndpointKey}
-. Use lowercase with hyphens (e.g., pix-bb, boleto-itau, whatsapp-zapme). Must be URL-safe.
+. Use lowercase with hyphens (e.g. pix-bb). Must be URL-safe.
 	  */
 	public void setEndpointKey (String EndpointKey);
 
 	/** Get Endpoint Key.
-	  * Unique URL path segment. The full URL is /api/v1/webhooks/
+	  * Unique URL path segment. Full URL is /api/v1/webhooks/
 {
 EndpointKey}
-. Use lowercase with hyphens (e.g., pix-bb, boleto-itau, whatsapp-zapme). Must be URL-safe.
+. Use lowercase with hyphens (e.g. pix-bb). Must be URL-safe.
 	  */
 	public String getEndpointKey();
 
@@ -252,13 +252,13 @@ EndpointKey}
     /** Column name WebhookSecret */
     public static final String COLUMNNAME_WebhookSecret = "WebhookSecret";
 
-	/** Set Webhook Secret.
-	  * HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Set Webhook Signing Secret.
+	  * HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public void setWebhookSecret (String WebhookSecret);
 
-	/** Get Webhook Secret.
-	  * HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Get Webhook Signing Secret.
+	  * HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public String getWebhookSecret();
 }

@@ -32,7 +32,7 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20260413L;
+	private static final long serialVersionUID = 20260429L;
 
     /** Standard Constructor */
     public X_REST_Webhook_Out (Properties ctx, int REST_Webhook_Out_ID, String trxName)
@@ -42,6 +42,8 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
         {
 			setIsPaused (false);
 // N
+			setIsStandardWebhook (true);
+// Y
 			setName (null);
 			setREST_Webhook_Out_ID (0);
 			setURL (null);
@@ -56,6 +58,8 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
         {
 			setIsPaused (false);
 // N
+			setIsStandardWebhook (true);
+// Y
 			setName (null);
 			setREST_Webhook_Out_ID (0);
 			setURL (null);
@@ -70,6 +74,8 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
         {
 			setIsPaused (false);
 // N
+			setIsStandardWebhook (true);
+// Y
 			setName (null);
 			setREST_Webhook_Out_ID (0);
 			setURL (null);
@@ -84,6 +90,8 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
         {
 			setIsPaused (false);
 // N
+			setIsStandardWebhook (true);
+// Y
 			setName (null);
 			setREST_Webhook_Out_ID (0);
 			setURL (null);
@@ -172,29 +180,6 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
 		return (String)get_Value(COLUMNNAME_EntityType);
 	}
 
-	/** Set Standard Webhook.
-		@param IsStandardWebhook When enabled, payloads are wrapped in a Standard Webhooks envelope and signed with HMAC-SHA256 headers. When disabled, the payload is sent as-is without envelope or signature headers.
-	*/
-	public void setIsStandardWebhook (boolean IsStandardWebhook)
-	{
-		set_Value (COLUMNNAME_IsStandardWebhook, Boolean.valueOf(IsStandardWebhook));
-	}
-
-	/** Get Standard Webhook.
-		@return When enabled, payloads are wrapped in a Standard Webhooks envelope and signed with HMAC-SHA256 headers. When disabled, the payload is sent as-is without envelope or signature headers.
-	  */
-	public boolean isStandardWebhook()
-	{
-		Object oo = get_Value(COLUMNNAME_IsStandardWebhook);
-		if (oo != null)
-		{
-			 if (oo instanceof Boolean)
-				 return ((Boolean)oo).booleanValue();
-			return "Y".equals(oo);
-		}
-		return true; // default: Standard Webhooks enabled
-	}
-
 	/** Set Paused.
 		@param IsPaused When paused, no deliveries are attempted. Deliveries created during pause are queued and sent when unpaused. Auto-paused after consecutive failures exceed threshold.
 	*/
@@ -209,6 +194,29 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
 	public boolean isPaused()
 	{
 		Object oo = get_Value(COLUMNNAME_IsPaused);
+		if (oo != null)
+		{
+			 if (oo instanceof Boolean)
+				 return ((Boolean)oo).booleanValue();
+			return "Y".equals(oo);
+		}
+		return false;
+	}
+
+	/** Set Standard Webhook.
+		@param IsStandardWebhook Standard Webhook
+	*/
+	public void setIsStandardWebhook (boolean IsStandardWebhook)
+	{
+		set_Value (COLUMNNAME_IsStandardWebhook, Boolean.valueOf(IsStandardWebhook));
+	}
+
+	/** Get Standard Webhook.
+		@return Standard Webhook
+	  */
+	public boolean isStandardWebhook()
+	{
+		Object oo = get_Value(COLUMNNAME_IsStandardWebhook);
 		if (oo != null)
 		{
 			 if (oo instanceof Boolean)
@@ -370,16 +378,16 @@ public class X_REST_Webhook_Out extends PO implements I_REST_Webhook_Out, I_Pers
 		return (String)get_Value(COLUMNNAME_URL);
 	}
 
-	/** Set Webhook Secret.
-		@param WebhookSecret HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Set Webhook Signing Secret.
+		@param WebhookSecret HMAC-SHA256 secret used to sign outbound webhook payloads.
 	*/
 	public void setWebhookSecret (String WebhookSecret)
 	{
 		set_Value (COLUMNNAME_WebhookSecret, WebhookSecret);
 	}
 
-	/** Get Webhook Secret.
-		@return HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Get Webhook Signing Secret.
+		@return HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public String getWebhookSecret()
 	{

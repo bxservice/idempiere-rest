@@ -31,7 +31,7 @@ public class X_REST_Webhook_Out_Event extends PO implements I_REST_Webhook_Out_E
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20260413L;
+	private static final long serialVersionUID = 20260429L;
 
     /** Standard Constructor */
     public X_REST_Webhook_Out_Event (Properties ctx, int REST_Webhook_Out_Event_ID, String trxName)

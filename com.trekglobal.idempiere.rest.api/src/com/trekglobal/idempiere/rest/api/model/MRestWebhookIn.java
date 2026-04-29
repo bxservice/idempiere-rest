@@ -44,6 +44,11 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 	private static CCache<String, MRestWebhookIn> s_cache =
 			new CCache<>(Table_Name + "_EndpointKey", 40, 60);
 
+	/** Negative cache for unknown EndpointKeys — 5 minute TTL.
+	 *  Prevents DoS via repeated requests to non-existent endpoints. */
+	private static CCache<String, Boolean> s_missCache =
+			new CCache<>(Table_Name + "_EndpointKey_miss", 100, 5);
+
 	public MRestWebhookIn(Properties ctx, int REST_Webhook_In_ID, String trxName) {
 		super(ctx, REST_Webhook_In_ID, trxName);
 	}
@@ -71,6 +76,9 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 		if (cached != null)
 			return cached;
 
+		if (Boolean.TRUE.equals(s_missCache.get(endpointKey)))
+			return null;
+
 		MRestWebhookIn result = new Query(ctx, Table_Name, "EndpointKey=?", trxName)
 				.setParameters(endpointKey)
 				.setOnlyActiveRecords(true)
@@ -78,6 +86,8 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 
 		if (result != null)
 			s_cache.put(endpointKey, result);
+		else
+			s_missCache.put(endpointKey, Boolean.TRUE);
 
 		return result;
 	}
@@ -95,22 +105,27 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 
 	@Override
 	protected boolean afterSave(boolean newRecord, boolean success) {
-		if (success)
+		if (success) {
 			s_cache.reset();
+			s_missCache.reset();
+		}
 		return success;
 	}
 
 	@Override
 	protected boolean afterDelete(boolean success) {
-		if (success)
+		if (success) {
 			s_cache.reset();
+			s_missCache.reset();
+		}
 		return success;
 	}
 
 	/**
-	 * Reset the endpoint key cache.
+	 * Reset the endpoint key caches (positive and negative).
 	 */
 	public static void resetCache() {
 		s_cache.reset();
+		s_missCache.reset();
 	}
 }

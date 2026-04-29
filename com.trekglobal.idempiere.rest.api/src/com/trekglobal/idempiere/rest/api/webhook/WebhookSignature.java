@@ -148,6 +148,7 @@ public class WebhookSignature {
 
 		// Check each space-delimited signature in the header
 		String[] signatures = signatureHeader.split(" ");
+		boolean malformed = false;
 		for (String sig : signatures) {
 			sig = sig.trim();
 			if (!sig.startsWith(SIGNATURE_PREFIX)) {
@@ -159,10 +160,14 @@ public class WebhookSignature {
 					return true; // Constant-time comparison
 				}
 			} catch (IllegalArgumentException e) {
-				// Invalid base64, skip this signature
+				malformed = true;
 			}
 		}
 
+		if (malformed) {
+			throw new WebhookVerificationException(
+					"Malformed v1 signature in webhook-signature header (invalid base64)");
+		}
 		throw new WebhookVerificationException("No matching webhook signature found");
 	}
 

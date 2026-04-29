@@ -137,19 +137,6 @@ public interface I_REST_Webhook_Out
     /** Column name IsPaused */
     public static final String COLUMNNAME_IsPaused = "IsPaused";
 
-    /** Column name IsStandardWebhook */
-    public static final String COLUMNNAME_IsStandardWebhook = "IsStandardWebhook";
-
-	/** Set Standard Webhook.
-	  * When enabled, payloads are wrapped in a Standard Webhooks envelope and signed with HMAC-SHA256 headers. When disabled, the payload is sent as-is without envelope or signature headers.
-	  */
-	public void setIsStandardWebhook (boolean IsStandardWebhook);
-
-	/** Get Standard Webhook.
-	  * When enabled, payloads are wrapped in a Standard Webhooks envelope and signed with HMAC-SHA256 headers. When disabled, the payload is sent as-is without envelope or signature headers.
-	  */
-	public boolean isStandardWebhook();
-
 	/** Set Paused.
 	  * When paused, no deliveries are attempted. Deliveries created during pause are queued and sent when unpaused. Auto-paused after consecutive failures exceed threshold.
 	  */
@@ -159,6 +146,19 @@ public interface I_REST_Webhook_Out
 	  * When paused, no deliveries are attempted. Deliveries created during pause are queued and sent when unpaused. Auto-paused after consecutive failures exceed threshold.
 	  */
 	public boolean isPaused();
+
+    /** Column name IsStandardWebhook */
+    public static final String COLUMNNAME_IsStandardWebhook = "IsStandardWebhook";
+
+	/** Set Standard Webhook.
+	  * Standard Webhook
+	  */
+	public void setIsStandardWebhook (boolean IsStandardWebhook);
+
+	/** Get Standard Webhook.
+	  * Standard Webhook
+	  */
+	public boolean isStandardWebhook();
 
     /** Column name LastFailureAt */
     public static final String COLUMNNAME_LastFailureAt = "LastFailureAt";
@@ -292,13 +292,13 @@ public interface I_REST_Webhook_Out
     /** Column name WebhookSecret */
     public static final String COLUMNNAME_WebhookSecret = "WebhookSecret";
 
-	/** Set Webhook Secret.
-	  * HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Set Webhook Signing Secret.
+	  * HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public void setWebhookSecret (String WebhookSecret);
 
-	/** Get Webhook Secret.
-	  * HMAC-SHA256 signing secret in Standard Webhooks format (whsec_ prefix + base64). Used to sign outbound payloads so the receiver can verify authenticity.
+	/** Get Webhook Signing Secret.
+	  * HMAC-SHA256 secret used to sign outbound webhook payloads.
 	  */
 	public String getWebhookSecret();
 }
