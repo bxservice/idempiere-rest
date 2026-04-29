@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.ws.rs.core.Response.Status;
+
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
@@ -40,8 +42,12 @@ import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.POInfo;
+import org.compiere.util.DefaultEvaluatee;
+import org.compiere.util.DefaultEvaluatee.DataProvider;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
+import org.compiere.util.Evaluator;
+import org.compiere.util.Msg;
 import org.compiere.util.Util;
 import org.osgi.service.component.annotations.Component;
 
@@ -264,20 +270,37 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
-			if (value == null && viewColumn != null && viewColumn.isMandatory(json))
-				mandatoryColumns.add(propertyName);
+			if (value == null && viewColumn != null && viewColumn.isMandatory(json)) {
+				if (viewColumn != null && viewColumn.isMandatory(json)) {
+					mandatoryColumns.add(propertyName);
+				} else {
+					doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
+				}
+			}
 		}
 		
 		if (!mandatoryColumns.isEmpty()) {
-			StringBuilder error = new StringBuilder("Mandatory fields missing: ");
+			StringBuilder error = new StringBuilder();
 			for(String mandatoryColumn : mandatoryColumns) {
 				error.append(mandatoryColumn).append(", ");
 			}
 			error.delete(error.length()-2, error.length());
-			throw new AdempiereException(error.toString());
+			throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+						Msg.getMsg(Env.getCtx(), "FillMandatory") + error.toString(), Status.BAD_REQUEST);
 		}
 		
 		return po;
+	}
+
+	private void doColumnMandatoryValidation(JsonObject json, List<String> mandatoryColumns, MColumn column,
+			String propertyName) {
+		String mandatoryLogic = column.getMandatoryLogic();
+		if (!Util.isEmpty(mandatoryLogic, true)) {
+			if (isMandatory(column, json, mandatoryLogic))
+				mandatoryColumns.add(propertyName);
+		} else if (column.isMandatory()) {
+			mandatoryColumns.add(propertyName);
+		}
 	}
 
 	/**
@@ -292,8 +315,13 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	private void setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn, String propertyName,
 			JsonObject json, List<String> mandatoryColumns) {
 		boolean set = setDefaultValue(po, column, viewColumn);
-		if (!set && viewColumn != null && viewColumn.isMandatory(json))
-			mandatoryColumns.add(propertyName);
+		if (!set) {
+			if (viewColumn != null && viewColumn.isMandatory(json))
+				mandatoryColumns.add(propertyName);
+			else if (!column.isKey() && !"Created".equals(column.getColumnName()) && !"Updated".equals(column.getColumnName()) 
+				&& !"CreatedBy".equals(column.getColumnName()) && !"UpdatedBy".equals(column.getColumnName()))
+				doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
+		}
 	}
 
 	@Override
@@ -536,26 +564,31 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 								StringBuilder error = new StringBuilder("Wrong name for column ")
 										.append(errorPath).append(", you must use ")
 										.append(optional.get().getName());
-								throw new AdempiereException(error.toString());
+								throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+									error.toString(), Status.BAD_REQUEST);
 							} else {
-								throw new AdempiereException("Column " + errorPath + " does not exist");
+								throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+									"Column " + errorPath + " does not exist", Status.BAD_REQUEST);
 							}
 						}
 						int colIdx = po.get_ColumnIndex(columnName);
 						if (colIdx < 0)
-							throw new AdempiereException("Column " + jsonField + " does not exist");
+							throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+									"Column " + jsonField + " does not exist", Status.BAD_REQUEST);
 					}					
 					continue;
 				}
 				int colIdx = po.get_ColumnIndex(columnName);
 				if (colIdx < 0)
-					throw new AdempiereException("Column " + jsonField + " does not exist");
+					throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Column " + jsonField + " does not exist", Status.BAD_REQUEST);
 				columnName = po.get_ColumnName(colIdx);
 				
 				String propertyName = TypeConverterUtils.toPropertyName(columnName);
 				if (! jsonField.equals(propertyName) && !jsonField.equals(columnName))
-					throw new AdempiereException("Wrong name for column " + jsonField + ", you must use " + propertyName +
-							(propertyName.equals(columnName) ? "" : " or " + columnName));
+					throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Wrong name for column " + jsonField + ", you must use " + propertyName +
+							(propertyName.equals(columnName) ? "" : " or " + columnName), Status.BAD_REQUEST);
 			}
 		}
 	}
@@ -654,4 +687,50 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				Env.setContext(Env.getCtx(), windowNo, columnName, value.toString());
 		}
     }
+
+	/**
+	 * Check if column is mandatory
+	 * @param column column to check
+	 * @param jsonObject json object
+	 * @param mandatoryLogic mandatory logic
+	 * @return true if column is mandatory, false otherwise
+	 */
+	public static boolean isMandatory(MColumn column, JsonObject jsonObject, String mandatoryLogic) {
+		if (Util.isEmpty(mandatoryLogic, true))
+			return false;
+		
+		if (mandatoryLogic.startsWith(MColumn.VIRTUAL_UI_COLUMN_PREFIX))
+		{
+			return Evaluator.parseSQLLogic(mandatoryLogic, Env.getCtx(), 0, -1, column.getColumnName());
+		}
+		else
+		{
+			DataProvider provider = new DataProvider() {
+
+				@Override
+				public Object getValue(String columnName) {
+					JsonElement element = jsonObject.get(columnName);
+					return element == null ? null : element.getAsString();
+				}
+
+				@Override
+				public Object getProperty(String propertyName) {
+					return null;
+				}
+
+				@Override
+				public MColumn getColumn(String columnName) {
+					return null;
+				}
+
+				@Override
+				public String getTrxName() {
+					return null;
+				}
+				
+			};
+			DefaultEvaluatee evaluatee = new DefaultEvaluatee(provider);
+			return Evaluator.evaluateLogic(evaluatee, mandatoryLogic);
+		}
+	}
 }
