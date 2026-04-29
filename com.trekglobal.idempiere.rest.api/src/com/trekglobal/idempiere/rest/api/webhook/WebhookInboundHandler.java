@@ -92,7 +92,7 @@ public class WebhookInboundHandler {
 		}
 
 		// IP allowlist check
-		if (!inbound.isIPAllowed(remoteAddr)) {
+		if (!WebhookIPAllowlist.isAllowed(inbound.getAllowedIPs(), remoteAddr)) {
 			log.warning("Inbound webhook " + endpointKey + " rejected IP: " + remoteAddr);
 			return Response.status(Response.Status.FORBIDDEN)
 					.entity("{\"error\":\"IP not allowed\"}")
@@ -177,10 +177,18 @@ public class WebhookInboundHandler {
 		// -----------------------------------------------------------------------
 		// PHASE 2: Process execution — ServerProcessCtl manages its own transaction.
 		// -----------------------------------------------------------------------
+		int userId = inbound.getAD_User_ID();
+		if (userId <= 0) {
+			log.severe("Inbound webhook " + endpointKey
+					+ " has no AD_User_ID configured — refusing to execute process");
+			logEntry.markError("Endpoint misconfigured: AD_User_ID is required");
+			return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+					.entity("{\"error\":\"Endpoint misconfigured\"}")
+					.build();
+		}
+
 		ProcessInfo pi = new ProcessInfo("Webhook: " + endpointKey, inbound.getAD_Process_ID());
 		pi.setAD_Client_ID(inbound.getAD_Client_ID());
-		int userId = inbound.getAD_User_ID();
-		if (userId <= 0) userId = 100;
 		pi.setAD_User_ID(userId);
 		pi.setParameter(new ProcessInfoParameter[] {
 				new ProcessInfoParameter(PROCESS_PARAM_PAYLOAD, body, null, null, null)

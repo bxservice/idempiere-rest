@@ -36,7 +36,6 @@ import org.compiere.util.CLogger;
 import org.compiere.util.Util;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -103,7 +102,7 @@ public class WebhookPayloadTemplateResolver {
 
 		String resolved = result.toString();
 
-		// Post-process: remove entries whose value resolved to null.
+		// Post-process: remove entries whose value resolved to JSON null.
 		// Follows the same convention as DefaultPOSerializer — null fields are omitted.
 		try {
 			JsonElement parsed = JsonParser.parseString(resolved);
@@ -112,20 +111,22 @@ public class WebhookPayloadTemplateResolver {
 				return parsed.toString();
 			}
 		} catch (Exception e) {
-			// Template is not a JSON object (e.g. a plain value or malformed) — return as-is
+			log.log(java.util.logging.Level.WARNING,
+					"Failed to parse webhook template JSON, returning resolved string as-is: " + e.getMessage());
 		}
 
 		return resolved;
 	}
 
 	/**
-	 * Recursively remove entries whose value is JsonNull or the literal string "null"
-	 * (produced by resolveColumn when the PO value is null).
+	 * Recursively remove entries whose value is JSON null
+	 * (produced by resolveColumn when the PO value is null and the template
+	 * placed the variable unquoted).
 	 */
 	private static void removeNullEntries(JsonObject obj) {
 		for (Map.Entry<String, JsonElement> entry : new java.util.ArrayList<>(obj.entrySet())) {
 			JsonElement value = entry.getValue();
-			if (value instanceof JsonNull || (value.isJsonPrimitive() && "null".equals(value.getAsString()))) {
+			if (value.isJsonNull()) {
 				obj.remove(entry.getKey());
 			} else if (value.isJsonObject()) {
 				removeNullEntries(value.getAsJsonObject());

@@ -144,23 +144,41 @@ public class WebhookDispatcher {
 				return false;
 			}
 
-			request = HttpRequest.newBuilder()
-					.uri(URI.create(endpoint.getURL()))
-					.timeout(Duration.ofMillis(timeoutMs))
-					.header("Content-Type", "application/json")
-					.header("webhook-id", msgId)
-					.header("webhook-timestamp", String.valueOf(timestamp))
-					.header("webhook-signature", signature)
-					.POST(HttpRequest.BodyPublishers.ofString(payload))
-					.build();
+			try {
+				request = HttpRequest.newBuilder()
+						.uri(URI.create(endpoint.getURL()))
+						.timeout(Duration.ofMillis(timeoutMs))
+						.header("Content-Type", "application/json")
+						.header("webhook-id", msgId)
+						.header("webhook-timestamp", String.valueOf(timestamp))
+						.header("webhook-signature", signature)
+						.POST(HttpRequest.BodyPublishers.ofString(payload))
+						.build();
+			} catch (IllegalArgumentException e) {
+				log.severe("Invalid URL for endpoint " + endpoint.getName()
+						+ ": " + endpoint.getURL() + " — " + e.getMessage()
+						+ " — abandoning delivery " + deliveryId);
+				delivery.markAbandoned();
+				endpoint.incrementFailure();
+				return false;
+			}
 		} else {
 			// Raw mode: plain POST, no signing, no webhook-* headers
-			request = HttpRequest.newBuilder()
-					.uri(URI.create(endpoint.getURL()))
-					.timeout(Duration.ofMillis(timeoutMs))
-					.header("Content-Type", "application/json")
-					.POST(HttpRequest.BodyPublishers.ofString(payload))
-					.build();
+			try {
+				request = HttpRequest.newBuilder()
+						.uri(URI.create(endpoint.getURL()))
+						.timeout(Duration.ofMillis(timeoutMs))
+						.header("Content-Type", "application/json")
+						.POST(HttpRequest.BodyPublishers.ofString(payload))
+						.build();
+			} catch (IllegalArgumentException e) {
+				log.severe("Invalid URL for endpoint " + endpoint.getName()
+						+ ": " + endpoint.getURL() + " — " + e.getMessage()
+						+ " — abandoning delivery " + deliveryId);
+				delivery.markAbandoned();
+				endpoint.incrementFailure();
+				return false;
+			}
 		}
 
 		try {

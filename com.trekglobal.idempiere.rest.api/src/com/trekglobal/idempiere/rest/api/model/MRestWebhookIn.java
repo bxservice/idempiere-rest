@@ -22,14 +22,14 @@
 
 package com.trekglobal.idempiere.rest.api.model;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.ResultSet;
 import java.util.Properties;
 
 import org.compiere.model.Query;
 import org.compiere.util.CCache;
 import org.compiere.util.Util;
+
+import com.trekglobal.idempiere.rest.api.webhook.WebhookIPAllowlist;
 
 /**
  * Business model for REST_Webhook_In.
@@ -83,6 +83,17 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 	}
 
 	@Override
+	protected boolean beforeSave(boolean newRecord) {
+		try {
+			WebhookIPAllowlist.validate(getAllowedIPs());
+		} catch (IllegalArgumentException e) {
+			log.saveError("Error", e.getMessage());
+			return false;
+		}
+		return true;
+	}
+
+	@Override
 	protected boolean afterSave(boolean newRecord, boolean success) {
 		if (success)
 			s_cache.reset();
@@ -97,86 +108,9 @@ public class MRestWebhookIn extends X_REST_Webhook_In {
 	}
 
 	/**
-	 * Check whether the given remote address is allowed to call this webhook.
-	 * If AllowedIPs is empty/null, all addresses are allowed.
-	 * Supports plain IP addresses and CIDR notation (e.g. 10.0.0.0/8).
-	 *
-	 * @param remoteAddr the caller's IP address
-	 * @return true if the address is allowed (or no restriction configured)
-	 */
-	public boolean isIPAllowed(String remoteAddr) {
-		String allowedIPs = getAllowedIPs();
-		if (Util.isEmpty(allowedIPs, true))
-			return true;
-		if (Util.isEmpty(remoteAddr, true))
-			return false;
-
-		String[] entries = allowedIPs.split(",");
-		for (String entry : entries) {
-			String trimmed = entry.trim();
-			if (trimmed.isEmpty())
-				continue;
-
-			if (trimmed.contains("/")) {
-				// CIDR notation
-				if (isInCIDR(remoteAddr, trimmed))
-					return true;
-			} else {
-				// Exact match
-				if (trimmed.equals(remoteAddr))
-					return true;
-			}
-		}
-		return false;
-	}
-
-	/**
 	 * Reset the endpoint key cache.
 	 */
 	public static void resetCache() {
 		s_cache.reset();
-	}
-
-	/**
-	 * Check if an IP address is within a CIDR range.
-	 * @param ip the IP address to check
-	 * @param cidr the CIDR range (e.g. "192.168.1.0/24")
-	 * @return true if the IP is within the CIDR range
-	 */
-	private static boolean isInCIDR(String ip, String cidr) {
-		try {
-			String[] parts = cidr.split("/");
-			if (parts.length != 2)
-				return false;
-
-			InetAddress cidrAddress = InetAddress.getByName(parts[0].trim());
-			InetAddress remoteAddress = InetAddress.getByName(ip.trim());
-
-			int prefixLength = Integer.parseInt(parts[1].trim());
-
-			byte[] cidrBytes = cidrAddress.getAddress();
-			byte[] remoteBytes = remoteAddress.getAddress();
-
-			if (cidrBytes.length != remoteBytes.length)
-				return false;
-
-			int fullBytes = prefixLength / 8;
-			int remainingBits = prefixLength % 8;
-
-			for (int i = 0; i < fullBytes; i++) {
-				if (cidrBytes[i] != remoteBytes[i])
-					return false;
-			}
-
-			if (remainingBits > 0 && fullBytes < cidrBytes.length) {
-				int mask = 0xFF << (8 - remainingBits);
-				if ((cidrBytes[fullBytes] & mask) != (remoteBytes[fullBytes] & mask))
-					return false;
-			}
-
-			return true;
-		} catch (UnknownHostException | NumberFormatException e) {
-			return false;
-		}
 	}
 }

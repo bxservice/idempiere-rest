@@ -137,9 +137,14 @@ public class WebhookSignature {
 			}
 		}
 
-		String expectedSignature = sign(secret, msgId, timestamp, body);
-		byte[] expectedBytes = Base64.getDecoder().decode(
-				expectedSignature.substring(SIGNATURE_PREFIX.length()));
+		byte[] expectedBytes;
+		try {
+			String expectedSignature = sign(secret, msgId, timestamp, body);
+			expectedBytes = Base64.getDecoder().decode(
+					expectedSignature.substring(SIGNATURE_PREFIX.length()));
+		} catch (IllegalArgumentException e) {
+			throw new WebhookVerificationException("Invalid signature format: " + e.getMessage());
+		}
 
 		// Check each space-delimited signature in the header
 		String[] signatures = signatureHeader.split(" ");
