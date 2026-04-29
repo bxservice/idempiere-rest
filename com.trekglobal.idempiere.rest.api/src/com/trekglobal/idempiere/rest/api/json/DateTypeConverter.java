@@ -50,6 +50,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	public static final String ISO8601_DATE_PATTERN = "yyyy-MM-dd";
 	public static final String ISO8601_TIME_PATTERN = "HH:mm:ss'Z'";
 	public static final String ISO8601_DATETIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+	public static final String ISO8601_DATETIME_WITH_TIMEZONE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssXXX";
 
 	private static final String ISO_INSTANT_HINT = "yyyy-MM-dd'T'HH:mm:ss[.SSSSSSSSS]'Z'";
 	/**
@@ -64,7 +65,7 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 			return value.toInstant().toString();
 		}
 
-		String pattern = getPattern(displayType);
+		String pattern = getPattern(displayType, true);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
 			String formatted = new SimpleDateFormat(pattern).format(value);
@@ -97,7 +98,17 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 			}
 		}
 
-		String pattern = getPattern(displayType);
+		if (displayType == DisplayType.DateTime && value != null) {
+			String text = value.getAsString();
+			try {
+				// Accept ISO-8601 offsets, including trailing 'Z'
+				return Timestamp.from(Instant.parse(text));
+			} catch (DateTimeParseException ex) {
+				// Fallback to legacy format for backward compatibility
+			}
+		}
+
+		String pattern = getPattern(displayType, false);
 		
 		if (DisplayType.isDate(displayType) && pattern != null && value != null) {
 			Date parsed = null;
@@ -125,15 +136,19 @@ public class DateTypeConverter implements ITypeConverter<Date> {
 	/**
 	 * Returns an ISO-8601 format pattern according to the display type.
 	 * @param displayType Display Type
+	 * @param output whether the pattern is for output or input
 	 * @return formatting pattern
 	 */
-	private String getPattern(int displayType) {
+	private String getPattern(int displayType, boolean output) {
 		if (displayType == DisplayType.Date)
 			return ISO8601_DATE_PATTERN;
 		else if (displayType == DisplayType.Time)
 			return ISO8601_TIME_PATTERN;
 		else if (displayType == DisplayType.DateTime)
-			return ISO8601_DATETIME_PATTERN;
+			if (output)
+				return ISO8601_DATETIME_WITH_TIMEZONE_PATTERN;
+			else
+				return ISO8601_DATETIME_PATTERN;
 		else
 			return null;
 	}
