@@ -270,7 +270,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
-			if (value == null && viewColumn != null && viewColumn.isMandatory(json)) {
+			if (value == null) {
 				if (viewColumn != null && viewColumn.isMandatory(json)) {
 					mandatoryColumns.add(propertyName);
 				} else {
@@ -381,7 +381,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
 				if (viewColumn.isReadOnly(json)) {
 					if (MSysConfig.getBooleanValue("REST_ERROR_ON_NON_UPDATABLE_COLUMN", true))
-						throw new AdempiereException("Cannot update column " + viewColumn.getName());
+						throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update column " + viewColumn.getName(), Status.BAD_REQUEST);
 					else
 						continue;
 				}
@@ -398,19 +399,26 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			
-			if (value == null && viewColumn != null && viewColumn.isMandatory(json))
-				mandatoryColumns.add(propertyName);
+			if (value == null)
+			{
+				if (viewColumn != null && viewColumn.isMandatory(json)) {
+					mandatoryColumns.add(propertyName);
+				} else {
+					doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
+				}
+			}
 			else
 				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 		}
 		
 		if (!mandatoryColumns.isEmpty()) {
-			StringBuilder error = new StringBuilder("Field is mandatory: ");
+			StringBuilder error = new StringBuilder();
 			for(String mandatoryColumn : mandatoryColumns) {
 				error.append(mandatoryColumn).append(", ");
 			}
 			error.delete(error.length()-2, error.length());
-			throw new AdempiereException(error.toString());
+			throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+						Msg.getMsg(Env.getCtx(), "FillMandatory") + error.toString(), Status.BAD_REQUEST);
 		}
 		
 		return po;
