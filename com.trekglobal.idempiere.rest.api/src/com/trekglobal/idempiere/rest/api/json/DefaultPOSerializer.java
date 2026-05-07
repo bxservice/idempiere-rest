@@ -42,11 +42,8 @@ import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
 import org.compiere.model.POInfo;
-import org.compiere.util.DefaultEvaluatee;
-import org.compiere.util.DefaultEvaluatee.DataProvider;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
-import org.compiere.util.Evaluator;
 import org.compiere.util.Msg;
 import org.compiere.util.Util;
 import org.osgi.service.component.annotations.Component;
@@ -201,7 +198,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		Set<String> jsonFields = json.keySet();
 		populateContextFromPO(json, view, po);
 		
-		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		int count = view != null ? viewColumns.length : poInfo.getColumnCount(); 
@@ -220,7 +216,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (jsonPath != null && jsonPath.length > 1)
 				propertyName = jsonPath[0];
 			if (!jsonFields.contains(propertyName) && (viewColumns != null || !jsonFields.contains(columnName))) {
-				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			
@@ -228,7 +224,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (field == null && viewColumns == null)
 				field = json.get(columnName);
 			if (field == null) {
-				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			//nested json value object
@@ -242,7 +238,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					field = valueObject.get(jsonPath[p]);
 				}
 				if (field == null) {
-					setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+					setDefaultValue(po, column, viewColumn);
 					continue;
 				}
 			}
@@ -252,12 +248,12 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				continue;
 			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
 				if (viewColumn.isReadOnly(json)) {
-					setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+					setDefaultValue(po, column, viewColumn);
 					continue;
 				}
 			}
 			else if (! isUpdatable(column, false, po)) {
-				setDefaultValue(po, column, viewColumn, propertyName, json, mandatoryColumns);
+				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			if (   value != null
@@ -270,58 +266,9 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
-			if (value == null) {
-				if (viewColumn != null && viewColumn.isMandatory(json)) {
-					mandatoryColumns.add(propertyName);
-				} else {
-					doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
-				}
-			}
-		}
-		
-		if (!mandatoryColumns.isEmpty()) {
-			StringBuilder error = new StringBuilder();
-			for(String mandatoryColumn : mandatoryColumns) {
-				error.append(mandatoryColumn).append(", ");
-			}
-			error.delete(error.length()-2, error.length());
-			throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
-						Msg.getMsg(Env.getCtx(), "FillMandatory") + error.toString(), Status.BAD_REQUEST);
 		}
 		
 		return po;
-	}
-
-	private void doColumnMandatoryValidation(JsonObject json, List<String> mandatoryColumns, MColumn column,
-			String propertyName) {
-		String mandatoryLogic = column.getMandatoryLogic();
-		if (!Util.isEmpty(mandatoryLogic, true)) {
-			if (isMandatory(column, json, mandatoryLogic))
-				mandatoryColumns.add(propertyName);
-		} else if (column.isMandatory()) {
-			mandatoryColumns.add(propertyName);
-		}
-	}
-
-	/**
-	 * Set default value for column
-	 * @param po
-	 * @param column
-	 * @param viewColumn
-	 * @param propertyName input property name
-	 * @param json input json object
-	 * @param mandatoryColumns list to store mandatory columns that are not filled
-	 */
-	private void setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn, String propertyName,
-			JsonObject json, List<String> mandatoryColumns) {
-		boolean set = setDefaultValue(po, column, viewColumn);
-		if (!set) {
-			if (viewColumn != null && viewColumn.isMandatory(json))
-				mandatoryColumns.add(propertyName);
-			else if (!column.isKey() && !"Created".equals(column.getColumnName()) && !"Updated".equals(column.getColumnName()) 
-				&& !"CreatedBy".equals(column.getColumnName()) && !"UpdatedBy".equals(column.getColumnName()))
-				doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
-		}
 	}
 
 	@Override
@@ -337,7 +284,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		Set<String> jsonFields = json.keySet();
 		populateContextFromPO(json, view, po);
 
-		List<String> mandatoryColumns = new ArrayList<>();
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
 		int count = view != null ? viewColumns.length : poInfo.getColumnCount();
@@ -399,26 +345,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				}
 			}
 			
-			if (value == null)
-			{
-				if (viewColumn != null && viewColumn.isMandatory(json)) {
-					mandatoryColumns.add(propertyName);
-				} else {
-					doColumnMandatoryValidation(json, mandatoryColumns, column, propertyName);
-				}
-			}
-			else
-				po.set_ValueOfColumn(column.getAD_Column_ID(), value);
-		}
-		
-		if (!mandatoryColumns.isEmpty()) {
-			StringBuilder error = new StringBuilder();
-			for(String mandatoryColumn : mandatoryColumns) {
-				error.append(mandatoryColumn).append(", ");
-			}
-			error.delete(error.length()-2, error.length());
-			throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
-						Msg.getMsg(Env.getCtx(), "FillMandatory") + error.toString(), Status.BAD_REQUEST);
+			po.set_ValueOfColumn(column.getAD_Column_ID(), value);
 		}
 		
 		return po;
@@ -634,7 +561,7 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 	}
 	
 	private boolean setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn) {
-		if (!column.isVirtualColumn() && (!Util.isEmpty(column.getDefaultValue(), true) || (viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true)))) {
+		if (!column.isVirtualColumn()) {
 			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
 						DisplayType.isLookup(column.getAD_Reference_ID()) 
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
@@ -695,50 +622,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				Env.setContext(Env.getCtx(), windowNo, columnName, value.toString());
 		}
     }
-
-	/**
-	 * Check if column is mandatory
-	 * @param column column to check
-	 * @param jsonObject json object
-	 * @param mandatoryLogic mandatory logic
-	 * @return true if column is mandatory, false otherwise
-	 */
-	public static boolean isMandatory(MColumn column, JsonObject jsonObject, String mandatoryLogic) {
-		if (Util.isEmpty(mandatoryLogic, true))
-			return false;
-		
-		if (mandatoryLogic.startsWith(MColumn.VIRTUAL_UI_COLUMN_PREFIX))
-		{
-			return Evaluator.parseSQLLogic(mandatoryLogic, Env.getCtx(), 0, -1, column.getColumnName());
-		}
-		else
-		{
-			DataProvider provider = new DataProvider() {
-
-				@Override
-				public Object getValue(String columnName) {
-					JsonElement element = jsonObject.get(columnName);
-					return element == null ? null : element.getAsString();
-				}
-
-				@Override
-				public Object getProperty(String propertyName) {
-					return null;
-				}
-
-				@Override
-				public MColumn getColumn(String columnName) {
-					return null;
-				}
-
-				@Override
-				public String getTrxName() {
-					return null;
-				}
-				
-			};
-			DefaultEvaluatee evaluatee = new DefaultEvaluatee(provider);
-			return Evaluator.evaluateLogic(evaluatee, mandatoryLogic);
-		}
-	}
 }
+
+

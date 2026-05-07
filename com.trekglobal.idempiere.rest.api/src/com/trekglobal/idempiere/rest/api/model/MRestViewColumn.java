@@ -40,7 +40,7 @@ import org.idempiere.cache.ImmutablePOSupport;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.trekglobal.idempiere.rest.api.json.DefaultPOSerializer;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ModelResourceImpl;
 
 public class MRestViewColumn extends X_REST_ViewColumn implements ImmutablePOSupport {
 
@@ -141,9 +141,6 @@ public class MRestViewColumn extends X_REST_ViewColumn implements ImmutablePOSup
 		if (Util.isEmpty(mandatoryLogic, true))
 			mandatoryLogic = column.getMandatoryLogic();
 		
-		if (Util.isEmpty(mandatoryLogic, true))
-			return column.isMandatory();
-		
-		return DefaultPOSerializer.isMandatory(column, json, mandatoryLogic);
+		return ModelResourceImpl.isMandatory(column, json, mandatoryLogic);
 	}
 }
