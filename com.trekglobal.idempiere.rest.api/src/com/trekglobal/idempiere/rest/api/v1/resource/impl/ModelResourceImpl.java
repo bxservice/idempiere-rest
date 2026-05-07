@@ -1389,7 +1389,9 @@ public class ModelResourceImpl implements ModelResource {
 					@Override
 					public Object getValue(String columnName) {
 						JsonElement element = jsonObject.get(columnName);
-						return element == null ? null : element.getAsString();
+						if (element == null || element.isJsonNull() || !element.isJsonPrimitive())
+							return null;
+						return element.getAsString();
 					}
 	
 					@Override
