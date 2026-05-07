@@ -459,7 +459,7 @@ public class ModelResourceImpl implements ModelResource {
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, true);
 			try {
 				po.validForeignKeysEx();
-				String tableFilter = "(tableName="+tableName+")";
+				String tableFilter = "(tableName="+po.get_TableName()+")";
 				EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, tableFilter, eventHandler);
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
@@ -584,7 +584,7 @@ public class ModelResourceImpl implements ModelResource {
 							
 							childPO.validForeignKeysEx();
 							try {
-								String tableFilter = "(tableName="+childTable.getTableName()+")";
+								String tableFilter = "(tableName="+childPO.get_TableName()+")";
 								EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, tableFilter, eventHandler);							
 								childPO.saveEx();
 							} finally {
@@ -677,7 +677,7 @@ public class ModelResourceImpl implements ModelResource {
 			
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
 			try {
-				String tableFilter = "(tableName="+tableName+")";			
+				String tableFilter = "(tableName="+po.get_TableName()+")";			
 				EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, tableFilter, eventHandler);
 				po.validForeignKeysEx();
 				po.saveEx();
@@ -761,7 +761,7 @@ public class ModelResourceImpl implements ModelResource {
 										fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
 										childPO.validForeignKeysEx();
 										try {
-											String childTableFilter = "(tableName="+childTable.getTableName()+")";
+											String childTableFilter = "(tableName="+childPO.get_TableName()+")";
 											if (childPO.is_new())
 												EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, childTableFilter, childEventHandler);
 											else
