@@ -34,7 +34,6 @@ import java.util.Set;
 
 import javax.ws.rs.core.Response.Status;
 
-import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.GridField;
 import org.compiere.model.GridFieldVO;
 import org.compiere.model.MColumn;
@@ -388,13 +387,15 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 
 		if (validateUpdateable && !column.isUpdateable()) {
 			if (errorOnNonUpdatable)
-				throw new AdempiereException("Cannot update column " + column.getColumnName());
+				throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update column " + column.getColumnName(), Status.BAD_REQUEST);
 			else
 				return false;
 		}
 		if (column.isVirtualColumn()) {
 			if (errorOnNonUpdatable)
-				throw new AdempiereException("Cannot update virtual column " + column.getColumnName());
+				throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update virtual column " + column.getColumnName(), Status.BAD_REQUEST);
 			else
 				return false;
 		}
@@ -402,7 +403,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		if (! allowUpdateSecure) {
 			if (column.isSecure() || column.isEncrypted()) {
 				if (errorOnNonUpdatable)
-					throw new AdempiereException("Cannot update secure/encrypted column " + column.getColumnName());
+					throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update secure/encrypted column " + column.getColumnName(), Status.BAD_REQUEST);
 				else
 					return false;
 			}
@@ -410,7 +412,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 
 		if (!RestUtils.hasRoleColumnAccess(column.getAD_Table_ID(), column.getAD_Column_ID(), false)) {
 			if (errorOnNonUpdatable)
-				throw new AdempiereException("No access to update column " + column.getColumnName());
+				throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"No access to update column " + column.getColumnName(), Status.BAD_REQUEST);
 			else
 				return false;
 		}
@@ -420,7 +423,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				if (po.get_ValueAsBoolean("processed")) {
 					if (!column.isAlwaysUpdateable()) {
 						if (errorOnNonUpdatable)
-							throw new AdempiereException("Cannot update " + column.getColumnName() + " on processed record");
+							throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update " + column.getColumnName() + " on processed record", Status.BAD_REQUEST);
 						else
 							return false;
 					}
@@ -430,7 +434,8 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				if (po.get_ValueAsBoolean("posted")) {
 					if (!column.isAlwaysUpdateable()) {
 						if (errorOnNonUpdatable)
-							throw new AdempiereException("Cannot update " + column.getColumnName() + " on posted record");
+							throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"),
+							"Cannot update " + column.getColumnName() + " on posted record", Status.BAD_REQUEST);
 						else
 							return false;
 					}

@@ -573,7 +573,7 @@ public class ModelResourceImpl implements ModelResource {
 							
 							fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, true);
 
-							// Register handler for mandatory fields validation
+							// Event handler for mandatory fields validation
 							JsonObject finalChildJsonObject = childJsonObject;
 							EventHandler eventHandler = (Event evt) ->{
 								PO eventPO = EventHelper.getPO(evt);
@@ -581,11 +581,11 @@ public class ModelResourceImpl implements ModelResource {
 									validateMandatoryColumns(childPO, finalChildView, finalChildJsonObject, evt);
 								}
 							};
-							String tableFilter = "(tableName="+childTable.getTableName()+")";
-							EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, tableFilter, eventHandler);
 							
 							childPO.validForeignKeysEx();
 							try {
+								String tableFilter = "(tableName="+childTable.getTableName()+")";
+								EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, tableFilter, eventHandler);							
 								childPO.saveEx();
 							} finally {
 								EventManager.getInstance().unregister(eventHandler);
@@ -664,7 +664,7 @@ public class ModelResourceImpl implements ModelResource {
 			po = serializer.fromJson(jsonObject, po, view);			
 			po.set_TrxName(trx.getTrxName());
 
-			// Register handler for mandatory fields validation
+			// Event handler for mandatory fields validation
 			PO finalPO = po;
 			MRestView finalView = view;
 			JsonObject finalJsonObject = jsonObject;
@@ -674,11 +674,11 @@ public class ModelResourceImpl implements ModelResource {
 					validateMandatoryColumns(finalPO, finalView, finalJsonObject, evt);
 				}
 			};
-			String tableFilter = "(tableName="+tableName+")";
-			EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, tableFilter, eventHandler);
-
+			
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, false);
 			try {
+				String tableFilter = "(tableName="+tableName+")";			
+				EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, tableFilter, eventHandler);
 				po.validForeignKeysEx();
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
@@ -748,7 +748,7 @@ public class ModelResourceImpl implements ModelResource {
 									if (delete) {
 										childPO.deleteEx(true);
 									} else {
-										// Register event handler for mandatory validation
+										// Event handler for mandatory validation
 										PO finalChilPo = childPO;
 										JsonObject finalChildJsonObject = childJsonObject;
 										EventHandler childEventHandler = (Event evt) ->{
@@ -757,15 +757,15 @@ public class ModelResourceImpl implements ModelResource {
 												validateMandatoryColumns(finalChilPo, finalChildView, finalChildJsonObject, evt);
 											}
 										};
-										String childTableFilter = "(tableName="+childTable.getTableName()+")";
-										if (childPO.is_new())
-											EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, childTableFilter, childEventHandler);
-										else
-											EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, childTableFilter, childEventHandler);
-
+										
 										fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
 										childPO.validForeignKeysEx();
 										try {
+											String childTableFilter = "(tableName="+childTable.getTableName()+")";
+											if (childPO.is_new())
+												EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, childTableFilter, childEventHandler);
+											else
+												EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, childTableFilter, childEventHandler);
 											childPO.saveEx();
 										} finally {
 											EventManager.getInstance().unregister(childEventHandler);
@@ -1468,8 +1468,10 @@ public class ModelResourceImpl implements ModelResource {
 
 			Object value = po.get_ValueOfColumn(column.getAD_Column_ID());
 			if (value == null) {
-				if (viewColumn != null && viewColumn.isMandatory(json)) {
-					mandatoryColumns.add(propertyName);
+				if (viewColumn != null) {
+					if (viewColumn.isMandatory(json)) {
+						mandatoryColumns.add(propertyName);
+					}
 				} else if (isMandatory(column, json, column.getMandatoryLogic())) {
 					mandatoryColumns.add(propertyName);
 				}

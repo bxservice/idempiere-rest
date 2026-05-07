@@ -61,21 +61,17 @@ public class ResponseUtils {
 	public static Response getResponseErrorFromException(Exception ex, String title, String detailText) {
 		Status status = Status.INTERNAL_SERVER_ERROR;
 		IDempiereRestException restException = findRestException(ex);
+		String msg = ex.getMessage();
 		if (restException != null) {
 			status = restException.getErrorResponseStatus();
 			title = restException.getTitle();			
+			msg = restException.getMessage();
 		}
 
 		// Handle formatting issues with error message from model validation events
-		String msg = ex.getMessage();
 		if (msg != null) {
 			if (msg.endsWith("<br>")) {
 				msg = msg.substring(0, msg.length() - 4);
-			}
-			if (status == Status.BAD_REQUEST) {
-				if (msg.startsWith("Error: ") && msg.indexOf(":", 8) > 0) {
-					msg = msg.substring(7);
-				}
 			}
 		}
 		log.log(Level.SEVERE, msg, ex);
