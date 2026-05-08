@@ -458,14 +458,18 @@ public class ModelResourceImpl implements ModelResource {
 
 			fireRestSaveEvent(po, PO_BEFORE_REST_SAVE, true);
 			try {
-				po.validForeignKeysEx();
+				try {
+					po.validForeignKeysEx();
+				} catch (AdempiereException ex) {
+					throw new IDempiereRestException(Msg.getMsg(po.getCtx(), "ValidationError"), ex.getMessage(), Status.BAD_REQUEST);
+				}
 				String tableFilter = "(tableName="+po.get_TableName()+")";
 				EventManager.getInstance().register(IEventTopics.PO_BEFORE_NEW, tableFilter, eventHandler);
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, true);
 			} catch (CrossTenantException e) {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", 
+				return ResponseUtils.getResponseError(Status.BAD_REQUEST, Msg.getMsg(po.getCtx(), "ValidationError"), 
 						"Foreign ID " + e.getFKValue() + " not found in ", String.valueOf(e.getFKColumn()));
 			} catch (Exception ex) {
 				trx.rollback();
@@ -679,12 +683,16 @@ public class ModelResourceImpl implements ModelResource {
 			try {
 				String tableFilter = "(tableName="+po.get_TableName()+")";			
 				EventManager.getInstance().register(IEventTopics.PO_BEFORE_CHANGE, tableFilter, eventHandler);
-				po.validForeignKeysEx();
+				try {
+					po.validForeignKeysEx();
+				} catch (AdempiereException ex) {
+					throw new IDempiereRestException(Msg.getMsg(po.getCtx(), "ValidationError"), ex.getMessage(), Status.BAD_REQUEST);
+				}
 				po.saveEx();
 				fireRestSaveEvent(po, PO_AFTER_REST_SAVE, false);
 			} catch (CrossTenantException e) {
 				trx.rollback();
-				return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save error", 
+				return ResponseUtils.getResponseError(Status.BAD_REQUEST, Msg.getMsg(Env.getCtx(), "ValidationError"), 
 						"Foreign ID " + e.getFKValue() + " not found in ", String.valueOf(e.getFKColumn()));
 			}  catch (Exception ex) {
 				trx.rollback();
@@ -759,7 +767,11 @@ public class ModelResourceImpl implements ModelResource {
 										};
 										
 										fireRestSaveEvent(childPO, PO_BEFORE_REST_SAVE, false);
-										childPO.validForeignKeysEx();
+										try {
+											childPO.validForeignKeysEx();
+										} catch (AdempiereException ex) {
+											throw new IDempiereRestException(Msg.getMsg(Env.getCtx(), "ValidationError"), ex.getMessage(), Status.BAD_REQUEST);
+										}
 										try {
 											String childTableFilter = "(tableName="+childPO.get_TableName()+")";
 											if (childPO.is_new())
@@ -782,7 +794,7 @@ public class ModelResourceImpl implements ModelResource {
 							trx.rollback();
 							
 							if (ex instanceof CrossTenantException) 
-								return ResponseUtils.getResponseError(Status.INTERNAL_SERVER_ERROR, "Save Error", 
+								return ResponseUtils.getResponseError(Status.BAD_REQUEST, Msg.getMsg(Env.getCtx(), "ValidationError"), 
 										"Foreign ID " + ((CrossTenantException)ex).getFKValue() + " not found in ", String.valueOf(((CrossTenantException)ex).getFKColumn()));
 
 							return ResponseUtils.getResponseErrorFromException(ex, "Save error");
