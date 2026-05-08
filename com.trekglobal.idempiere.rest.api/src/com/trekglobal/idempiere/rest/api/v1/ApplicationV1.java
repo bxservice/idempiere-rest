@@ -58,6 +58,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.impl.TaskResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.UploadResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.ViewResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.WindowResourceImpl;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.WebhookInboundResourceImpl;
 import com.trekglobal.idempiere.rest.api.v1.resource.impl.WorkflowResourceImpl;
 
 /**
@@ -100,7 +101,8 @@ public class ApplicationV1 extends Application {
         classes.add(UploadResourceImpl.class);
         classes.add(BatchRequestResourseImpl.class);
         classes.add(HealthResourceImpl.class);
-        
+        classes.add(WebhookInboundResourceImpl.class);
+
         IServicesHolder<ResourceExtension> list = Service.locator().list(ResourceExtension.class);
         for (IServiceReferenceHolder<ResourceExtension> holder : list.getServiceReferences()) {
         	ResourceExtension service = holder.getService();
