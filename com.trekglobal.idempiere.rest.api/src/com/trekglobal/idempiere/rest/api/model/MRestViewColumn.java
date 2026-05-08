@@ -40,6 +40,7 @@ import org.idempiere.cache.ImmutablePOSupport;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.trekglobal.idempiere.rest.api.v1.resource.impl.ModelResourceImpl;
 
 public class MRestViewColumn extends X_REST_ViewColumn implements ImmutablePOSupport {
 
@@ -135,41 +136,11 @@ public class MRestViewColumn extends X_REST_ViewColumn implements ImmutablePOSup
 	 * @return true if mandatory logic is satisfied
 	 */
 	public boolean isMandatory(JsonObject json) {
-		if (Util.isEmpty(getMandatoryLogic(), true))
-			return false;
+		String mandatoryLogic = getMandatoryLogic();
+		MColumn column = MColumn.get(getAD_Column_ID());
+		if (Util.isEmpty(mandatoryLogic, true))
+			mandatoryLogic = column.getMandatoryLogic();
 		
-		if (getMandatoryLogic().startsWith(MColumn.VIRTUAL_UI_COLUMN_PREFIX))
-		{
-			return Evaluator.parseSQLLogic(getMandatoryLogic(), Env.getCtx(), 0, -1, MColumn.getColumnName(Env.getCtx(), getAD_Column_ID()));
-		}
-		else
-		{
-			DataProvider provider = new DataProvider() {
-
-				@Override
-				public Object getValue(String columnName) {
-					JsonElement element = json.get(columnName);
-					return element == null ? null : element.getAsString();
-				}
-
-				@Override
-				public Object getProperty(String propertyName) {
-					return null;
-				}
-
-				@Override
-				public MColumn getColumn(String columnName) {
-					return null;
-				}
-
-				@Override
-				public String getTrxName() {
-					return null;
-				}
-				
-			};
-			DefaultEvaluatee evaluatee = new DefaultEvaluatee(provider);
-			return Evaluator.evaluateLogic(evaluatee, getMandatoryLogic());
-		}
+		return ModelResourceImpl.isMandatory(column, json, mandatoryLogic);
 	}
 }

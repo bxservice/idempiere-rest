@@ -210,6 +210,8 @@ public class RequestFilter implements ContainerRequestFilter {
 			if (!user.isActive())
 				throw new JWTVerificationException("User is inactive");
 			Env.setContext(Env.getCtx(), Env.AD_USER_ID, claim.asInt());
+			Env.setContext(Env.getCtx(), Env.AD_USER_NAME, user.getName() );
+			Env.setContext(Env.getCtx(), Env.SALESREP_ID, claim.asInt());
 		}
 		claim = jwt.getClaim(LoginClaims.AD_Role_ID.name());
 		int AD_Role_ID = 0;

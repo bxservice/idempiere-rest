@@ -42,15 +42,40 @@ public class ResponseUtils {
 		return getResponseErrorFromException(ex, title, "");
 	}
 	
+	private static IDempiereRestException findRestException(Throwable ex) {
+		if (ex == null)
+			return null;
+		if (ex instanceof IDempiereRestException)
+			return (IDempiereRestException) ex;
+		
+		Throwable cause = ex.getCause();
+		while (cause != null) {
+			if (cause instanceof IDempiereRestException)
+				return (IDempiereRestException) cause;
+			cause = cause.getCause();
+		}
+		
+		return null;
+	}
+	
 	public static Response getResponseErrorFromException(Exception ex, String title, String detailText) {
 		Status status = Status.INTERNAL_SERVER_ERROR;
-		if (ex instanceof IDempiereRestException) {
-			status = ((IDempiereRestException) ex).getErrorResponseStatus();
-			title = ((IDempiereRestException) ex).getTitle();
+		IDempiereRestException restException = findRestException(ex);
+		String msg = ex.getMessage();
+		if (restException != null) {
+			status = restException.getErrorResponseStatus();
+			title = restException.getTitle();			
+			msg = restException.getMessage();
 		}
 
-		log.log(Level.SEVERE, ex.getMessage(), ex);
-		return getResponseError(status, title, detailText, ex.getMessage());
+		// Handle formatting issues with error message from model validation events
+		if (msg != null) {
+			if (msg.endsWith("<br>")) {
+				msg = msg.substring(0, msg.length() - 4);
+			}
+		}
+		log.log(Level.SEVERE, msg, ex);
+		return getResponseError(status, title, detailText, msg);
 	}
 	
 	public static Response getResponseError(Status status, String title, String text1, String text2) {
