@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" immediate="true" name="com.trekglobal.idempiere.rest.api.Activator">
+   <implementation class="com.trekglobal.idempiere.rest.api.Activator"/>
+   <reference cardinality="1..1" field="mappedModelFactory" interface="org.idempiere.model.IMappedModelFactory" name="mappedModelFactory"/>
+   <reference cardinality="1..1" field="mappedProcessFactory" interface="org.idempiere.process.IMappedProcessFactory" name="mappedProcessFactory"/>
+   <reference cardinality="1..1" field="mappedColumnCalloutFactory" interface="org.adempiere.base.IMappedColumnCalloutFactory" name="mappedColumnCalloutFactory"/>
+</scr:component>
