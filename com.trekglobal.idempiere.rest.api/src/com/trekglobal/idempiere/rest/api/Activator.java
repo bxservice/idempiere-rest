@@ -25,9 +25,15 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api;
 
-import org.adempiere.base.Core;
+import org.adempiere.base.IMappedColumnCalloutFactory;
 import org.adempiere.plugin.utils.Incremental2PackActivator;
+import org.idempiere.model.IMappedModelFactory;
+import org.idempiere.process.IMappedProcessFactory;
 import org.osgi.framework.BundleContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
 
 import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
 
@@ -36,15 +42,33 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
  * @author hengsin
  *
  */
+@Component(immediate = true, service = {})
 public class Activator extends Incremental2PackActivator {
 	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
+	@Reference(service = IMappedModelFactory.class, cardinality = ReferenceCardinality.MANDATORY)
+	private IMappedModelFactory mappedModelFactory;
+	
+	@Reference(service = IMappedProcessFactory.class, cardinality = ReferenceCardinality.MANDATORY)
+	private IMappedProcessFactory mappedProcessFactory;
 
+	@Reference(service = IMappedColumnCalloutFactory.class, cardinality = ReferenceCardinality.MANDATORY)
+	private IMappedColumnCalloutFactory mappedColumnCalloutFactory;
+
+	@Override
+	public void start(BundleContext context) throws Exception {		
 		super.start(context);
+	}
+
+	@Activate
+	public void activate(BundleContext context) {
+		mappedModelFactory.scan(context, "com.trekglobal.idempiere.rest.api.model");
+		mappedProcessFactory.scan(context, "com.trekglobal.idempiere.rest.api.process");
+		mappedColumnCalloutFactory.scan(context, "com.trekglobal.idempiere.rest.api.model");
+
+	}
+
+	public void deactivate(BundleContext context) {
+		
 	}
 
 	@Override
