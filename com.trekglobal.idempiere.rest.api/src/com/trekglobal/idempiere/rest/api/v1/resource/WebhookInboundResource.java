@@ -21,42 +21,38 @@
 *                                                                     *
 * Contributors:                                                       *
 * - Trek Global Corporation                                           *
-* - Heng Sin Low                                                      *
+* - Murilo Torino                                                     *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
+package com.trekglobal.idempiere.rest.api.v1.resource;
 
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.osgi.framework.BundleContext;
-
-import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 /**
- * 
- * @author hengsin
+ * Inbound webhook endpoint.
+ * Receives HTTP POST from external systems at /api/v1/webhooks/{endpointKey}.
+ * Authentication is via Standard Webhooks HMAC signatures, not JWT.
  *
+ * @author muriloht Murilo H. Torquato &lt;murilo@muriloht.com&gt;
  */
-public class Activator extends Incremental2PackActivator {
-	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
+@Path("v1/webhooks")
+public interface WebhookInboundResource {
 
-		super.start(context);
-	}
-
-	@Override
-	protected void afterPackIn() {
-		super.afterPackIn();
-		context.registerService(Activator.class, this, null);
-	}
-
-	@Override
-	public void stop(BundleContext context) throws Exception {
-		WebhookDispatcher.shutdown();
-		super.stop(context);
-	}
-
+	@POST
+	@Path("{endpointKey}")
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response receiveWebhook(
+			@PathParam("endpointKey") String endpointKey,
+			String body,
+			@Context HttpHeaders headers,
+			@Context HttpServletRequest request);
 }

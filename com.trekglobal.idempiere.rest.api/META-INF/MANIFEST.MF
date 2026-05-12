@@ -87,6 +87,7 @@ Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.v1.jwt,
  com.trekglobal.idempiere.rest.api.v1.resource,
  com.trekglobal.idempiere.rest.api.v1.resource.file,
- com.trekglobal.idempiere.rest.api.v1.resource.impl
+ com.trekglobal.idempiere.rest.api.v1.resource.impl,
+ com.trekglobal.idempiere.rest.api.webhook
 Service-Component: OSGI-INF/*.xml
 Eclipse-BundleShape: dir

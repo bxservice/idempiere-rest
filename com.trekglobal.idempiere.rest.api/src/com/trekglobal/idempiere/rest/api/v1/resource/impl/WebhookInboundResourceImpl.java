@@ -21,42 +21,28 @@
 *                                                                     *
 * Contributors:                                                       *
 * - Trek Global Corporation                                           *
-* - Heng Sin Low                                                      *
+* - Murilo Torino                                                     *
 **********************************************************************/
-package com.trekglobal.idempiere.rest.api;
+package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 
-import org.adempiere.base.Core;
-import org.adempiere.plugin.utils.Incremental2PackActivator;
-import org.osgi.framework.BundleContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
 
-import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
+import com.trekglobal.idempiere.rest.api.v1.resource.WebhookInboundResource;
+import com.trekglobal.idempiere.rest.api.webhook.WebhookInboundHandler;
 
 /**
- * 
- * @author hengsin
+ * Implementation of inbound webhook endpoint.
+ * Delegates all logic to WebhookInboundHandler.
  *
+ * @author muriloht Murilo H. Torquato &lt;murilo@muriloht.com&gt;
  */
-public class Activator extends Incremental2PackActivator {
-	
-	@Override
-	public void start(BundleContext context) throws Exception {
-		Core.getMappedModelFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-		Core.getMappedProcessFactory().scan(context, "com.trekglobal.idempiere.rest.api.process");
-		Core.getMappedColumnCalloutFactory().scan(context, "com.trekglobal.idempiere.rest.api.model");
-
-		super.start(context);
-	}
+public class WebhookInboundResourceImpl implements WebhookInboundResource {
 
 	@Override
-	protected void afterPackIn() {
-		super.afterPackIn();
-		context.registerService(Activator.class, this, null);
+	public Response receiveWebhook(String endpointKey, String body, HttpHeaders headers, HttpServletRequest request) {
+		String remoteAddr = request != null ? request.getRemoteAddr() : null;
+		return WebhookInboundHandler.handle(endpointKey, body, headers, remoteAddr);
 	}
-
-	@Override
-	public void stop(BundleContext context) throws Exception {
-		WebhookDispatcher.shutdown();
-		super.stop(context);
-	}
-
 }
