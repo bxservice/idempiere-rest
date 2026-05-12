@@ -34,8 +34,6 @@ import java.util.Set;
 
 import javax.ws.rs.core.Response.Status;
 
-import org.compiere.model.GridField;
-import org.compiere.model.GridFieldVO;
 import org.compiere.model.MColumn;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MTable;
@@ -63,8 +61,6 @@ import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
 	property = {"service.ranking:Integer=0"}, immediate = true)
 public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory {
 	
-	private int windowNo = -1;
-
 	/**
 	 * default constructor
 	 */
@@ -195,7 +191,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
-		populateContextFromPO(json, view, po);
 		
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
@@ -215,7 +210,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (jsonPath != null && jsonPath.length > 1)
 				propertyName = jsonPath[0];
 			if (!jsonFields.contains(propertyName) && (viewColumns != null || !jsonFields.contains(columnName))) {
-				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			
@@ -223,7 +217,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 			if (field == null && viewColumns == null)
 				field = json.get(columnName);
 			if (field == null) {
-				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			//nested json value object
@@ -237,7 +230,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 					field = valueObject.get(jsonPath[p]);
 				}
 				if (field == null) {
-					setDefaultValue(po, column, viewColumn);
 					continue;
 				}
 			}
@@ -247,12 +239,10 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 				continue;
 			if (viewColumn != null && !Util.isEmpty(viewColumn.getReadOnlyLogic(), true)) {
 				if (viewColumn.isReadOnly(json)) {
-					setDefaultValue(po, column, viewColumn);
 					continue;
 				}
 			}
 			else if (! isUpdatable(column, false, po)) {
-				setDefaultValue(po, column, viewColumn);
 				continue;
 			}
 			if (   value != null
@@ -281,7 +271,6 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		POInfo poInfo = POInfo.getPOInfo(Env.getCtx(), table.getAD_Table_ID());
 		validateJsonFields(json, po, view);
 		Set<String> jsonFields = json.keySet();
-		populateContextFromPO(json, view, po);
 
 		//loops through columns from view or PO definition
 		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
@@ -565,69 +554,13 @@ public class DefaultPOSerializer implements IPOSerializer, IPOSerializerFactory 
 		return false;
 	}
 	
-	private boolean setDefaultValue(PO po, MColumn column, MRestViewColumn viewColumn) {
-		if (!column.isVirtualColumn() && !column.isKey()
-			&& !column.getColumnName().equalsIgnoreCase(PO.getUUIDColumnName(po.get_TableName()))) {
-			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
-						DisplayType.isLookup(column.getAD_Reference_ID()) 
-						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
-						: column.getAD_Reference_ID(), 0, false, false, "");
-			vo.DefaultValue = viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true) ? viewColumn.getDefaultValue() : column.getDefaultValue();
-			GridField gridField = new GridField(vo);
-			Object defaultValue = gridField.getDefault();
-			if (defaultValue != null) {
-				po.set_ValueOfColumn(column.getAD_Column_ID(), defaultValue);
-				return true;
-			}
-		}		
-		return false;
-	}
-
 	@Override
 	public IPOSerializer getPOSerializer(String tableName, Class<?> modelClass) {
 		if ("*".equals(tableName)) {
 			return this;
 		}
 		return null;
-	}
-	
-	public void setWindowNo(int windowNo) {
-		this.windowNo = windowNo;
-	}
-	
-	/**
-	 * Populate context from existing PO values for default value parsing
-	 * @param json input json object
-	 * @param view rest view
-	 * @param po existing po
-	 */
-    private void populateContextFromPO(JsonObject json, MRestView view, PO po) {
-    	Set<String> jsonFields = json.keySet();
-		MTable table = MTable.get(po.get_Table_ID());
-
-		// Add values from json to context for default value parsing
-		for(String jsonField : jsonFields) {
-			JsonElement field = json.get(jsonField);
-			if (field == null || field.isJsonArray() || field.isJsonObject())
-				continue;
-
-			String columnName = view != null ? view.toColumnName(jsonField) : jsonField;
-			if (columnName == null)
-				continue;
-
-			int colIdx = po.get_ColumnIndex(columnName);
-			if (colIdx < 0)
-				continue;
-
-			MColumn column = table.getColumn(columnName);
-			if (column == null)
-				continue;
-
-			Object value = TypeConverterUtils.fromJsonValue(column, field);
-			if (value != null)
-				Env.setContext(Env.getCtx(), windowNo, columnName, value.toString());
-		}
-    }
+	}	
 }
 
 
