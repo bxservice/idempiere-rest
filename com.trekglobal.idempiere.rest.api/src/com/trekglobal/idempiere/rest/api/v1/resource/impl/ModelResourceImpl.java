@@ -31,12 +31,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Base64;
-import java.util.LinkedHashMap;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.zip.ZipEntry;
@@ -1456,6 +1458,7 @@ public class ModelResourceImpl implements ModelResource {
 	 * @throws IDempiereRestException if there's one or more mandatory columns not filled up with value
 	 */
 	private void validateMandatoryColumns(PO po, MRestView view, JsonObject json, Event event, int windowNo) throws IDempiereRestException {
+		populateContextFromPO(po, view, windowNo);
 		fillDefaultValues(po, view, json, windowNo);
 		
 		List<String> mandatoryColumns = new ArrayList<>();
@@ -1509,7 +1512,26 @@ public class ModelResourceImpl implements ModelResource {
 	}
 
 	/**
-	 * Fill default values for columns if it is not set in json and current value in po is null.
+	 * Populate context from existing PO values for default value parsing
+	 * @param po
+	 * @param view
+	 * @param windowNo
+	 */
+    private void populateContextFromPO(PO po, MRestView view, int windowNo) {
+		MTable table = MTable.get(po.getCtx(), po.get_Table_ID());
+		POInfo poInfo = POInfo.getPOInfo(po.getCtx(), po.get_Table_ID());
+		MRestViewColumn[] viewColumns = view != null ? view.getColumns() : null;
+		int count = view != null ? viewColumns.length : poInfo.getColumnCount();
+		for (int i = 0; i < count; i++) {
+			MRestViewColumn viewColumn = viewColumns != null ? viewColumns[i] : null;
+			String columnName = viewColumn != null ? MColumn.getColumnName(po.getCtx(), viewColumn.getAD_Column_ID()) : poInfo.getColumnName(i);
+			MColumn column = table.getColumn(columnName);
+			setContext(windowNo, columnName, po.get_ValueOfColumn(column.getAD_Column_ID()));
+		}
+    }
+
+    /**
+	 * Fill default values for mandatory columns if it is not set in json and current value in po is null.
 	 * @param po
 	 * @param view
 	 * @param json
@@ -1542,19 +1564,14 @@ public class ModelResourceImpl implements ModelResource {
 
 			if (jsonFields.contains(propertyName) || jsonFields.contains(columnName)) {
 				if (po.get_ValueOfColumn(column.getAD_Column_ID()) != null) {
-					Env.setContext(Env.getCtx(), windowNo, columnName, po.get_ValueOfColumn(column.getAD_Column_ID()).toString());
+					setContext(windowNo, columnName, po.get_ValueOfColumn(column.getAD_Column_ID()));
 				}
 				processedColumns.add(columnName);
 				continue;
 			}
 				
-			if (po.get_ValueOfColumn(column.getAD_Column_ID()) == null) {
-				if (setDefaultValue(po, column, view, viewColumn, windowNo, processedColumns)) {
-					if (po.get_ValueOfColumn(column.getAD_Column_ID()) != null) {
-						Env.setContext(Env.getCtx(), windowNo, columnName, po.get_ValueOfColumn(column.getAD_Column_ID()).toString());
-					}
-				}
-			}
+			if (po.get_ValueOfColumn(column.getAD_Column_ID()) == null)
+				setDefaultValue(po, column, view, viewColumn, windowNo, processedColumns, null);
 			if (!processedColumns.contains(columnName)) {
 				processedColumns.add(columnName);
 			}
@@ -1569,9 +1586,10 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param viewColumn
 	 * @param windowNo
 	 * @param processedColumns
+	 * @param parentColumn used for recursive call to avoid circular dependency, should be null when calling this method at the beginning
 	 * @return
 	 */
-	private boolean setDefaultValue(PO po, MColumn column, MRestView view, MRestViewColumn viewColumn, int windowNo, List<String> processedColumns) {
+	private boolean setDefaultValue(PO po, MColumn column, MRestView view, MRestViewColumn viewColumn, int windowNo, List<String> processedColumns, String parentColumn) {
 		if (!column.isVirtualColumn() && !column.isKey()
 			&& !column.getColumnName().equalsIgnoreCase(PO.getUUIDColumnName(po.get_TableName()))) {
 			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
@@ -1579,20 +1597,23 @@ public class ModelResourceImpl implements ModelResource {
 						? (DisplayType.isText(column.getAD_Reference_ID()) || DisplayType.isList(column.getAD_Reference_ID()) ? DisplayType.String : DisplayType.ID) 
 						: column.getAD_Reference_ID(), 0, false, false, "");
 			vo.DefaultValue = viewColumn != null && !Util.isEmpty(viewColumn.getDefaultValue(), true) ? viewColumn.getDefaultValue() : column.getDefaultValue();
-			GridField gridField = new GridField(vo);
-			var dependents = gridField.getDependentOn();
+			ArrayList<String> dependents = new ArrayList<String>();
+			if (!Util.isEmpty(vo.DefaultValue, true))
+				Evaluator.parseDepends(dependents, vo.DefaultValue);
 			if (dependents != null && !dependents.isEmpty()) {
 				for (String dependent : dependents) {
+					if (dependent.equalsIgnoreCase(parentColumn))
+						continue; // detected loop - exit recursion
 					if (!processedColumns.contains(dependent)) {
 						MColumn dependentColumn = MColumn.get(Env.getCtx(), MTable.getTableName(Env.getCtx(), po.get_Table_ID()), dependent);
 						if (po.get_Value(dependent) == null) {
 							MRestViewColumn dependentViewColumn = view != null ? Arrays.stream(view.getColumns())
 									.filter(vc -> MColumn.get(vc.getAD_Column_ID()).getColumnName().equalsIgnoreCase(dependent))
 									.findFirst().orElse(null) : null;									
-							setDefaultValue(po, dependentColumn, view, dependentViewColumn, windowNo, processedColumns);
+							setDefaultValue(po, dependentColumn, view, dependentViewColumn, windowNo, processedColumns, column.getColumnName());
 						}
 						if (po.get_Value(dependent) != null) {
-							Env.setContext(Env.getCtx(), windowNo, dependent, po.get_Value(dependent).toString());
+							setContext(windowNo, dependent, po.get_Value(dependent));
 						}
 						if (!processedColumns.contains(dependent)) {
 							processedColumns.add(dependent);
@@ -1600,14 +1621,29 @@ public class ModelResourceImpl implements ModelResource {
 					}
 				}
 			}
+			GridField gridField = new GridField(vo);
 			Object defaultValue = gridField.getDefault();
 			if (defaultValue != null) {
 				po.set_ValueOfColumn(column.getAD_Column_ID(), defaultValue);
-				Env.setContext(Env.getCtx(), windowNo, column.getColumnName(), defaultValue.toString());
+				setContext(windowNo, column.getColumnName(), defaultValue);
 				return true;
 			}
 		}		
 		return false;
+	}
+
+	private void setContext(int windowNo, String context, Object value) {
+		Properties ctx = Env.getCtx();
+		if (value == null)
+			Env.setContext(ctx, windowNo, context, (String) null);
+		else if (value instanceof Boolean)
+			Env.setContext(ctx, windowNo, context, (Boolean)value);
+		else if (value instanceof Timestamp)
+			Env.setContext(ctx, windowNo, context, (Timestamp)value);
+		else if (value instanceof Integer)
+			Env.setContext(ctx, windowNo, context, (Integer)value);
+		else
+			Env.setContext(ctx, windowNo, context, value.toString());
 	}
 
 }
