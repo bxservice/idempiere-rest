@@ -625,6 +625,9 @@ public class ModelResourceImpl implements ModelResource {
 				} catch (Exception ex) {
 					trx.rollback();
 					log.log(Level.SEVERE, ex.getMessage(), ex);
+					IDempiereRestException restEx = ResponseUtils.findRestException(ex);
+					if (restEx != null)
+						throw restEx;
 					
 					if (ex instanceof CrossTenantException) 
 						return "Foreign ID " + ((CrossTenantException)ex).getFKValue() + " not found in " + String.valueOf(((CrossTenantException)ex).getFKColumn());
@@ -1570,7 +1573,7 @@ public class ModelResourceImpl implements ModelResource {
 				continue;
 			}
 				
-			if (po.get_ValueOfColumn(column.getAD_Column_ID()) == null)
+			if (po.is_new() && po.get_ValueOfColumn(column.getAD_Column_ID()) == null)
 				setDefaultValue(po, column, view, viewColumn, windowNo, processedColumns);
 		}
 	}
