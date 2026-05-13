@@ -1550,6 +1550,7 @@ public class ModelResourceImpl implements ModelResource {
 			String columnName = viewColumn != null ? MColumn.getColumnName(po.getCtx(), viewColumn.getAD_Column_ID()) : poInfo.getColumnName(i);
 			if (processedColumns.contains(columnName))
 				continue;
+			processedColumns.add(columnName);
 			MColumn column = table.getColumn(columnName);
 			String propertyName = null;
 			if (viewColumns != null) {
@@ -1566,15 +1567,11 @@ public class ModelResourceImpl implements ModelResource {
 				if (po.get_ValueOfColumn(column.getAD_Column_ID()) != null) {
 					setContext(windowNo, columnName, po.get_ValueOfColumn(column.getAD_Column_ID()));
 				}
-				processedColumns.add(columnName);
 				continue;
 			}
 				
 			if (po.get_ValueOfColumn(column.getAD_Column_ID()) == null)
-				setDefaultValue(po, column, view, viewColumn, windowNo, processedColumns, null);
-			if (!processedColumns.contains(columnName)) {
-				processedColumns.add(columnName);
-			}
+				setDefaultValue(po, column, view, viewColumn, windowNo, processedColumns);
 		}
 	}
 
@@ -1586,10 +1583,9 @@ public class ModelResourceImpl implements ModelResource {
 	 * @param viewColumn
 	 * @param windowNo
 	 * @param processedColumns
-	 * @param parentColumn used for recursive call to avoid circular dependency, should be null when calling this method at the beginning
 	 * @return
 	 */
-	private boolean setDefaultValue(PO po, MColumn column, MRestView view, MRestViewColumn viewColumn, int windowNo, List<String> processedColumns, String parentColumn) {
+	private boolean setDefaultValue(PO po, MColumn column, MRestView view, MRestViewColumn viewColumn, int windowNo, List<String> processedColumns) {
 		if (!column.isVirtualColumn() && !column.isKey()
 			&& !column.getColumnName().equalsIgnoreCase(PO.getUUIDColumnName(po.get_TableName()))) {
 			GridFieldVO vo = GridFieldVO.createParameter(Env.getCtx(), windowNo, 0, 0, column.getAD_Column_ID(), column.getColumnName(), column.getName(), 
@@ -1602,21 +1598,17 @@ public class ModelResourceImpl implements ModelResource {
 				Evaluator.parseDepends(dependents, vo.DefaultValue);
 			if (dependents != null && !dependents.isEmpty()) {
 				for (String dependent : dependents) {
-					if (dependent.equalsIgnoreCase(parentColumn))
-						continue; // detected loop - exit recursion
 					if (!processedColumns.contains(dependent)) {
+						processedColumns.add(dependent);
 						MColumn dependentColumn = MColumn.get(Env.getCtx(), MTable.getTableName(Env.getCtx(), po.get_Table_ID()), dependent);
 						if (po.get_Value(dependent) == null) {
 							MRestViewColumn dependentViewColumn = view != null ? Arrays.stream(view.getColumns())
 									.filter(vc -> MColumn.get(vc.getAD_Column_ID()).getColumnName().equalsIgnoreCase(dependent))
 									.findFirst().orElse(null) : null;									
-							setDefaultValue(po, dependentColumn, view, dependentViewColumn, windowNo, processedColumns, column.getColumnName());
+							setDefaultValue(po, dependentColumn, view, dependentViewColumn, windowNo, processedColumns);
 						}
 						if (po.get_Value(dependent) != null) {
 							setContext(windowNo, dependent, po.get_Value(dependent));
-						}
-						if (!processedColumns.contains(dependent)) {
-							processedColumns.add(dependent);
 						}
 					}
 				}
