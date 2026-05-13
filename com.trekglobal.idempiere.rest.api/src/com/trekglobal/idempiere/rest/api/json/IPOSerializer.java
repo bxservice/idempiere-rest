@@ -120,8 +120,6 @@ public interface IPOSerializer {
 		return fromJson(json, po);
 	}
 	
-	public void setWindowNo(int windowNo);
-	
 	/**
 	 * Get PO serializer
 	 * @param tableName

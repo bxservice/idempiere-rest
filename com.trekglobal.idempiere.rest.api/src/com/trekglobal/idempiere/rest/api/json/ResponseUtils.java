@@ -42,7 +42,7 @@ public class ResponseUtils {
 		return getResponseErrorFromException(ex, title, "");
 	}
 	
-	private static IDempiereRestException findRestException(Throwable ex) {
+	public static IDempiereRestException findRestException(Throwable ex) {
 		if (ex == null)
 			return null;
 		if (ex instanceof IDempiereRestException)
