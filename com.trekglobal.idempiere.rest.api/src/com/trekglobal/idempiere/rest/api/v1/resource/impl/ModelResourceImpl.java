@@ -1604,6 +1604,9 @@ public class ModelResourceImpl implements ModelResource {
 					if (!processedColumns.contains(dependent)) {
 						processedColumns.add(dependent);
 						MColumn dependentColumn = MColumn.get(Env.getCtx(), MTable.getTableName(Env.getCtx(), po.get_Table_ID()), dependent);
+						if (dependentColumn == null) {
+							continue;
+						}
 						if (po.get_Value(dependent) == null) {
 							MRestViewColumn dependentViewColumn = view != null ? Arrays.stream(view.getColumns())
 									.filter(vc -> MColumn.get(vc.getAD_Column_ID()).getColumnName().equalsIgnoreCase(dependent))
