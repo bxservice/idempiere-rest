@@ -89,7 +89,7 @@ public class ChartResourceImpl implements ChartResource {
 					return Response.ok(json.toString()).build();
 				}
 			}
-			return Response.status(Status.NO_CONTENT).build();
+			return Response.status(Status.NOT_FOUND).build();
 		} catch (Exception ex) {
 			Status status = Status.INTERNAL_SERVER_ERROR;
 			if (ex instanceof IDempiereRestException)
@@ -115,7 +115,23 @@ public class ChartResourceImpl implements ChartResource {
 	public Response getChartData(String id) {
 		boolean isUUID = Util.isUUID(id);
 		int chartId = isUUID ? getChartID(id) : Integer.valueOf(id);
+		if (chartId <= 0)
+			return Response.status(Status.NOT_FOUND)
+				.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+						.title("Record not found")
+						.append("No record found matching ID: ")
+						.append(id)
+						.build().toString())
+				.build();
 		MChart mc = new MChart(Env.getCtx(), chartId, null);
+		if (mc.getAD_Chart_ID() != chartId)
+			return Response.status(Status.NOT_FOUND)
+				.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+						.title("Record not found")
+						.append("No record found matching ID: ")
+						.append(id)
+						.build().toString())
+				.build();
 		return Response.ok(mc.getData().toString()).build();
 	}
 

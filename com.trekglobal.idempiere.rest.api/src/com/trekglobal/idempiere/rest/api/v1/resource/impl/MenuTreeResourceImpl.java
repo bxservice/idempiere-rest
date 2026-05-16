@@ -64,9 +64,24 @@ public class MenuTreeResourceImpl implements MenuTreeResource {
 		try {
 			boolean isUUID = RestUtils.isUUID(id);
 			int menuTreeId = isUUID ? getMenuTreeID(id) : Integer.valueOf(id);
-
+			if (menuTreeId <= 0)
+				return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+							.title("Record not found")
+							.append("No record found matching ID: ")
+							.append(id)
+							.build().toString())
+					.build();
 			JsonObject jsonRoot = new JsonObject(); 
 			MTree mTree = new MTree(Env.getCtx(), menuTreeId, false, true, null);
+			if (mTree.getAD_Tree_ID() != menuTreeId)
+				return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+							.title("Record not found")
+							.append("No record found matching ID: ")
+							.append(id)
+							.build().toString())
+					.build();
 			MTreeNode rootNode = mTree.getRoot();
         	jsonRoot.addProperty(MMenu.COLUMNNAME_Name, rootNode.getName());
         	jsonRoot.addProperty(MMenu.COLUMNNAME_Description, rootNode.getDescription());

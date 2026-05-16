@@ -741,7 +741,9 @@ public class WindowResourceImpl implements WindowResource {
 					if (threadLocalTrxName != null)
 						gridTab.getTableModel().setImportingMode(true, threadLocalTrxName);
 					if (gridTab.dataDelete()) {
-						return Response.status(Status.OK).build();
+						JsonObject json = new JsonObject();
+						json.addProperty("msg", Msg.getMsg(Env.getCtx(), "Deleted"));
+						return Response.ok(json.toString()).build();
 					} else {
 						String error = edsl.getError();
 						return Response.status(Status.INTERNAL_SERVER_ERROR)
