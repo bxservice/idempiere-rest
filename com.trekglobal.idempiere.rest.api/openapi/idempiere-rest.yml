@@ -242,7 +242,7 @@ components:
             not_implemented_query_method:
               value:
                 title: "GET Error"
-                status: 403
+                status: 501
                 detail: "Method call xyz not implemented"
     BadCreateRecordRequest:
       description: Bad Request. Validation failure (Missing mandatory fields, invalid field names, or read-only violations).
@@ -302,7 +302,7 @@ components:
             invalid_update_record:
               value:
                 title: "Update error"
-                status: 401
+                status: 403
                 detail: "Role does not have access"
     ForbiddenDeleteRecordRequest:
       description: Forbidden. Role lacks "Delete" permission for the table.

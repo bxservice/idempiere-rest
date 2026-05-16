@@ -265,7 +265,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(12)).append("not_implemented_query_method:\n");
 		builder.append(" ".repeat(14)).append("value:\n");
 		builder.append(" ".repeat(16)).append("title: \"GET Error\"\n");
-		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("status: 501\n");
 		builder.append(" ".repeat(16)).append("detail: \"Method call xyz not implemented\"\n");
 		//BadCreateRecordRequest
 		builder.append(" ".repeat(4)).append("BadCreateRecordRequest:\n");
@@ -330,7 +330,7 @@ public class YAMLSchema {
 		builder.append(" ".repeat(12)).append("invalid_update_record:\n");
 		builder.append(" ".repeat(14)).append("value:\n");
 		builder.append(" ".repeat(16)).append("title: \"Update error\"\n");
-		builder.append(" ".repeat(16)).append("status: 401\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
 		builder.append(" ".repeat(16)).append("detail: \"Role does not have access\"\n");
 		//ForbiddenDeleteRecordRequest
 		builder.append(" ".repeat(4)).append("ForbiddenDeleteRecordRequest:\n");
