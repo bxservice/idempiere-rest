@@ -174,8 +174,7 @@ components:
           description: returns the values of the assigned label column
         showLabelColumnList:
           value: 'Name,Description'
-          description: returns a list of assigned label objects, including the column list only
-    
+          description: returns a list of assigned label objects, including the column list only 
   responses:
     NotFound:
       description: The specified resource was not found
@@ -3327,7 +3326,9 @@ components:
             type: object
             description: Body of the response, if applicable
 security:
-    - bearerAuth: [] # use the same name as above        \
+    - bearerAuth: [] # use the same name as above
+
+# The x-* below is for reference only    
 x-query-records-error-responses:
   '400':
     $ref: '#/components/responses/BadQueryRecordsRequest'
@@ -3337,6 +3338,8 @@ x-query-records-error-responses:
     $ref: '#/components/responses/NotFound'
   '500':
     $ref: '#/components/responses/ServerError'
+  '501':
+    $ref: '#/components/responses/NotImplementedQueryMethod'
 x-create-record-error-responses:
   '400':
     $ref: '#/components/responses/BadCreateRecordRequest'
@@ -3369,6 +3372,7 @@ x-delete-record-error-responses:
     $ref: '#/components/responses/NotFound'
   '500':
     $ref: '#/components/responses/ServerError'
+    
 paths:
   /auth/tokens:
     post:
