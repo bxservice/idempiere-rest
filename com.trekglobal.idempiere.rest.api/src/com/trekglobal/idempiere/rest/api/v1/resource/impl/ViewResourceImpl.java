@@ -246,6 +246,8 @@ public class ViewResourceImpl implements ViewResource {
 		header.append("components:\n");
 		YAMLSchema.addSecuritySchema(header);
 		YAMLSchema.addPredefinedParameters(header);
+		header.append(" ".repeat(2)).append("responses:\n");
+		YAMLSchema.addPredefinedResponses(header);
 		header.append(" ".repeat(2)).append("schemas:\n");
 		
 		StringBuilder body = new StringBuilder();		

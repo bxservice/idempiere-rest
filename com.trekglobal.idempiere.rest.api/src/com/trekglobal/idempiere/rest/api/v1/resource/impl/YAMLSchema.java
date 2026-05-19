@@ -89,6 +89,14 @@ public class YAMLSchema {
 	 */
 	public static void addPredefinedParameters(StringBuilder builder) {
 		builder.append(" ".repeat(2)).append("parameters:\n");
+		//locale
+		builder.append(" ".repeat(4)).append("locale:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: locale\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: set locale of request\n");
 		//$expand
 		builder.append(" ".repeat(4)).append("expand:\n");
 		builder.append(" ".repeat(6)).append("in: query\n");
@@ -138,6 +146,205 @@ public class YAMLSchema {
 		builder.append(" ".repeat(8)).append("type: integer\n");
 		builder.append(" ".repeat(8)).append("minimum: 0\n");
 		builder.append(" ".repeat(6)).append("description: first n items to skip\n");
+		//valrule
+		builder.append(" ".repeat(4)).append("valrule:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $valrule\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: integer\n");
+		builder.append(" ".repeat(6)).append("description: validation rule (AD_Val_Rule) id\n");
+		//context
+		builder.append(" ".repeat(4)).append("context:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: $context\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: inject context variable values for validation rule\n");
+		//showsql
+		builder.append(" ".repeat(4)).append("showsql:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: showsql\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: show sql command. By default show sql command and data\n");
+		//label
+		builder.append(" ".repeat(4)).append("label:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: label\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: query filter for AD_Label\n");
+		//showlabel
+		builder.append(" ".repeat(4)).append("showlabel:\n");
+		builder.append(" ".repeat(6)).append("in: query\n");
+		builder.append(" ".repeat(6)).append("name: showlabel\n");
+		builder.append(" ".repeat(6)).append("required: false\n");
+		builder.append(" ".repeat(6)).append("schema:\n");
+		builder.append(" ".repeat(8)).append("type: string\n");
+		builder.append(" ".repeat(6)).append("description: show list of assigned label. By default, returns a comma-separated list of assigned label names\n");
+		
+	}
+	
+	/**
+	 * Add predefined responses references
+	 * @param builder
+	 */
+	public static void addPredefinedResponses(StringBuilder builder) {
+		//NotFound
+		builder.append(" ".repeat(4)).append("NotFound:\n");
+		builder.append(" ".repeat(6)).append("description: The specified resource was not found\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: \"#/components/schemas/ErrorResponse\"\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("not_found:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Not Found\"\n");
+		builder.append(" ".repeat(16)).append("status: 404\n");
+		builder.append(" ".repeat(16)).append("detail: \"The specified resource was not found\"\n");
+		//ServerError
+		builder.append(" ".repeat(4)).append("ServerError:\n");
+		builder.append(" ".repeat(6)).append("description: Internal Server Error. Unhandled exceptions.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: \"#/components/schemas/ErrorResponse\"\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("internal_server_error:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Internal Server Error\"\n");
+		builder.append(" ".repeat(16)).append("status: 500\n");
+		builder.append(" ".repeat(16)).append("detail: \"Internal server error. Unhandled exceptions.\"\n");
+		//BinaryResponse
+		builder.append(" ".repeat(4)).append("BinaryResponse:\n");
+		builder.append(" ".repeat(6)).append("description: Successful response\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/octet-stream:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("type: string\n");
+		builder.append(" ".repeat(12)).append("format: binary\n");
+		//BadQueryRecordsRequest
+		builder.append(" ".repeat(4)).append("BadQueryRecordsRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Bad Request. Malformed query filter syntax.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_query_filter:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Bad Query Records Request\"\n");
+		builder.append(" ".repeat(16)).append("status: 400\n");
+		builder.append(" ".repeat(16)).append("detail: \"Invalid query filter syntax.\"\n");
+		//ForbiddenQueryRecordsRequest
+		builder.append(" ".repeat(4)).append("ForbiddenQueryRecordsRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Forbidden. Access to this specific record instance is restricted.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("forbidden_query_records:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Access denied\"\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("detail: \"Access denied for table: Products\"\n");
+		//NotImplementedQueryMethod
+		builder.append(" ".repeat(4)).append("NotImplementedQueryMethod:\n");
+		builder.append(" ".repeat(6)).append("description: Not Implemented. The query method is not implemented for this resource.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("not_implemented_query_method:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"GET Error\"\n");
+		builder.append(" ".repeat(16)).append("status: 501\n");
+		builder.append(" ".repeat(16)).append("detail: \"Method call xyz not implemented\"\n");
+		//BadCreateRecordRequest
+		builder.append(" ".repeat(4)).append("BadCreateRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Bad Request. Validation failure (Missing mandatory fields, invalid field names, or read-only violations).\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_create_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Validation Errors\"\n");
+		builder.append(" ".repeat(16)).append("status: 400\n");
+		builder.append(" ".repeat(16)).append("detail: \"Fill mandatory fields: Name, Description\"\n");
+		//ForbiddenCreateRecordRequest
+		builder.append(" ".repeat(4)).append("ForbiddenCreateRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Forbidden. Security violation (Tenant mismatch or no Create access).\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_create_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Access denied\"\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("detail: \"Access denied for table: Products\"\n");
+		//ForbiddenGetRecordRequest
+		builder.append(" ".repeat(4)).append("ForbiddenGetRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Forbidden. Access to this specific record instance is restricted.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_get_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Access denied\"\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("detail: \"Access denied for table: Products\"\n");
+		//BadUpdateRecordRequest
+		builder.append(" ".repeat(4)).append("BadUpdateRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Bad Request. Validation failure (Missing mandatory fields, invalid field names, or read-only violations).\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_update_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Validation Errors\"\n");
+		builder.append(" ".repeat(16)).append("status: 400\n");
+		builder.append(" ".repeat(16)).append("detail: \"Fill mandatory fields: Name, Description\"\n");
+		//ForbiddenUpdateRecordRequest
+		builder.append(" ".repeat(4)).append("ForbiddenUpdateRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Forbidden. Current user role lacks update access to the table.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_update_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Update error\"\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("detail: \"Role does not have access\"\n");
+		//ForbiddenDeleteRecordRequest
+		builder.append(" ".repeat(4)).append("ForbiddenDeleteRecordRequest:\n");
+		builder.append(" ".repeat(6)).append("description: Forbidden. Role lacks \"Delete\" permission for the table.\n");
+		builder.append(" ".repeat(6)).append("content:\n");
+		builder.append(" ".repeat(8)).append("application/json:\n");
+		builder.append(" ".repeat(10)).append("schema:\n");
+		builder.append(" ".repeat(12)).append("$ref: '#/components/schemas/ErrorResponse'\n");
+		builder.append(" ".repeat(10)).append("examples:\n");
+		builder.append(" ".repeat(12)).append("invalid_delete_record:\n");
+		builder.append(" ".repeat(14)).append("value:\n");
+		builder.append(" ".repeat(16)).append("title: \"Security Violation\"\n");
+		builder.append(" ".repeat(16)).append("status: 403\n");
+		builder.append(" ".repeat(16)).append("detail: \"No delete access\"\n");
 	}
 	
 	/**
@@ -398,7 +605,7 @@ public class YAMLSchema {
 	 * @param builder
 	 */
 	public static void addErrorResponseReference(StringBuilder builder) {
-		builder.append(" ".repeat(4)).append("errorResponse").append(":\n");
+		builder.append(" ".repeat(4)).append("ErrorResponse").append(":\n");
 		builder.append(" ".repeat(6)).append("type: object\n");
 		builder.append(" ".repeat(6)).append("properties:\n");
 		builder.append(" ".repeat(8)).append("title:\n");
@@ -635,9 +842,14 @@ public class YAMLSchema {
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/orderby'\n");    
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/top'\n");    
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/skip'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/valrule'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/context'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/showsql'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/label'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/showlabel'\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
-		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("description: OK. Returns the requested list of records and pagination metadata.\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema:\n");
@@ -656,9 +868,20 @@ public class YAMLSchema {
 		builder.append(" ".repeat(20)).append("description: total number of records\n");
 		builder.append(" ".repeat(18)).append("array-count:\n");
 		builder.append(" ".repeat(20)).append("type: integer\n");
+		builder.append(" ".repeat(20)).append("description: size of the records array\n");
 		builder.append(" ".repeat(18)).append("records:\n");
 		builder.append(" ".repeat(20)).append("type: array\n");
 		builder.append(" ".repeat(20)).append("items: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'400':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/BadQueryRecordsRequest'\n");
+		builder.append(" ".repeat(8)).append("'403':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ForbiddenQueryRecordsRequest'\n");
+		builder.append(" ".repeat(8)).append("'404':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotFound'\n");
+		builder.append(" ".repeat(8)).append("'500':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ServerError'\n");
+		builder.append(" ".repeat(8)).append("'501':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotImplementedQueryMethod'\n");
 	}
 	
 	/**
@@ -669,75 +892,58 @@ public class YAMLSchema {
 	 */
 	public static void addModelRequest(String name, boolean view, StringBuilder builder) {
 		builder.append(" ".repeat(2)).append(view ? "/views/" : "/models/").append(name).append("/{id}:\n");
+		builder.append(" ".repeat(4)).append("parameters:\n");
+		builder.append(" ".repeat(6)).append("- name: id\n");
+		builder.append(" ".repeat(8)).append("in: path\n");
+		builder.append(" ".repeat(8)).append("schema:\n");
+		builder.append(" ".repeat(10)).append("oneOf: \n");
+		builder.append(" ".repeat(12)).append("- type: string\n");
+		builder.append(" ".repeat(12)).append("- type: integer\n");
+		builder.append(" ".repeat(8)).append("required: true\n");
+		builder.append(" ".repeat(8)).append("description: integer record id or string record uuid\n");
+		builder.append(" ".repeat(6)).append("- $ref: '#/components/parameters/locale'\n");
 		//get by id
 		builder.append(" ".repeat(4)).append("get:\n");
 		builder.append(" ".repeat(6)).append("parameters:\n");
-		builder.append(" ".repeat(8)).append("- name: id\n");
-		builder.append(" ".repeat(10)).append("in: path\n");
-		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("oneOf: \n");
-		builder.append(" ".repeat(14)).append("- type: string\n");
-		builder.append(" ".repeat(14)).append("- type: integer\n");
-		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/expand'\n");
 		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/select'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/showsql'\n");
+		builder.append(" ".repeat(8)).append("- $ref: '#/components/parameters/showlabel'\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
-		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("description: OK. Returns the record data.\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'403':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ForbiddenGetRecordRequest'\n");
 		builder.append(" ".repeat(8)).append("'404':\n");
-		builder.append(" ".repeat(10)).append("description: Not found response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotFound'\n");
+		builder.append(" ".repeat(8)).append("'500':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ServerError'\n");
 		//update by id
 		builder.append(" ".repeat(4)).append("put:\n");
 		builder.append(" ".repeat(6)).append("requestBody:\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
-		builder.append(" ".repeat(6)).append("parameters:\n");
-		builder.append(" ".repeat(8)).append("- name: id\n");
-		builder.append(" ".repeat(10)).append("in: path\n");
-		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("oneOf: \n");
-		builder.append(" ".repeat(14)).append("- type: string\n");
-		builder.append(" ".repeat(14)).append("- type: integer\n");
-		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
-		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("description: OK. Return the updated record.\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'403':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ForbiddenUpdateRecordRequest'\n");
 		builder.append(" ".repeat(8)).append("'404':\n");
-		builder.append(" ".repeat(10)).append("description: Not found response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotFound'\n");
 		builder.append(" ".repeat(8)).append("'500':\n");
-		builder.append(" ".repeat(10)).append("description: Error response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ServerError'\n");
 		//delete by id
 		builder.append(" ".repeat(4)).append("delete:\n");
-		builder.append(" ".repeat(6)).append("parameters:\n");
-		builder.append(" ".repeat(8)).append("- name: id\n");
-		builder.append(" ".repeat(10)).append("in: path\n");
-		builder.append(" ".repeat(10)).append("schema:\n");
-		builder.append(" ".repeat(12)).append("oneOf: \n");
-		builder.append(" ".repeat(14)).append("- type: string\n");
-		builder.append(" ".repeat(14)).append("- type: integer\n");
-		builder.append(" ".repeat(10)).append("required: true\n");
-		builder.append(" ".repeat(10)).append("description: integer record id or string record uuid\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'200':\n");
-		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("description: OK. The record has been deleted.\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema:\n");
@@ -747,16 +953,12 @@ public class YAMLSchema {
 		builder.append(" ".repeat(20)).append("type: string\n");
 		builder.append(" ".repeat(20)).append("description: info or error message\n");
 		builder.append(" ".repeat(20)).append("example: 'Deleted'\n");
+		builder.append(" ".repeat(8)).append("'403':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ForbiddenDeleteRecordRequest'\n");
 		builder.append(" ".repeat(8)).append("'404':\n");
-		builder.append(" ".repeat(10)).append("description: Not found response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotFound'\n");
 		builder.append(" ".repeat(8)).append("'500':\n");
-		builder.append(" ".repeat(10)).append("description: Error response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ServerError'\n");
 		addQueryRequest(name, view, builder);
 		//create record
 		builder.append(" ".repeat(4)).append("post:\n");
@@ -766,15 +968,18 @@ public class YAMLSchema {
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
 		builder.append(" ".repeat(6)).append("responses:\n");
 		builder.append(" ".repeat(8)).append("'201':\n");
-		builder.append(" ".repeat(10)).append("description: Successful response\n");
+		builder.append(" ".repeat(10)).append("description: Created. Returns the created record.\n");
 		builder.append(" ".repeat(10)).append("content:\n");
 		builder.append(" ".repeat(12)).append("application/json:\n");
 		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/").append(name).append("' }\n");
+		builder.append(" ".repeat(8)).append("'400':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/BadCreateRecordRequest'\n");
+		builder.append(" ".repeat(8)).append("'403':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ForbiddenCreateRecordRequest'\n");
+		builder.append(" ".repeat(8)).append("'404':\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/NotFound'\n");
 		builder.append(" ".repeat(8)).append("'500':\n");
-		builder.append(" ".repeat(10)).append("description: Error response\n");
-		builder.append(" ".repeat(10)).append("content:\n");
-		builder.append(" ".repeat(12)).append("application/json:\n");
-		builder.append(" ".repeat(14)).append("schema: { $ref: '#/components/schemas/errorResponse' }\n");
+		builder.append(" ".repeat(10)).append("$ref: '#/components/responses/ServerError'\n");
 	}
 	
 	/**

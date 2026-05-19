@@ -96,6 +96,7 @@ import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.model.MRestView;
 import com.trekglobal.idempiere.rest.api.model.MRestViewColumn;
 import com.trekglobal.idempiere.rest.api.model.MRestViewRelated;
+import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.ModelResource;
 import com.trekglobal.idempiere.rest.api.v1.resource.WindowResource;
@@ -954,7 +955,13 @@ public class ModelResourceImpl implements ModelResource {
 					return ResponseUtils.getResponseErrorFromException(ex, "IO error");
 				}
 			}
-			return Response.status(Status.NO_CONTENT).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+							.title("No attachment found")
+							.append("No attachment found for ID: ")
+							.append(id)
+							.build().toString())
+					.build();
 		} else {
 			return poParser.getResponseError();
 		}
@@ -1074,7 +1081,13 @@ public class ModelResourceImpl implements ModelResource {
 					}
 				}
 			}
-			return Response.status(Status.NO_CONTENT).build();
+			return Response.status(Status.NOT_FOUND)
+					.entity(new ErrorBuilder().status(Status.NOT_FOUND)
+							.title("No attachment entry found")
+							.append("No attachment entry found for file name: ")
+							.append(fileName)
+							.build().toString())
+					.build();
 		} else {
 			return poParser.getResponseError();
 		}
@@ -1341,6 +1354,8 @@ public class ModelResourceImpl implements ModelResource {
 		header.append("components:\n");		
 		YAMLSchema.addSecuritySchema(header);
 		YAMLSchema.addPredefinedParameters(header);
+		header.append(" ".repeat(2)).append("responses:\n");
+		YAMLSchema.addPredefinedResponses(header);
 		header.append(" ".repeat(2)).append("schemas:\n");
 		
 		StringBuilder body = new StringBuilder();
