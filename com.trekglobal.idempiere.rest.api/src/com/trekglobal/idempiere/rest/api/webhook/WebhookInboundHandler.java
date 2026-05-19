@@ -87,7 +87,7 @@ public class WebhookInboundHandler {
 		Env.setContext(ctx, Env.AD_ORG_ID, inbound.getAD_Org_ID());
 
 		// Master switch (client-level — checked after endpoint lookup to honor per-tenant config)
-		if (!MSysConfig.getBooleanValue(REST_WEBHOOK_INBOUND_ENABLED, true, inbound.getAD_Client_ID())) {
+		if (!MSysConfig.getBooleanValue(REST_WEBHOOK_INBOUND_ENABLED, false, inbound.getAD_Client_ID())) {
 			return Response.status(Response.Status.SERVICE_UNAVAILABLE)
 					.entity("{\"error\":\"Inbound webhooks disabled\"}")
 					.build();

@@ -191,7 +191,7 @@ public class WebhookEventHandler extends AbstractEventHandler {
 			int AD_Client_ID = po.getAD_Client_ID();
 
 			// Master switch check
-			if (!MSysConfig.getBooleanValue(REST_WEBHOOK_ENABLED, true, AD_Client_ID)) return;
+			if (!MSysConfig.getBooleanValue(REST_WEBHOOK_ENABLED, false, AD_Client_ID)) return;
 
 			int AD_Table_ID = po.get_Table_ID();
 
