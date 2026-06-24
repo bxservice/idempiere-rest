@@ -494,8 +494,9 @@ components:
                 example: 110
               created:
                 type: string
+                format: date-time
                 description: timestamp the archive was created
-                example: '2026-06-19 09:00:00.0'
+                example: '2026-06-19T09:00:00Z'
       description: An array of archive entries, most recent first
     TabField:
       description: tab field description

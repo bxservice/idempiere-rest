@@ -1005,7 +1005,7 @@ public class ModelResourceImpl implements ModelResource {
 						json.addProperty("url", nativeUrl);
 						return Response.ok(json.toString(), "application/json").build();
 					}
-					String archivePrefix = useRestView ? "v1/views/" : "v1/models/";
+					String archivePrefix = useRestView ? "v1/views/" : "v1/models/"; // no leading slash - same pattern as UploadResourceImpl
 					String archivePath = archivePrefix + originalTableName + "/" + id + "/archives/" + archiveId;
 					String presignedURLParams = PresignedURL.createPresignedURLParams("GET", archivePath, expiresInSeconds);
 					String baseUrl = uriInfo.getBaseUri().toString();
