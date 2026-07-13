@@ -69,6 +69,19 @@ public interface BatchRequestResource {
 	 *	  }
 	 * ]
 	 * </pre>
+	 * A sub-request body may reference a record created/updated earlier in the same batch instead of a literal
+	 * value, using {@code @Table.Column} (resolved against that sub-request's response), {@code @bind.Column}
+	 * (an alias set via that sub-request's {@code as} field, for when the same table appears more than once),
+	 * or {@code @#GlobalVar} (session/context variable, e.g. {@code @#AD_Org_ID}). Referencing a table's primary
+	 * key column also resolves against the response's {@code id} property.
+	 * <pre>
+	 * [
+	 *   { "method": "POST", "path": "v1/models/c_bpartner",
+	 *     "body": { "Value": "CUST-1001", "Name": "Acme" } },
+	 *   { "method": "POST", "path": "v1/models/c_bpartner_location",
+	 *     "body": { "C_BPartner_ID": "@C_BPartner.C_BPartner_ID", "Name": "Main", "IsShipTo": "Y" } }
+	 * ]
+	 * </pre>
 	 * @param requests the list of batch requests to process
 	 * @param uriInfo the URI information for the request
 	 * @param headers the HTTP headers for the request
@@ -86,6 +99,7 @@ public interface BatchRequestResource {
 	    private String method;
 	    private String path;
 	    private Object body;
+	    private String as;
 
 	    // Getters and Setters
 	    public String getMethod() { return method; }
@@ -94,6 +108,13 @@ public interface BatchRequestResource {
 	    public void setPath(String path) { this.path = path; }
 	    public Object getBody() { return body; }
 	    public void setBody(Object body) { this.body = body; }
+	    /**
+	     * Optional alias this sub-request's created/updated record is cached under,
+	     * for disambiguating {@code @bind.Column} references when the same table
+	     * appears more than once in the batch.
+	     */
+	    public String getAs() { return as; }
+	    public void setAs(String as) { this.as = as; }
 	}
 
 	class BatchResponse {
