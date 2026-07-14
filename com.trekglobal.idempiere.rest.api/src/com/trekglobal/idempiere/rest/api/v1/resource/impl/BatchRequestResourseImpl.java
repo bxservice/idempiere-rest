@@ -112,7 +112,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    }
 	            	}
 	                if (!Util.isEmpty(req.getAs(), true)) {
-	                	if (MTable.get(Env.getCtx(), req.getAs()) != null) {
+	                	if (MTable.get(sessionCtx, req.getAs()) != null) {
 	                		throw new IDempiereRestException("Invalid batch alias",
 	                				"'as' value '" + req.getAs() + "' collides with an existing table name and cannot be used as an alias.", Status.BAD_REQUEST);
 	                	}
@@ -169,7 +169,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    }
 	                } else {
 	                	if (bodyAsMap != null) {
-	                		String tableName = canonicalTableName(extractTableNameFromPath(req.getPath()));
+	                		String tableName = canonicalTableName(extractTableNameFromPath(req.getPath()), sessionCtx);
 	                		if (tableName != null) {
 	                			referenceCache.put(tableName, bodyAsMap);
 	                			referenceTableNames.put(tableName, tableName);
@@ -344,10 +344,10 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         return null;
     }
 
-    private String canonicalTableName(String rawTableName) {
+    private String canonicalTableName(String rawTableName, Properties sessionCtx) {
         if (rawTableName == null)
             return null;
-        MTable table = MTable.get(Env.getCtx(), rawTableName);
+        MTable table = MTable.get(sessionCtx, rawTableName);
         return table != null ? table.getTableName() : null;
     }
 }
