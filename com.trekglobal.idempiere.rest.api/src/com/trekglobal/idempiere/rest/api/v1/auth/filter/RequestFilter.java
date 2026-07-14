@@ -103,6 +103,15 @@ public class RequestFilter implements ContainerRequestFilter {
 			|| (   HttpMethod.POST.equals(requestContext.getMethod())
 					&& isInboundWebhookPath(requestContext.getUriInfo().getPath())
 					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/password-reset/request")
+					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/password-reset/verify")
+					)
+			|| (   HttpMethod.POST.equals(requestContext.getMethod())
+					&& requestContext.getUriInfo().getPath().endsWith("v1/auth/password-reset/complete")
+					)
 			) {
 			return;
 		}

@@ -276,6 +276,138 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/auth/password-reset/request",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{resetEmail}}\",\n    \"language\": \"{{language}}\"\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/password-reset/request",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"password-reset",
+						"request"
+					]
+				},
+				"description": "Code-based password reset - step 1. Emails a one-time code. Response is neutral (never reveals whether the email is registered). No Authorization header."
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/password-reset/verify",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"if (jsonData.verifiedToken) {",
+							"    pm.environment.set(\"resetVerifiedToken\", jsonData.verifiedToken);",
+							"}"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{resetEmail}}\",\n    \"code\": \"{{resetCode}}\"\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/password-reset/verify",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"password-reset",
+						"verify"
+					]
+				},
+				"description": "Code-based password reset - step 2. Verifies the emailed code and stores the returned verifiedToken in the resetVerifiedToken environment variable. No Authorization header."
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/auth/password-reset/complete",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"verifiedToken\": \"{{resetVerifiedToken}}\",\n    \"newPassword\": \"{{resetNewPassword}}\"\n}"
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/auth/password-reset/complete",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"password-reset",
+						"complete"
+					]
+				},
+				"description": "Code-based password reset - step 3. Sets the new password using the verifiedToken from step 2. No Authorization header."
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/auth/jwk",
 			"event": [
 				{

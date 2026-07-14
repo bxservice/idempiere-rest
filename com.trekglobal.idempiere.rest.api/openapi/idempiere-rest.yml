@@ -3726,6 +3726,143 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '500':
           $ref: '#/components/responses/ServerError'
+  /auth/password-reset/request:
+    post:
+      tags:
+        - Authentication
+      summary: Password reset - request a one-time code
+      description: >-
+        First step of the code-based password reset. Emails a one-time numeric code to
+        the address. The response is always neutral: it never reveals whether the email
+        matches an account. Unauthenticated - no Authorization header required.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  description: Email / login of the account to reset
+                language:
+                  type: string
+                  description: Optional AD_Language for the email template (e.g. en_US)
+            example:
+              email: user@example.com
+              language: en_US
+      responses:
+        '200':
+          description: OK. Neutral confirmation, returned whether or not the account exists.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+                    description: Neutral confirmation message
+        '429':
+          description: Too Many Requests. The per-identifier request rate limit was exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /auth/password-reset/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Password reset - verify the code
+      description: >-
+        Second step of the code-based password reset. Verifies the emailed code and, on
+        success, returns a short-lived single-use verified token. Unauthenticated.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - code
+              properties:
+                email:
+                  type: string
+                code:
+                  type: string
+                  description: The one-time code emailed to the address
+            example:
+              email: user@example.com
+              code: "123456"
+      responses:
+        '200':
+          description: OK. Code verified.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verifiedToken:
+                    type: string
+                    description: Short-lived single-use token for /auth/password-reset/complete
+        '400':
+          description: >-
+            Bad Request. Invalid code, expired code, or too many attempts. The response is
+            uniform and does not reveal whether the email is registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /auth/password-reset/complete:
+    post:
+      tags:
+        - Authentication
+      summary: Password reset - set the new password
+      description: >-
+        Third step of the code-based password reset. Uses the verified token from the
+        verify step to set the new password; existing sessions for the account are
+        invalidated. Unauthenticated.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - verifiedToken
+                - newPassword
+              properties:
+                verifiedToken:
+                  type: string
+                  description: Token returned by /auth/password-reset/verify
+                newPassword:
+                  type: string
+            example:
+              verifiedToken: 3f9a0b7c...
+              newPassword: MyNewPassw0rd!
+      responses:
+        '200':
+          description: OK. Password changed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: string
+        '400':
+          description: >-
+            Bad Request. Invalid or expired verified token, or the new password violates
+            the password policy.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/ServerError'
   /auth/jwk:
     get:
       tags:

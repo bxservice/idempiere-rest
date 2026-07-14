@@ -139,4 +139,40 @@ public interface AuthService {
 	 */
 	public Response tokenLogout(LogoutParameters refresh);
 
+	@Path("auth/password-reset/request")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Code-based password reset - step 1: request a one-time code by email.
+	 * Neutral response (no account enumeration); unauthenticated.
+	 * @param request email (and optional language for the mail template)
+	 * @return neutral confirmation message
+	 */
+	public Response requestPasswordReset(PasswordResetRequest request);
+
+	@Path("auth/password-reset/verify")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Code-based password reset - step 2: verify the emailed code.
+	 * Unauthenticated.
+	 * @param verification email and code
+	 * @return a short-lived verified token to pass to {@link #completePasswordReset}
+	 */
+	public Response verifyPasswordResetCode(PasswordResetVerification verification);
+
+	@Path("auth/password-reset/complete")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	/**
+	 * Code-based password reset - step 3: set the new password using the verified token.
+	 * Unauthenticated.
+	 * @param completion verified token and new password
+	 * @return confirmation message
+	 */
+	public Response completePasswordReset(PasswordResetCompletion completion);
+
 }
