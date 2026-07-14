@@ -27,12 +27,17 @@ package com.trekglobal.idempiere.rest.api.json.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.GridField;
+import org.compiere.model.GridFieldVO;
 import org.compiere.model.Lookup;
 import org.compiere.model.MColumn;
+import org.compiere.model.MLookup;
 import org.compiere.util.DisplayType;
+import org.compiere.util.KeyNamePair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -40,6 +45,7 @@ import org.mockito.MockitoAnnotations;
 
 import com.google.gson.JsonObject;
 import com.trekglobal.idempiere.rest.api.json.LookupTypeConverter;
+import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 
 public class LookupTypeConverterTest extends RestTestCase {
 
@@ -91,6 +97,46 @@ public class LookupTypeConverterTest extends RestTestCase {
 	    when(mockColumn.getAD_Reference_ID()).thenReturn(DisplayType.Table);
 
 	    assertThrows(AdempiereException.class, () -> converter.fromJsonValue(mockColumn, json));
+	}
+
+	@Test
+	public void toJsonValueResolvesIdentifierWithinTransaction() {
+		GridField field = mock(GridField.class);
+		GridFieldVO vo = mock(GridFieldVO.class);
+		MLookup mlookup = mock(MLookup.class);
+		when(field.getVO()).thenReturn(vo);
+		when(field.getAD_Column_ID()).thenReturn(0);
+		when(field.getDisplayType()).thenReturn(DisplayType.TableDir);
+		when(field.getHeader()).thenReturn("C_BPartner_ID");
+		when(field.getLookup()).thenReturn(mlookup);
+
+		try (ThreadLocalTrx trx = new ThreadLocalTrx("junit-lookup")) {
+			when(mlookup.getDirect(200000, false, false, ThreadLocalTrx.getTrxName()))
+				.thenReturn(new KeyNamePair(200000, "Agri-Tech"));
+
+			JsonObject json = (JsonObject) converter.toJsonValue(field, 200000);
+
+			assertEquals(200000, json.get("id").getAsInt());
+			assertEquals("Agri-Tech", json.get("identifier").getAsString());
+		}
+	}
+
+	@Test
+	public void toJsonValueFallsBackToGetDisplayWithoutTransaction() {
+		GridField field = mock(GridField.class);
+		GridFieldVO vo = mock(GridFieldVO.class);
+		MLookup mlookup = mock(MLookup.class);
+		when(field.getVO()).thenReturn(vo);
+		when(field.getAD_Column_ID()).thenReturn(0);
+		when(field.getDisplayType()).thenReturn(DisplayType.TableDir);
+		when(field.getHeader()).thenReturn("C_BPartner_ID");
+		when(field.getLookup()).thenReturn(mlookup);
+		when(mlookup.getDisplay(200000)).thenReturn("Agri-Tech");
+
+		JsonObject json = (JsonObject) converter.toJsonValue(field, 200000);
+
+		assertEquals(200000, json.get("id").getAsInt());
+		assertEquals("Agri-Tech", json.get("identifier").getAsString());
 	}
 
 }

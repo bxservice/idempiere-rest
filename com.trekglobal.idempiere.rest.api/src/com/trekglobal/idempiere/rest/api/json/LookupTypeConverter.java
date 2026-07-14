@@ -53,6 +53,7 @@ import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
+import org.compiere.util.NamePair;
 import org.compiere.util.Util;
 
 import com.google.gson.JsonArray;
@@ -152,7 +153,7 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 			ref.addProperty("id", ((Number)value).intValue());
 		else
 			ref.addProperty("id", value.toString());
-		String display = lookup.getDisplay(value);
+		String display = getIdentifier(lookup, value);
 		if (!Util.isEmpty(display, true)) {
 			ref.addProperty("identifier", display);
 		}							
@@ -171,6 +172,16 @@ public class LookupTypeConverter implements ITypeConverter<Object> {
 		}
 	}
 	
+	private String getIdentifier(Lookup lookup, Object value) {
+		String trxName = ThreadLocalTrx.getTrxName();
+		if (trxName != null) {
+			NamePair pair = lookup.getDirect(value, false, false, trxName);
+			if (pair != null)
+				return pair.getName();
+		}
+		return lookup.getDisplay(value);
+	}
+
 	/**
 	 *  Get Lookup
 	 *  @param column
