@@ -1019,12 +1019,13 @@ public class AuthServiceImpl implements AuthService {
 	 */
 	@Override
 	public Response requestPasswordReset(PasswordResetRequest request) {
+		if (request == null || Util.isEmpty(request.getEmail(), true))
+			return passwordResetBadRequest(Msg.getMsg(Env.getCtx(), "FillMandatory") + " " + Msg.getMsg(Env.getCtx(), "EMail"));
 		ensureResetContext();
 		IPasswordResetService service = Core.getPasswordResetService();
 		try {
 			// client 0: the caller is pre-login and does not know the tenant (mirrors the ZK panel)
-			service.requestReset(request != null ? request.getEmail() : null, 0,
-					request != null ? request.getLanguage() : null);
+			service.requestReset(request.getEmail(), 0, request.getLanguage() != null ? request.getLanguage() : null);
 		} catch (AdempiereException e) {
 			// the only enumeration-safe failure to surface is the rate limit, which the service
 			// raises for registered and unknown emails alike (via the in-memory decoy)
@@ -1051,11 +1052,13 @@ public class AuthServiceImpl implements AuthService {
 	 */
 	@Override
 	public Response verifyPasswordResetCode(PasswordResetVerification verification) {
+		if (verification == null || Util.isEmpty(verification.getEmail(), true)
+				|| Util.isEmpty(verification.getCode(), true))
+			return passwordResetBadRequest(Msg.getMsg(Env.getCtx(), "FillMandatory"));
 		ensureResetContext();
 		IPasswordResetService service = Core.getPasswordResetService();
 		try {
-			String verifiedToken = service.verifyCode(verification != null ? verification.getEmail() : null,
-					verification != null ? verification.getCode() : null);
+			String verifiedToken = service.verifyCode(verification.getEmail(), verification.getCode());
 			JsonObject json = new JsonObject();
 			json.addProperty("verifiedToken", verifiedToken);
 			return Response.ok(json.toString()).build();
@@ -1071,11 +1074,13 @@ public class AuthServiceImpl implements AuthService {
 	 */
 	@Override
 	public Response completePasswordReset(PasswordResetCompletion completion) {
+		if (completion == null || Util.isEmpty(completion.getVerifiedToken(), true)
+				|| Util.isEmpty(completion.getNewPassword(), false))
+			return passwordResetBadRequest(Msg.getMsg(Env.getCtx(), "FillMandatory") + " " + Msg.getMsg(Env.getCtx(), "New Password"));
 		ensureResetContext();
 		IPasswordResetService service = Core.getPasswordResetService();
 		try {
-			service.completeReset(completion != null ? completion.getVerifiedToken() : null,
-					completion != null ? completion.getNewPassword() : null);
+			service.completeReset(completion.getVerifiedToken(), completion.getNewPassword());
 			JsonObject json = new JsonObject();
 			json.addProperty("summary", Msg.getMsg(Env.getCtx(), "PasswordResetSuccess"));
 			return Response.ok(json.toString()).build();
@@ -1101,9 +1106,17 @@ public class AuthServiceImpl implements AuthService {
 	 * @return a uniform 400 error carrying the (already enumeration-safe) message
 	 */
 	private Response passwordResetError(AdempiereException e) {
+		return passwordResetBadRequest(e.getLocalizedMessage());
+	}
+
+	/**
+	 * @param detail human-readable error detail
+	 * @return a uniform 400 Bad Request with the standard error envelope
+	 */
+	private Response passwordResetBadRequest(String detail) {
 		return Response.status(Status.BAD_REQUEST)
 				.entity(new ErrorBuilder().status(Status.BAD_REQUEST)
-						.title("Password reset error").append(e.getLocalizedMessage()).build().toString())
+						.title("Password reset error").append(detail).build().toString())
 				.build();
 	}
 

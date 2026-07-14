@@ -74,6 +74,56 @@ public class PasswordResetTest extends RestTestCase {
 	}
 
 	@Test
+	void requestWithMissingEmailReturnsBadRequest() {
+		// null body
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.requestPasswordReset(null).getStatus(), "null body must be rejected");
+		// null email
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.requestPasswordReset(new PasswordResetRequest()).getStatus(),
+				"missing email must be rejected");
+		// blank email (no token may be created for a structurally invalid request)
+		String blank = "   ";
+		PasswordResetRequest body = new PasswordResetRequest();
+		body.setEmail(blank);
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.requestPasswordReset(body).getStatus(), "blank email must be rejected");
+		assertEquals(0, countTokens(blank), "a rejected request must create no token row");
+	}
+
+	@Test
+	void verifyWithMissingFieldsReturnsBadRequest() {
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.verifyPasswordResetCode(null).getStatus(), "null body must be rejected");
+
+		PasswordResetVerification noCode = new PasswordResetVerification();
+		noCode.setEmail(uniqueEmail("nocode"));
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.verifyPasswordResetCode(noCode).getStatus(), "missing code must be rejected");
+
+		PasswordResetVerification noEmail = new PasswordResetVerification();
+		noEmail.setCode("000000");
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.verifyPasswordResetCode(noEmail).getStatus(), "missing email must be rejected");
+	}
+
+	@Test
+	void completeWithMissingFieldsReturnsBadRequest() {
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.completePasswordReset(null).getStatus(), "null body must be rejected");
+
+		PasswordResetCompletion noToken = new PasswordResetCompletion();
+		noToken.setNewPassword("SomeNewPassw0rd!");
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.completePasswordReset(noToken).getStatus(), "missing verified token must be rejected");
+
+		PasswordResetCompletion noPassword = new PasswordResetCompletion();
+		noPassword.setVerifiedToken("some-token");
+		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(),
+				authService.completePasswordReset(noPassword).getStatus(), "missing new password must be rejected");
+	}
+
+	@Test
 	void requestForUnknownEmailReturnsNeutralOkAndCreatesNoToken() {
 		String email = uniqueEmail("neutral");
 		PasswordResetRequest body = new PasswordResetRequest();
