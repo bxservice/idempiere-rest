@@ -72,6 +72,8 @@ public interface BatchRequestResource {
 	 * A sub-request body may reference a record created/updated earlier in the same batch instead of a literal
 	 * value, using {@code @Table.Column@} (resolved against that sub-request's response), {@code @bind.Column@}
 	 * (an alias set via that sub-request's {@code as} field, for when the same table appears more than once),
+	 * {@code @bind$.jsonPathExpr@} (a standard JSONPath - RFC 9535, e.g. {@code @order$.Lines[0].C_OrderLine_ID@} -
+	 * evaluated against that sub-request's response, for array/filter access the flat form can't express),
 	 * or {@code @#GlobalVar@} (session/context variable, e.g. {@code @#AD_Org_ID@} - iDempiere's own
 	 * {@code Evaluator.VARIABLE_START_END_MARKER} convention). Referencing a table's primary
 	 * key column also resolves against the response's {@code id} property.

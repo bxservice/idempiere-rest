@@ -14,6 +14,9 @@
 	</classpathentry>
 	<classpathentry exported="true" kind="lib" path="lib/java-jwt.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jwks-rsa.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/json-path.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/json-smart.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/accessors-smart.jar"/>
 	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>

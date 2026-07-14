@@ -36,11 +36,14 @@ Import-Package: com.sun.xml.txw2,
  org.glassfish.jersey.servlet.spi,
  org.idempiere.server.cluster,
  org.idempiere.server.cluster.callable,
+ org.objectweb.asm,
+ org.objectweb.asm.signature,
  org.osgi.framework,
  org.osgi.service.component.annotations;version="1.5.0",
  org.osgi.service.event;version="1.4.1",
  org.osgi.service.event.annotations;version="1.4.1",
- org.osgi.service.event.propertytypes;version="1.4.0"
+ org.osgi.service.event.propertytypes;version="1.4.0",
+ org.slf4j
 Web-ContextPath: api
 Jetty-Environment: ee8
 Bundle-ActivationPolicy: lazy
@@ -72,7 +75,10 @@ Require-Bundle: org.adempiere.base;bundle-version="12.0.0",
  org.apache.commons.math3;bundle-version="3.6.1"
 Bundle-ClassPath: .,
  lib/java-jwt.jar,
- lib/jwks-rsa.jar
+ lib/jwks-rsa.jar,
+ lib/json-path.jar,
+ lib/json-smart.jar,
+ lib/accessors-smart.jar
 Export-Package: com.trekglobal.idempiere.rest.api,
  com.trekglobal.idempiere.rest.api.json,
  com.trekglobal.idempiere.rest.api.json.expand,

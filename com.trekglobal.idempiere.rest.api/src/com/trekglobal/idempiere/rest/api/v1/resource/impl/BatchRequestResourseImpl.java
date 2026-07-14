@@ -53,6 +53,8 @@ import org.glassfish.jersey.server.ContainerResponse;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.InvalidPathException;
+import com.jayway.jsonpath.JsonPath;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
@@ -264,11 +266,12 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
     /**
      * Resolve a single "@...@" token against the sub-requests processed so far in this batch.
      * Grammar: {@code @Table.Column@} / {@code @bind.Column@} (a value from an earlier sub-request's response),
-     * or {@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} (a session/context variable,
-     * per {@link Env#isGlobalVariable(String)} - resolved via {@link Env#parseContext} so it follows the
-     * same convention as the rest of iDempiere).
+     * {@code @bind$.jsonPathExpr@} (a standard JSONPath - RFC 9535 - evaluated against that sub-request's
+     * response, for array/filter access the flat form can't express), or {@code @#GlobalVar@} /
+     * {@code @$GlobalVar@} / {@code @+GlobalVar@} (a session/context variable, per
+     * {@link Env#isGlobalVariable(String)} - resolved via {@link Env#parseContext} so it follows the same
+     * convention as the rest of iDempiere).
      */
-    @SuppressWarnings("unchecked")
     private Object resolveReference(String token, Map<String, Object> referenceCache, Map<String, String> referenceTableNames, Properties sessionCtx) {
         String varName = token.substring(1, token.length() - 1);
         if (varName.isEmpty())
@@ -283,6 +286,21 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             return ctxValue;
         }
 
+        // JSONPath expressions are required by spec to start with '$' (the root), so it can never
+        // appear in a table/alias name - the first '$' unambiguously marks where the path begins.
+        int dollar = varName.indexOf('$');
+        if (dollar > 0) {
+            String bind = varName.substring(0, dollar);
+            String jsonPath = varName.substring(dollar);
+            Map<String, Object> responseMap = getCachedResponse(bind, token, referenceCache);
+            try {
+                return JsonPath.read(responseMap, jsonPath);
+            } catch (InvalidPathException e) {
+                throw new IDempiereRestException("Unresolved batch reference",
+                        "JSONPath '" + jsonPath + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
+            }
+        }
+
         int dot = varName.indexOf('.');
         if (dot < 0)
             throw new IDempiereRestException("Unresolved batch reference",
@@ -294,12 +312,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             throw new IDempiereRestException("Unresolved batch reference",
                     "Multi-level reference not supported: " + token, Status.BAD_REQUEST);
 
-        Object cached = referenceCache.get(bind);
-        if (!(cached instanceof Map))
-            throw new IDempiereRestException("Unresolved batch reference",
-                    "No prior successful sub-request found for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
-
-        Map<String, Object> responseMap = (Map<String, Object>) cached;
+        Map<String, Object> responseMap = getCachedResponse(bind, token, referenceCache);
         Object value = getIgnoreCase(responseMap, colName);
         if (value == null) {
             String tableName = referenceTableNames.get(bind);
@@ -314,6 +327,15 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
                     "Column '" + colName + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
 
         return value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getCachedResponse(String bind, String token, Map<String, Object> referenceCache) {
+        Object cached = referenceCache.get(bind);
+        if (!(cached instanceof Map))
+            throw new IDempiereRestException("Unresolved batch reference",
+                    "No prior successful sub-request found for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
+        return (Map<String, Object>) cached;
     }
 
     private Object getIgnoreCase(Map<String, Object> map, String key) {

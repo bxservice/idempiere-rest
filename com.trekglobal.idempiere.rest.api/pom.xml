@@ -32,7 +32,24 @@
 								   <artifactId>jwks-rsa</artifactId>
 								   <version>0.22.0</version>
 								</artifactItem>
+								<artifactItem>
+								   <groupId>com.jayway.jsonpath</groupId>
+								   <artifactId>json-path</artifactId>
+								   <version>3.0.0</version>
+								</artifactItem>
+								<artifactItem>
+								   <groupId>net.minidev</groupId>
+								   <artifactId>json-smart</artifactId>
+								   <version>2.6.0</version>
+								</artifactItem>
+								<artifactItem>
+								   <groupId>net.minidev</groupId>
+								   <artifactId>accessors-smart</artifactId>
+								   <version>2.6.0</version>
+								</artifactItem>
 							</artifactItems>
+							<!-- slf4j and asm aren't embedded - iDempiere already ships them as OSGi bundles,
+							     so we just Import-Package those instead. -->
 							<outputDirectory>lib</outputDirectory>
 							<stripVersion>true</stripVersion>
 							<overWriteReleases>true</overWriteReleases>

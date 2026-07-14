@@ -5708,6 +5708,60 @@
 			"response": []
 		},
 		{
+			"name": "/api/v1/batch @bind$.jsonPathExpr@ (nested field, standard JSONPath)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"as\": \"bp\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-{{$timestamp}}\",\n            \"Name\": \"Batch JSONPath Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-2-{{$timestamp}}\",\n            \"Name\": \"@bp$.AD_Org_ID.identifier@\",\n            \"IsCustomer\": \"Y\"\n        }\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/batch?transaction=true",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"batch"
+					],
+					"query": [
+						{
+							"key": "transaction",
+							"value": "true",
+							"description": "if true, all requests are processed in a single transaction (default is true)"
+						}
+					]
+				},
+				"description": "@bind$.jsonPathExpr@ evaluates a standard JSONPath (RFC 9535) against the named sub-request's response, unlike @bind.Column@ which can only reach one flat field. Here 'bp' is the C_BPartner created in step 1, and @bp$.AD_Org_ID.identifier@ reaches into the nested AD_Org_ID.identifier field of its response - two levels deep, which @bind.Column@ explicitly rejects as 'Multi-level reference not supported' - so the second C_BPartner's Name ends up set to the org's name (e.g. 'HQ'). Also supports array indexing/filters, e.g. @bind$.Lines[0].C_OrderLine_ID@ or @bind$.Lines[?(@.QtyOrdered > 5)].C_OrderLine_ID@. Notes: references only resolve inside the request body, not inside \"path\" or as a substring of a larger literal - the whole field value must be the @...@ token. This example deliberately avoids C_Location_ID: creating a record that references a C_Location created earlier in the same uncommitted batch trips an unrelated, pre-existing serialization bug (MLocation.get_Value NPE) - separate issue, out of scope here."
+			},
+			"response": []
+		},
+		{
 			"name": "/api/v1/batch @#GlobalVar@ (session context)",
 			"request": {
 				"method": "POST",
