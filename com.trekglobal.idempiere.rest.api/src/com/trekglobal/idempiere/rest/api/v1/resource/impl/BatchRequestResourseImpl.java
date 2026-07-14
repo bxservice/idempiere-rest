@@ -30,6 +30,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.Future;
 
@@ -85,6 +86,11 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         // Canonical table name behind each cache key above (a table name maps to itself; an alias maps to its table),
         // used to resolve the primary-key fallback to the response's "id" property.
         Map<String, String> referenceTableNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        // Copy the calling session's context now, before any sub-request runs: Env.getCtx() is a live
+        // view that ResponseFilter disposes after every sub-request, so a reference to it (rather than
+        // a copy) would go stale mid-batch.
+        Properties sessionCtx = new Properties();
+        sessionCtx.putAll(Env.getCtx());
         try (ThreadLocalTrx trx = new ThreadLocalTrx("BatchRequest")) {
 			// Process each request in the batch
 	        for (int i = 0; i < requests.size(); i++) {
@@ -105,9 +111,15 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    	continue; // Proceed to next request
 	                    }
 	            	}
-	                if (!Util.isEmpty(req.getAs(), true) && MTable.get(Env.getCtx(), req.getAs()) != null) {
-	                	throw new IDempiereRestException("Invalid batch alias",
-	                			"'as' value '" + req.getAs() + "' collides with an existing table name and cannot be used as an alias.", Status.BAD_REQUEST);
+	                if (!Util.isEmpty(req.getAs(), true)) {
+	                	if (MTable.get(Env.getCtx(), req.getAs()) != null) {
+	                		throw new IDempiereRestException("Invalid batch alias",
+	                				"'as' value '" + req.getAs() + "' collides with an existing table name and cannot be used as an alias.", Status.BAD_REQUEST);
+	                	}
+	                	if (referenceCache.containsKey(req.getAs())) {
+	                		throw new IDempiereRestException("Invalid batch alias",
+	                				"'as' value '" + req.getAs() + "' was already used earlier in this batch.", Status.BAD_REQUEST);
+	                	}
 	                }
 
 	                URI requestUri = URI.create(baseUri.toString().replaceAll("v1/batch/?$", "") + req.getPath());
@@ -122,7 +134,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                );
 	
 	                if (req.getBody() != null) {
-	                    resolveReferences(req.getBody(), referenceCache, referenceTableNames);
+	                    resolveReferences(req.getBody(), referenceCache, referenceTableNames, sessionCtx);
 	                    byte[] bodyBytes = objectMapper.writeValueAsBytes(req.getBody());
 	                    containerRequest.setEntityStream(new ByteArrayInputStream(bodyBytes));
 	                }
@@ -217,14 +229,14 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
      * @param referenceTableNames canonical table name behind each referenceCache key
      */
     @SuppressWarnings("unchecked")
-    private void resolveReferences(Object node, Map<String, Object> referenceCache, Map<String, String> referenceTableNames) {
+    private void resolveReferences(Object node, Map<String, Object> referenceCache, Map<String, String> referenceTableNames, Properties sessionCtx) {
         if (node instanceof Map) {
             for (Map.Entry<String, Object> entry : ((Map<String, Object>) node).entrySet()) {
                 Object value = entry.getValue();
                 if (value instanceof String && ((String) value).startsWith("@")) {
-                    entry.setValue(resolveReference((String) value, referenceCache, referenceTableNames));
+                    entry.setValue(resolveReference((String) value, referenceCache, referenceTableNames, sessionCtx));
                 } else {
-                    resolveReferences(value, referenceCache, referenceTableNames);
+                    resolveReferences(value, referenceCache, referenceTableNames, sessionCtx);
                 }
             }
         } else if (node instanceof List) {
@@ -232,9 +244,9 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             for (int i = 0; i < list.size(); i++) {
                 Object value = list.get(i);
                 if (value instanceof String && ((String) value).startsWith("@")) {
-                    list.set(i, resolveReference((String) value, referenceCache, referenceTableNames));
+                    list.set(i, resolveReference((String) value, referenceCache, referenceTableNames, sessionCtx));
                 } else {
-                    resolveReferences(value, referenceCache, referenceTableNames);
+                    resolveReferences(value, referenceCache, referenceTableNames, sessionCtx);
                 }
             }
         }
@@ -247,13 +259,13 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
      * since it's not this grammar's concern (e.g. a literal value that happens to start with '@').
      */
     @SuppressWarnings("unchecked")
-    private Object resolveReference(String token, Map<String, Object> referenceCache, Map<String, String> referenceTableNames) {
+    private Object resolveReference(String token, Map<String, Object> referenceCache, Map<String, String> referenceTableNames, Properties sessionCtx) {
         String varName = token.substring(1);
         if (varName.isEmpty())
             return token;
 
         if (varName.charAt(0) == '#') {
-            Object ctxValue = Env.getCtx().getProperty(varName);
+            Object ctxValue = sessionCtx.getProperty(varName);
             if (ctxValue == null)
                 throw new IDempiereRestException("Unresolved batch reference",
                         "No value found for context variable: " + token, Status.BAD_REQUEST);
