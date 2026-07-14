@@ -61,7 +61,7 @@ import com.trekglobal.idempiere.rest.api.v1.resource.BatchRequestResource;
 public class BatchRequestResourseImpl implements BatchRequestResource {
 
     // USE_BIG_DECIMAL_FOR_FLOATS avoids losing precision on Amount/Quantity columns when a
-    // sub-response's numeric value is later spliced into a subsequent sub-request via @Table.Column.
+    // sub-response's numeric value is later spliced into a subsequent sub-request via @Table.Column@.
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
 
@@ -79,9 +79,9 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
         boolean badRequest = false;
         // Responses of successful sub-requests, cached by table name and by the sub-request's optional "as" alias,
-        // so a later sub-request's body can reference a value from one via "@Table.Column" / "@bind.Column".
+        // so a later sub-request's body can reference a value from one via "@Table.Column@" / "@bind.Column@".
         // Case-insensitive: table names (and the batch sub-request paths that produce them) are resolved
-        // case-insensitively everywhere else in this API (MTable.get), so @bind.Column lookups must match.
+        // case-insensitively everywhere else in this API (MTable.get), so @bind.Column@ lookups must match.
         Map<String, Object> referenceCache = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         // Canonical table name behind each cache key above (a table name maps to itself; an alias maps to its table),
         // used to resolve the primary-key fallback to the response's "id" property.
@@ -147,7 +147,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                Map<?, ?> bodyAsMap = null;
 	                if (entity != null && !entity.isEmpty()) {
 	                	// parse with Jackson (not Gson) so Amount/Quantity columns round-trip as BigDecimal,
-	                	// not a lossy double, when referenced by a later sub-request via @Table.Column.
+	                	// not a lossy double, when referenced by a later sub-request via @Table.Column@.
 	                	try {
 	                		bodyAsMap = objectMapper.readValue(entity, Map.class);
 	                	} catch (Exception e) {}
@@ -223,7 +223,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
     /**
      * Recursively walk a sub-request body (as deserialized by Jackson: nested {@link Map}/{@link List}/scalars)
-     * and replace any string value starting with '@' with the value it references, in place.
+     * and replace any string value shaped like a "@...@" reference token with the value it references, in place.
      * @param node the body, or a nested object/array within it
      * @param referenceCache successful sub-request responses, keyed by table name and by "as" alias
      * @param referenceTableNames canonical table name behind each referenceCache key
@@ -233,8 +233,8 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         if (node instanceof Map) {
             for (Map.Entry<String, Object> entry : ((Map<String, Object>) node).entrySet()) {
                 Object value = entry.getValue();
-                if (value instanceof String && ((String) value).startsWith("@")) {
-                    entry.setValue(resolveReference((String) value, referenceCache, referenceTableNames, sessionCtx));
+                if (value instanceof String str && isReferenceToken(str)) {
+                    entry.setValue(resolveReference(str, referenceCache, referenceTableNames, sessionCtx));
                 } else {
                     resolveReferences(value, referenceCache, referenceTableNames, sessionCtx);
                 }
@@ -243,8 +243,8 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             List<Object> list = (List<Object>) node;
             for (int i = 0; i < list.size(); i++) {
                 Object value = list.get(i);
-                if (value instanceof String && ((String) value).startsWith("@")) {
-                    list.set(i, resolveReference((String) value, referenceCache, referenceTableNames, sessionCtx));
+                if (value instanceof String str && isReferenceToken(str)) {
+                    list.set(i, resolveReference(str, referenceCache, referenceTableNames, sessionCtx));
                 } else {
                     resolveReferences(value, referenceCache, referenceTableNames, sessionCtx);
                 }
@@ -253,20 +253,31 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
     }
 
     /**
-     * Resolve a single "@..." token against the sub-requests processed so far in this batch.
-     * Grammar: {@code @Table.Column} / {@code @bind.Column} (a value from an earlier sub-request's response),
-     * or {@code @#GlobalVar} (a session/context variable). A bare '@' with neither form is returned unchanged,
-     * since it's not this grammar's concern (e.g. a literal value that happens to start with '@').
+     * A reference token is wrapped on both sides with '@', matching iDempiere's own
+     * {@code Evaluator.VARIABLE_START_END_MARKER} convention (e.g. {@code @#AD_Client_ID@}) - not just a
+     * value that happens to start with '@'.
+     */
+    private boolean isReferenceToken(String value) {
+        return value.length() > 1 && value.charAt(0) == '@' && value.charAt(value.length() - 1) == '@';
+    }
+
+    /**
+     * Resolve a single "@...@" token against the sub-requests processed so far in this batch.
+     * Grammar: {@code @Table.Column@} / {@code @bind.Column@} (a value from an earlier sub-request's response),
+     * or {@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} (a session/context variable,
+     * per {@link Env#isGlobalVariable(String)} - resolved via {@link Env#parseContext} so it follows the
+     * same convention as the rest of iDempiere).
      */
     @SuppressWarnings("unchecked")
     private Object resolveReference(String token, Map<String, Object> referenceCache, Map<String, String> referenceTableNames, Properties sessionCtx) {
-        String varName = token.substring(1);
+        String varName = token.substring(1, token.length() - 1);
         if (varName.isEmpty())
-            return token;
+            throw new IDempiereRestException("Unresolved batch reference",
+                    "Empty reference: " + token, Status.BAD_REQUEST);
 
-        if (varName.charAt(0) == '#') {
-            Object ctxValue = sessionCtx.getProperty(varName);
-            if (ctxValue == null)
+        if (Env.isGlobalVariable(varName)) {
+            String ctxValue = Env.parseContext(sessionCtx, 0, token, false, false, false, false);
+            if (Util.isEmpty(ctxValue))
                 throw new IDempiereRestException("Unresolved batch reference",
                         "No value found for context variable: " + token, Status.BAD_REQUEST);
             return ctxValue;
@@ -274,7 +285,8 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
         int dot = varName.indexOf('.');
         if (dot < 0)
-            return token;
+            throw new IDempiereRestException("Unresolved batch reference",
+                    "Invalid reference syntax: " + token, Status.BAD_REQUEST);
 
         String bind = varName.substring(0, dot);
         String colName = varName.substring(dot + 1);
