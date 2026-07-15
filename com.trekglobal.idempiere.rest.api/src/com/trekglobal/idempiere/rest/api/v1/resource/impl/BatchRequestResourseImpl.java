@@ -56,14 +56,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
-import com.trekglobal.idempiere.rest.api.json.RestUtils;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.BatchRequestResource;
 
 public class BatchRequestResourseImpl implements BatchRequestResource {
 
     // USE_BIG_DECIMAL_FOR_FLOATS avoids losing precision on Amount/Quantity columns when a
-    // sub-response's numeric value is later spliced into a subsequent sub-request via @Table.Column@.
+    // sub-response's numeric value is later spliced into a subsequent sub-request via a JSONPath reference.
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
 
@@ -85,7 +84,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         // a copy) would go stale mid-batch.
         Properties sessionCtx = new Properties();
         sessionCtx.putAll(Env.getCtx());
-        // Resolves "@...@" reference tokens (see BatchReferenceResolver) against sub-request responses
+        // Resolves reference values (see BatchReferenceResolver) against sub-request responses
         // accumulated as this batch runs.
         BatchReferenceResolver referenceResolver = new BatchReferenceResolver(sessionCtx);
         try (ThreadLocalTrx trx = new ThreadLocalTrx("BatchRequest")) {
@@ -144,7 +143,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                Map<?, ?> bodyAsMap = null;
 	                if (entity != null && !entity.isEmpty()) {
 	                	// parse with Jackson (not Gson) so Amount/Quantity columns round-trip as BigDecimal,
-	                	// not a lossy double, when referenced by a later sub-request via @Table.Column@.
+	                	// not a lossy double, when referenced by a later sub-request via a JSONPath reference.
 	                	try {
 	                		bodyAsMap = objectMapper.readValue(entity, Map.class);
 	                	} catch (Exception e) {}
@@ -240,21 +239,27 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
     private static final String MODELS_PATH_SEGMENT = "models";
 
     /**
-     * Resolves "@...@" reference tokens (see {@link #resolveReference}) against sub-request responses
-     * accumulated as one batch runs. One instance is scoped to a single {@code processBatch} call.
+     * Resolves reference values against sub-request responses accumulated as one batch runs.
+     * One instance is scoped to a single {@code processBatch} call.
+     * <p>
+     * Two independent grammars, distinguished purely by shape - see {@link #resolveReference}:
+     * <ul>
+     * <li>{@code bind$.jsonPathExpr} - a bare standard JSONPath (RFC 9535) against a prior sub-request's
+     * response. No wrapping needed: an identifier immediately followed by JSONPath's own root marker '$'
+     * is already an unambiguous shape, so we don't invent extra punctuation on top of a standard.</li>
+     * <li>{@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} - a session/context variable,
+     * wrapped in '@' because that's iDempiere's own pre-existing {@code Evaluator.VARIABLE_START_END_MARKER}
+     * convention (used for context vars in message texts, SQL, print formats, etc.), not something of our
+     * own to be consistent with.</li>
+     * </ul>
      */
     private static class BatchReferenceResolver {
 
-        private static final String ID_PROPERTY = "id";
-
         // Responses of successful sub-requests, cached by table name and by the sub-request's optional "as" alias,
-        // so a later sub-request's body can reference a value from one via "@Table.Column@" / "@bind.Column@".
+        // so a later sub-request's body can reference a value from one via "bind$.jsonPathExpr".
         // Case-insensitive: table names (and the batch sub-request paths that produce them) are resolved
-        // case-insensitively everywhere else in this API (MTable.get), so @bind.Column@ lookups must match.
+        // case-insensitively everywhere else in this API (MTable.get), so lookups here must match.
         private final Map<String, Object> referenceCache = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        // Canonical table name behind each cache key above (a table name maps to itself; an alias maps to its table),
-        // used to resolve the primary-key fallback to the response's "id" property.
-        private final Map<String, String> referenceTableNames = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         private final Properties sessionCtx;
 
         BatchReferenceResolver(Properties sessionCtx) {
@@ -273,16 +278,13 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
          */
         void cacheResponse(String tableName, String alias, Object bodyAsMap) {
             referenceCache.put(tableName, bodyAsMap);
-            referenceTableNames.put(tableName, tableName);
-            if (!Util.isEmpty(alias, true)) {
+            if (!Util.isEmpty(alias, true))
                 referenceCache.put(alias, bodyAsMap);
-                referenceTableNames.put(alias, tableName);
-            }
         }
 
         /**
          * Recursively walk a sub-request body (as deserialized by Jackson: nested {@link Map}/{@link List}/scalars)
-         * and replace any string value shaped like a "@...@" reference token with the value it references, in place.
+         * and replace any string value shaped like a reference with the value it references, in place.
          * @param node the body, or a nested object/array within it
          */
         @SuppressWarnings("unchecked")
@@ -290,7 +292,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             if (node instanceof Map) {
                 for (Map.Entry<String, Object> entry : ((Map<String, Object>) node).entrySet()) {
                     Object value = entry.getValue();
-                    if (value instanceof String str && isReferenceToken(str)) {
+                    if (value instanceof String str && isReference(str)) {
                         entry.setValue(resolveReference(str));
                     } else {
                         resolveReferences(value);
@@ -300,7 +302,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
                 List<Object> list = (List<Object>) node;
                 for (int i = 0; i < list.size(); i++) {
                     Object value = list.get(i);
-                    if (value instanceof String str && isReferenceToken(str)) {
+                    if (value instanceof String str && isReference(str)) {
                         list.set(i, resolveReference(str));
                     } else {
                         resolveReferences(value);
@@ -309,40 +311,38 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             }
         }
 
+        private boolean isReference(String value) {
+            return isGlobalVariableToken(value) || isJsonPathExpression(value);
+        }
+
         /**
-         * A reference token is wrapped on both sides with '@', matching iDempiere's own
-         * {@code Evaluator.VARIABLE_START_END_MARKER} convention (e.g. {@code @#AD_Client_ID@}) - not just a
-         * value that happens to start with '@'.
+         * Wrapped on both sides with '@', matching iDempiere's own {@code Evaluator.VARIABLE_START_END_MARKER}
+         * convention (e.g. {@code @#AD_Client_ID@}) - not just a value that happens to start with '@'.
          */
-        private boolean isReferenceToken(String value) {
+        private boolean isGlobalVariableToken(String value) {
             return value.length() > 1 && value.charAt(0) == '@' && value.charAt(value.length() - 1) == '@';
         }
 
         /**
-         * Resolve a single "@...@" token against the sub-requests processed so far in this batch.
-         * Grammar: {@code @Table.Column@} / {@code @bind.Column@} (a value from an earlier sub-request's response),
-         * {@code @bind$.jsonPathExpr@} (a standard JSONPath - RFC 9535 - evaluated against that sub-request's
-         * response, for array/filter access the flat form can't express), or {@code @#GlobalVar@} /
-         * {@code @$GlobalVar@} / {@code @+GlobalVar@} (a session/context variable, per
-         * {@link Env#isGlobalVariable(String)} - resolved via {@link Env#parseContext} so it follows the same
-         * convention as the rest of iDempiere).
+         * A bare {@code bind$.jsonPathExpr} / {@code bind$[jsonPathExpr]} value: an identifier immediately
+         * followed by JSONPath's own root marker '$', which real literal data doesn't shape itself like.
+         */
+        private boolean isJsonPathExpression(String value) {
+            int dollar = value.indexOf('$');
+            if (dollar <= 0 || dollar + 1 >= value.length())
+                return false;
+            char afterDollar = value.charAt(dollar + 1);
+            return afterDollar == '.' || afterDollar == '[';
+        }
+
+        /**
+         * Resolve a single reference against the sub-requests processed so far in this batch, or against
+         * the session/context - see the class Javadoc for the two grammars.
          */
         private Object resolveReference(String token) {
-            String varName = token.substring(1, token.length() - 1);
-            if (varName.isEmpty())
-                throw new IDempiereRestException("Unresolved batch reference",
-                        "Empty reference: " + token, Status.BAD_REQUEST);
-
-            if (Env.isGlobalVariable(varName))
+            if (isGlobalVariableToken(token))
                 return resolveGlobalVariable(token);
-
-            // JSONPath expressions are required by spec to start with '$' (the root), so it can never
-            // appear in a table/alias name - the first '$' unambiguously marks where the path begins.
-            int dollar = varName.indexOf('$');
-            if (dollar > 0)
-                return resolveJsonPath(token, varName, dollar);
-
-            return resolveFlatColumn(token, varName);
+            return resolveJsonPath(token);
         }
 
         private String resolveGlobalVariable(String token) {
@@ -353,65 +353,22 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
             return ctxValue;
         }
 
-        private Object resolveJsonPath(String token, String varName, int dollar) {
-            String bind = varName.substring(0, dollar);
-            String jsonPath = varName.substring(dollar);
-            Map<String, Object> responseMap = getCachedResponse(bind, token);
-            try {
-                return JsonPath.read(responseMap, jsonPath);
-            } catch (InvalidPathException e) {
-                throw new IDempiereRestException("Unresolved batch reference",
-                        "JSONPath '" + jsonPath + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
-            }
-        }
+        private Object resolveJsonPath(String token) {
+            int dollar = token.indexOf('$');
+            String bind = token.substring(0, dollar);
+            String jsonPath = token.substring(dollar);
 
-        private Object resolveFlatColumn(String token, String varName) {
-            int dot = varName.indexOf('.');
-            if (dot < 0)
-                throw new IDempiereRestException("Unresolved batch reference",
-                        "Invalid reference syntax: " + token, Status.BAD_REQUEST);
-
-            String bind = varName.substring(0, dot);
-            String colName = varName.substring(dot + 1);
-            if (colName.indexOf('.') >= 0)
-                throw new IDempiereRestException("Unresolved batch reference",
-                        "Multi-level reference not supported: " + token, Status.BAD_REQUEST);
-
-            Map<String, Object> responseMap = getCachedResponse(bind, token);
-            Object value = getIgnoreCase(responseMap, colName);
-            if (value == null) {
-                String tableName = referenceTableNames.get(bind);
-                // nullForMultipleKeys=true: this is a best-effort PK-name check, not a hard requirement -
-                // tables with no/composite keys just don't get the "id" fallback.
-                String keyColumn = tableName != null ? RestUtils.getKeyColumnName(tableName, true) : null;
-                if (keyColumn != null && keyColumn.equalsIgnoreCase(colName))
-                    value = responseMap.get(ID_PROPERTY);
-            }
-            if (value == null)
-                throw new IDempiereRestException("Unresolved batch reference",
-                        "Column '" + colName + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
-
-            return value;
-        }
-
-        @SuppressWarnings("unchecked")
-        private Map<String, Object> getCachedResponse(String bind, String token) {
             Object cached = referenceCache.get(bind);
             if (!(cached instanceof Map))
                 throw new IDempiereRestException("Unresolved batch reference",
                         "No prior successful sub-request found for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
-            return (Map<String, Object>) cached;
-        }
 
-        private Object getIgnoreCase(Map<String, Object> map, String key) {
-            Object direct = map.get(key);
-            if (direct != null)
-                return direct;
-            for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (entry.getKey().equalsIgnoreCase(key))
-                    return entry.getValue();
+            try {
+                return JsonPath.read(cached, jsonPath);
+            } catch (InvalidPathException e) {
+                throw new IDempiereRestException("Unresolved batch reference",
+                        "JSONPath '" + jsonPath + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
             }
-            return null;
         }
     }
 }

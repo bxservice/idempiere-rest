@@ -5600,7 +5600,7 @@
 			"response": []
 		},
 		{
-			"name": "/api/v1/batch @Table.Column@ reference (PK chaining)",
+			"name": "/api/v1/batch JSONPath reference (PK chaining)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -5622,7 +5622,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-BATCHREF-{{$timestamp}}\",\n            \"Name\": \"Batch Reference Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@C_BPartner.C_BPartner_ID@\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\",\n            \"Name\": \"Main\",\n            \"IsBillTo\": \"Y\",\n            \"IsShipTo\": \"Y\",\n            \"C_Location_ID\": {\n                \"Address1\": \"Hlavna 1\",\n                \"City\": \"Kosice\",\n                \"Postal\": \"04001\",\n                \"C_Country_ID\": {\n                    \"lookupColumn\": \"CountryCode\",\n                    \"lookupValue\": \"SK\"\n                }\n            }\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-BATCHREF-{{$timestamp}}\",\n            \"Name\": \"Batch Reference Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"C_BPartner$.id\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\",\n            \"Name\": \"Main\",\n            \"IsBillTo\": \"Y\",\n            \"IsShipTo\": \"Y\",\n            \"C_Location_ID\": {\n                \"Address1\": \"Hlavna 1\",\n                \"City\": \"Kosice\",\n                \"Postal\": \"04001\",\n                \"C_Country_ID\": {\n                    \"lookupColumn\": \"CountryCode\",\n                    \"lookupValue\": \"SK\"\n                }\n            }\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5649,12 +5649,12 @@
 						}
 					]
 				},
-				"description": "New sub-request in this batch references the C_BPartner_ID that the previous sub-request just generated, via @C_BPartner.C_BPartner_ID@ (resolves against the response's 'id'). Also resolves AD_Org_ID from session context via @#AD_Org_ID@."
+				"description": "New sub-request in this batch references the id that the previous sub-request's response just generated, via C_BPartner$.id (bare JSONPath, no wrapping punctuation - resolved against the response's 'id' property). Also resolves AD_Org_ID from session context via @#AD_Org_ID@, a separate mechanism kept wrapped since it follows iDempiere's own pre-existing Evaluator.VARIABLE_START_END_MARKER convention."
 			},
 			"response": []
 		},
 		{
-			"name": "/api/v1/batch @bind.Column@ alias (same table twice)",
+			"name": "/api/v1/batch JSONPath alias (same table twice)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -5676,7 +5676,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-ALIAS-{{$timestamp}}\",\n            \"Name\": \"Batch Alias Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"as\": \"billAddr\",\n        \"body\": {\n            \"Address1\": \"Hlavna 1\",\n            \"City\": \"Kosice\",\n            \"Postal\": \"04001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"as\": \"shipAddr\",\n        \"body\": {\n            \"Address1\": \"Skladova 5\",\n            \"City\": \"Presov\",\n            \"Postal\": \"08001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@C_BPartner.C_BPartner_ID@\",\n            \"C_Location_ID\": \"@billAddr.C_Location_ID@\",\n            \"Name\": \"Billing\",\n            \"IsBillTo\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@C_BPartner.C_BPartner_ID@\",\n            \"C_Location_ID\": \"@shipAddr.C_Location_ID@\",\n            \"Name\": \"Shipping\",\n            \"IsShipTo\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-ALIAS-{{$timestamp}}\",\n            \"Name\": \"Batch Alias Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"as\": \"billAddr\",\n        \"body\": {\n            \"Address1\": \"Hlavna 1\",\n            \"City\": \"Kosice\",\n            \"Postal\": \"04001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"as\": \"shipAddr\",\n        \"body\": {\n            \"Address1\": \"Skladova 5\",\n            \"City\": \"Presov\",\n            \"Postal\": \"08001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"C_BPartner$.id\",\n            \"C_Location_ID\": \"billAddr$.id\",\n            \"Name\": \"Billing\",\n            \"IsBillTo\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"C_BPartner$.id\",\n            \"C_Location_ID\": \"shipAddr$.id\",\n            \"Name\": \"Shipping\",\n            \"IsShipTo\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5703,12 +5703,12 @@
 						}
 					]
 				},
-				"description": "C_Location is created twice in the same batch, disambiguated with the 'as' alias on each sub-request (billAddr / shipAddr), then each is referenced explicitly by alias when creating the two C_BPartner_Location rows."
+				"description": "C_Location is created twice in the same batch, disambiguated with the 'as' alias on each sub-request (billAddr / shipAddr), then each is referenced explicitly by alias (billAddr$.id / shipAddr$.id) when creating the two C_BPartner_Location rows."
 			},
 			"response": []
 		},
 		{
-			"name": "/api/v1/batch @bind$.jsonPathExpr@ (nested field, standard JSONPath)",
+			"name": "/api/v1/batch bind$.jsonPathExpr (nested field, standard JSONPath)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -5730,7 +5730,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"as\": \"bp\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-{{$timestamp}}\",\n            \"Name\": \"Batch JSONPath Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-2-{{$timestamp}}\",\n            \"Name\": \"@bp$.AD_Org_ID.identifier@\",\n            \"IsCustomer\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"as\": \"bp\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-{{$timestamp}}\",\n            \"Name\": \"Batch JSONPath Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-2-{{$timestamp}}\",\n            \"Name\": \"bp$.AD_Org_ID.identifier\",\n            \"IsCustomer\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5757,7 +5757,7 @@
 						}
 					]
 				},
-				"description": "@bind$.jsonPathExpr@ evaluates a standard JSONPath (RFC 9535) against the named sub-request's response, unlike @bind.Column@ which can only reach one flat field. Here 'bp' is the C_BPartner created in step 1, and @bp$.AD_Org_ID.identifier@ reaches into the nested AD_Org_ID.identifier field of its response - two levels deep, which @bind.Column@ explicitly rejects as 'Multi-level reference not supported' - so the second C_BPartner's Name ends up set to the org's name (e.g. 'HQ'). Also supports array indexing/filters, e.g. @bind$.Lines[0].C_OrderLine_ID@ or @bind$.Lines[?(@.QtyOrdered > 5)].C_OrderLine_ID@. Notes: references only resolve inside the request body, not inside \"path\" or as a substring of a larger literal - the whole field value must be the @...@ token. This example deliberately avoids C_Location_ID: creating a record that references a C_Location created earlier in the same uncommitted batch trips an unrelated, pre-existing serialization bug (MLocation.get_Value NPE) - separate issue, out of scope here."
+				"description": "bind$.jsonPathExpr evaluates a standard JSONPath (RFC 9535) against the named sub-request's response - a bare value, no wrapping punctuation needed, since an identifier immediately followed by JSONPath's own root marker '$' is already an unambiguous shape. Here 'bp' is the C_BPartner created in step 1, and bp$.AD_Org_ID.identifier reaches into the nested AD_Org_ID.identifier field of its response - two levels deep - so the second C_BPartner's Name ends up set to the org's name (e.g. 'HQ'). Also supports array indexing/filters, e.g. bind$.Lines[0].C_OrderLine_ID or bind$.Lines[?(@.QtyOrdered > 5)].C_OrderLine_ID (the '@' there is real JSONPath's own 'current node' filter syntax, unrelated to iDempiere's @#GlobalVar@ convention). Note: references only resolve inside the request body, not inside \"path\", and the whole field value must be the reference - not a substring of a larger literal. This example deliberately avoids C_Location_ID: creating a record that references a C_Location created earlier in the same uncommitted batch trips an unrelated, pre-existing serialization bug (MLocation.get_Value NPE) - separate issue, out of scope here."
 			},
 			"response": []
 		},
@@ -5838,7 +5838,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@C_BPartner.C_BPartner_ID@\",\n            \"Name\": \"Should Fail\",\n            \"IsBillTo\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"C_BPartner$.id\",\n            \"Name\": \"Should Fail\",\n            \"IsBillTo\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5865,7 +5865,7 @@
 						}
 					]
 				},
-				"description": "No prior sub-request in this batch created C_BPartner, so @C_BPartner.C_BPartner_ID@ cannot resolve. Expect a 400 with an 'Unresolved batch reference' message, not a silent null."
+				"description": "No prior sub-request in this batch created C_BPartner, so C_BPartner$.id cannot resolve. Expect a 400 with an 'Unresolved batch reference' message, not a silent null."
 			},
 			"response": []
 		},

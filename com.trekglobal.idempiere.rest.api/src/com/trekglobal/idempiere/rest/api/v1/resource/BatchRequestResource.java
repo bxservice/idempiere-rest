@@ -70,19 +70,23 @@ public interface BatchRequestResource {
 	 * ]
 	 * </pre>
 	 * A sub-request body may reference a record created/updated earlier in the same batch instead of a literal
-	 * value, using {@code @Table.Column@} (resolved against that sub-request's response), {@code @bind.Column@}
-	 * (an alias set via that sub-request's {@code as} field, for when the same table appears more than once),
-	 * {@code @bind$.jsonPathExpr@} (a standard JSONPath - RFC 9535, e.g. {@code @order$.Lines[0].C_OrderLine_ID@} -
-	 * evaluated against that sub-request's response, for array/filter access the flat form can't express),
-	 * or {@code @#GlobalVar@} (session/context variable, e.g. {@code @#AD_Org_ID@} - iDempiere's own
-	 * {@code Evaluator.VARIABLE_START_END_MARKER} convention). Referencing a table's primary
-	 * key column also resolves against the response's {@code id} property.
+	 * value, using {@code bind$.jsonPathExpr} - a bare standard JSONPath (RFC 9535, e.g.
+	 * {@code order$.Lines[0].C_OrderLine_ID}) evaluated against that sub-request's response. {@code bind} is
+	 * either the table name (e.g. {@code C_BPartner}) or an alias set via that sub-request's {@code as} field,
+	 * for when the same table appears more than once. No wrapping punctuation is needed: an identifier
+	 * immediately followed by JSONPath's own root marker '$' is already an unambiguous shape. A record's own
+	 * primary key is always at {@code $.id} in its response (e.g. {@code C_BPartner$.id}).
+	 * <p>
+	 * Separately, {@code @#GlobalVar@} (session/context variable, e.g. {@code @#AD_Org_ID@}) resolves a
+	 * value from the caller's session rather than a prior sub-request - wrapped in '@' because that's
+	 * iDempiere's own pre-existing {@code Evaluator.VARIABLE_START_END_MARKER} convention, not something
+	 * invented for batch requests specifically.
 	 * <pre>
 	 * [
 	 *   { "method": "POST", "path": "v1/models/c_bpartner",
 	 *     "body": { "Value": "CUST-1001", "Name": "Acme" } },
 	 *   { "method": "POST", "path": "v1/models/c_bpartner_location",
-	 *     "body": { "C_BPartner_ID": "@C_BPartner.C_BPartner_ID@", "Name": "Main", "IsShipTo": "Y" } }
+	 *     "body": { "C_BPartner_ID": "C_BPartner$.id", "Name": "Main", "IsShipTo": "Y" } }
 	 * ]
 	 * </pre>
 	 * @param requests the list of batch requests to process
@@ -113,7 +117,7 @@ public interface BatchRequestResource {
 	    public void setBody(Object body) { this.body = body; }
 	    /**
 	     * Optional alias this sub-request's created/updated record is cached under,
-	     * for disambiguating {@code @bind.Column@} references when the same table
+	     * for disambiguating {@code bind$.jsonPathExpr} references when the same table
 	     * appears more than once in the batch.
 	     */
 	    public String getAs() { return as; }
