@@ -317,10 +317,14 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
         /**
          * Wrapped on both sides with '@', matching iDempiere's own {@code Evaluator.VARIABLE_START_END_MARKER}
-         * convention (e.g. {@code @#AD_Client_ID@}) - not just a value that happens to start with '@'.
+         * convention (e.g. {@code @#AD_Client_ID@}) - not just any value that happens to start and end with
+         * '@'. The inner content must also look like a real global variable ({@link Env#isGlobalVariable}'s
+         * '#'/'$'/'+' prefixes), so an unrelated literal like {@code @example@} is left untouched instead of
+         * being rejected as an unresolved reference.
          */
         private boolean isGlobalVariableToken(String value) {
-            return value.length() > 1 && value.charAt(0) == '@' && value.charAt(value.length() - 1) == '@';
+            return value.length() > 2 && value.charAt(0) == '@' && value.charAt(value.length() - 1) == '@'
+                    && Env.isGlobalVariable(value.substring(1, value.length() - 1));
         }
 
         /**
