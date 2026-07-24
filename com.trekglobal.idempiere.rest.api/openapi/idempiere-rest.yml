@@ -3304,6 +3304,16 @@ components:
         path:
           type: string
           description: Path for the sub-request (e.g., v1/models/C_BPartner)
+        responseAlias:
+          type: string
+          description: >-
+            Mandatory alias, unique within the batch, that this sub-request's response is cached
+            under. A later sub-request's body can reference a value from it instead of a literal,
+            using a bare JSONPath (RFC 9535) of the form `alias$.jsonPathExpr` (e.g.
+            `bpartner$.id`, or `order$.Lines[0].C_OrderLine_ID`). Separately,
+            `@#GlobalVar@`/`@$GlobalVar@`/`@+GlobalVar@` resolves a value from the caller's
+            session/context instead (iDempiere's Evaluator.VARIABLE_START_END_MARKER convention),
+            e.g. `@#AD_Org_ID@`. References only resolve inside "body", not inside "path".
         body:
           type: object
           description: Body of the sub-request, if applicable
@@ -7868,6 +7878,9 @@ paths:
       tags:
          - Batch
       summary: Execute batch request
+      description: >-
+        Every sub-request must set a `responseAlias`, unique within the batch, so a later
+        sub-request's body can chain off its response - see SubRequest.responseAlias.
       parameters:
         - name: transaction
           in: query

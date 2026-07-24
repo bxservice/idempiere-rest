@@ -28,10 +28,10 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TreeMap;
 import java.util.concurrent.Future;
 
 import javax.ws.rs.HttpMethod;
@@ -42,7 +42,6 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import org.compiere.model.MTable;
 import org.compiere.util.Env;
 import org.compiere.util.Trx;
 import org.compiere.util.Util;
@@ -107,15 +106,13 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    	continue; // Proceed to next request
 	                    }
 	            	}
-	                if (!Util.isEmpty(req.getAs(), true)) {
-	                	if (MTable.get(sessionCtx, req.getAs()) != null) {
-	                		throw new IDempiereRestException("Invalid batch alias",
-	                				"'as' value '" + req.getAs() + "' collides with an existing table name and cannot be used as an alias.", Status.BAD_REQUEST);
-	                	}
-	                	if (referenceResolver.isAliasTaken(req.getAs())) {
-	                		throw new IDempiereRestException("Invalid batch alias",
-	                				"'as' value '" + req.getAs() + "' was already used earlier in this batch.", Status.BAD_REQUEST);
-	                	}
+	                if (Util.isEmpty(req.getResponseAlias(), true)) {
+	                	throw new IDempiereRestException("Missing response alias",
+	                			"Each batch sub-request requires a unique 'responseAlias' value.", Status.BAD_REQUEST);
+	                }
+	                if (referenceResolver.isAliasTaken(req.getResponseAlias())) {
+	                	throw new IDempiereRestException("Invalid batch alias",
+	                			"'responseAlias' value '" + req.getResponseAlias() + "' was already used earlier in this batch.", Status.BAD_REQUEST);
 	                }
 
 	                URI requestUri = URI.create(baseUri.toString().replaceAll("v1/batch/?$", "") + req.getPath());
@@ -165,10 +162,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    }
 	                } else {
 	                	if (bodyAsMap != null) {
-	                		String tableName = canonicalTableName(extractTableNameFromPath(req.getPath()), sessionCtx);
-	                		if (tableName != null) {
-	                			referenceResolver.cacheResponse(tableName, req.getAs(), bodyAsMap);
-	                		}
+	                		referenceResolver.cacheResponse(req.getResponseAlias(), bodyAsMap);
 	                	}
 	                	if (!transaction) {
 	                		Trx threadLocalTrx = Trx.get(ThreadLocalTrx.getTrxName(), false);
@@ -213,40 +207,15 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
     }
 
     /**
-     * Extract the raw {tableName} path segment from a "v1/models/{tableName}[/{id}]" batch sub-request path.
-     * Only "models" (plural) is ever actually routed - {@code ModelResource}'s {@code @Path} is "v1/models".
-     * (This class's own Javadoc example uses the singular "v1/model/...", but that's a pre-existing typo in
-     * the upstream docstring, not a real route - not matched here.)
-     */
-    private String extractTableNameFromPath(String path) {
-        if (path == null)
-            return null;
-        String[] segments = path.split("/");
-        for (int i = 0; i < segments.length - 1; i++) {
-            if (MODELS_PATH_SEGMENT.equalsIgnoreCase(segments[i]))
-                return segments[i + 1];
-        }
-        return null;
-    }
-
-    private String canonicalTableName(String rawTableName, Properties sessionCtx) {
-        if (rawTableName == null)
-            return null;
-        MTable table = MTable.get(sessionCtx, rawTableName);
-        return table != null ? table.getTableName() : null;
-    }
-
-    private static final String MODELS_PATH_SEGMENT = "models";
-
-    /**
      * Resolves reference values against sub-request responses accumulated as one batch runs.
      * One instance is scoped to a single {@code processBatch} call.
      * <p>
      * Two independent grammars, distinguished purely by shape - see {@link #resolveReference}:
      * <ul>
-     * <li>{@code bind$.jsonPathExpr} - a bare standard JSONPath (RFC 9535) against a prior sub-request's
-     * response. No wrapping needed: an identifier immediately followed by JSONPath's own root marker '$'
-     * is already an unambiguous shape, so we don't invent extra punctuation on top of a standard.</li>
+     * <li>{@code alias$.jsonPathExpr} - a bare standard JSONPath (RFC 9535) against a prior sub-request's
+     * response, cached under its mandatory, batch-unique {@code responseAlias}. No wrapping needed: an
+     * identifier immediately followed by JSONPath's own root marker '$' is already an unambiguous shape,
+     * so we don't invent extra punctuation on top of a standard.</li>
      * <li>{@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} - a session/context variable,
      * wrapped in '@' because that's iDempiere's own pre-existing {@code Evaluator.VARIABLE_START_END_MARKER}
      * convention (used for context vars in message texts, SQL, print formats, etc.), not something of our
@@ -255,11 +224,9 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
      */
     private static class BatchReferenceResolver {
 
-        // Responses of successful sub-requests, cached by table name and by the sub-request's optional "as" alias,
-        // so a later sub-request's body can reference a value from one via "bind$.jsonPathExpr".
-        // Case-insensitive: table names (and the batch sub-request paths that produce them) are resolved
-        // case-insensitively everywhere else in this API (MTable.get), so lookups here must match.
-        private final Map<String, Object> referenceCache = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        // Responses of successful sub-requests, cached by the sub-request's mandatory, batch-unique
+        // responseAlias, so a later sub-request's body can reference a value from one via "alias$.jsonPathExpr".
+        private final Map<String, Object> referenceCache = new HashMap<>();
         private final Properties sessionCtx;
 
         BatchReferenceResolver(Properties sessionCtx) {
@@ -271,15 +238,12 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         /**
-         * Cache a successful sub-request's response under its table name, and under its "as" alias if any.
-         * @param tableName canonical table name the sub-request created/updated a record in
-         * @param alias the sub-request's optional "as" value, or null/empty if none was given
+         * Cache a successful sub-request's response under its mandatory, batch-unique response alias.
+         * @param alias the sub-request's "responseAlias" value
          * @param bodyAsMap the sub-request's response body
          */
-        void cacheResponse(String tableName, String alias, Object bodyAsMap) {
-            referenceCache.put(tableName, bodyAsMap);
-            if (!Util.isEmpty(alias, true))
-                referenceCache.put(alias, bodyAsMap);
+        void cacheResponse(String alias, Object bodyAsMap) {
+            referenceCache.put(alias, bodyAsMap);
         }
 
         /**
@@ -328,7 +292,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         /**
-         * A bare {@code bind$.jsonPathExpr} / {@code bind$[jsonPathExpr]} value: an identifier immediately
+         * A bare {@code alias$.jsonPathExpr} / {@code alias$[jsonPathExpr]} value: an identifier immediately
          * followed by JSONPath's own root marker '$', which real literal data doesn't shape itself like.
          */
         private boolean isJsonPathExpression(String value) {
@@ -359,19 +323,19 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
         private Object resolveJsonPath(String token) {
             int dollar = token.indexOf('$');
-            String bind = token.substring(0, dollar);
+            String alias = token.substring(0, dollar);
             String jsonPath = token.substring(dollar);
 
-            Object cached = referenceCache.get(bind);
+            Object cached = referenceCache.get(alias);
             if (!(cached instanceof Map))
                 throw new IDempiereRestException("Unresolved batch reference",
-                        "No prior successful sub-request found for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
+                        "No prior successful sub-request found for responseAlias '" + alias + "'. Referenced by: " + token, Status.BAD_REQUEST);
 
             try {
                 return JsonPath.read(cached, jsonPath);
             } catch (InvalidPathException e) {
                 throw new IDempiereRestException("Unresolved batch reference",
-                        "JSONPath '" + jsonPath + "' not found in response for '" + bind + "'. Referenced by: " + token, Status.BAD_REQUEST);
+                        "JSONPath '" + jsonPath + "' not found in response for responseAlias '" + alias + "'. Referenced by: " + token, Status.BAD_REQUEST);
             }
         }
     }

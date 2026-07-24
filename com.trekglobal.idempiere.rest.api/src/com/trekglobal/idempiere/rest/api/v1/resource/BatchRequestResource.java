@@ -51,6 +51,7 @@ public interface BatchRequestResource {
 	 *	  {
 	 *	    "method": "POST",
 	 *	    "path": "v1/model/C_Order",
+	 *	    "responseAlias": "order",
 	 * 	    "body": {
 	 *	      "DocumentNo": "ORD001",
 	 *	      "C_BPartner_ID": 1000000
@@ -59,23 +60,25 @@ public interface BatchRequestResource {
 	 *	  {
 	 *	    "method": "PUT",
 	 *	    "path": "v1/model/C_Order/1000012",
+	 *	    "responseAlias": "orderUpdate",
 	 *	    "body": {
 	 *	      "DocStatus": "CO"
 	 *	    }
 	 *	  },
 	 *	  {
 	 *	    "method": "DELETE",
-	 *	    "path": "v1/model/C_Order/1000013"
+	 *	    "path": "v1/model/C_Order/1000013",
+	 *	    "responseAlias": "orderDelete"
 	 *	  }
 	 * ]
 	 * </pre>
-	 * A sub-request body may reference a record created/updated earlier in the same batch instead of a literal
-	 * value, using {@code bind$.jsonPathExpr} - a bare standard JSONPath (RFC 9535, e.g.
-	 * {@code order$.Lines[0].C_OrderLine_ID}) evaluated against that sub-request's response. {@code bind} is
-	 * either the table name (e.g. {@code C_BPartner}) or an alias set via that sub-request's {@code as} field,
-	 * for when the same table appears more than once. No wrapping punctuation is needed: an identifier
-	 * immediately followed by JSONPath's own root marker '$' is already an unambiguous shape. A record's own
-	 * primary key is always at {@code $.id} in its response (e.g. {@code C_BPartner$.id}).
+	 * Every sub-request must set a {@code responseAlias}, unique within the batch. A later sub-request's
+	 * body may reference an earlier one's response instead of a literal value, using
+	 * {@code alias$.jsonPathExpr} - a bare standard JSONPath (RFC 9535, e.g.
+	 * {@code order$.Lines[0].C_OrderLine_ID}) evaluated against the response cached under that
+	 * {@code responseAlias}. No wrapping punctuation is needed: an identifier immediately followed by
+	 * JSONPath's own root marker '$' is already an unambiguous shape. A record's own primary key is always
+	 * at {@code $.id} in its response (e.g. {@code bpartner$.id}).
 	 * <p>
 	 * Separately, {@code @#GlobalVar@} (session/context variable, e.g. {@code @#AD_Org_ID@}) resolves a
 	 * value from the caller's session rather than a prior sub-request - wrapped in '@' because that's
@@ -83,10 +86,10 @@ public interface BatchRequestResource {
 	 * invented for batch requests specifically.
 	 * <pre>
 	 * [
-	 *   { "method": "POST", "path": "v1/models/c_bpartner",
+	 *   { "method": "POST", "path": "v1/models/c_bpartner", "responseAlias": "bpartner",
 	 *     "body": { "Value": "CUST-1001", "Name": "Acme" } },
-	 *   { "method": "POST", "path": "v1/models/c_bpartner_location",
-	 *     "body": { "C_BPartner_ID": "C_BPartner$.id", "Name": "Main", "IsShipTo": "Y" } }
+	 *   { "method": "POST", "path": "v1/models/c_bpartner_location", "responseAlias": "bpartnerLocation",
+	 *     "body": { "C_BPartner_ID": "bpartner$.id", "Name": "Main", "IsShipTo": "Y" } }
 	 * ]
 	 * </pre>
 	 * @param requests the list of batch requests to process
@@ -106,7 +109,7 @@ public interface BatchRequestResource {
 	    private String method;
 	    private String path;
 	    private Object body;
-	    private String as;
+	    private String responseAlias;
 
 	    // Getters and Setters
 	    public String getMethod() { return method; }
@@ -116,12 +119,11 @@ public interface BatchRequestResource {
 	    public Object getBody() { return body; }
 	    public void setBody(Object body) { this.body = body; }
 	    /**
-	     * Optional alias this sub-request's created/updated record is cached under,
-	     * for disambiguating {@code bind$.jsonPathExpr} references when the same table
-	     * appears more than once in the batch.
+	     * Mandatory, batch-unique alias this sub-request's response is cached under, so a later
+	     * sub-request's body can reference it via {@code responseAlias$.jsonPathExpr}.
 	     */
-	    public String getAs() { return as; }
-	    public void setAs(String as) { this.as = as; }
+	    public String getResponseAlias() { return responseAlias; }
+	    public void setResponseAlias(String responseAlias) { this.responseAlias = responseAlias; }
 	}
 
 	class BatchResponse {
