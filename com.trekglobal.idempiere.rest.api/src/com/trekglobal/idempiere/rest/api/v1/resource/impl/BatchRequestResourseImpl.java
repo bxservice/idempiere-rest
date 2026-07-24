@@ -54,6 +54,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.BatchRequestResource;
@@ -106,11 +107,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 	                    	continue; // Proceed to next request
 	                    }
 	            	}
-	                if (Util.isEmpty(req.getResponseAlias(), true)) {
-	                	throw new IDempiereRestException("Missing response alias",
-	                			"Each batch sub-request requires a unique 'responseAlias' value.", Status.BAD_REQUEST);
-	                }
-	                if (referenceResolver.isAliasTaken(req.getResponseAlias())) {
+	                if (!Util.isEmpty(req.getResponseAlias(), true) && referenceResolver.isAliasTaken(req.getResponseAlias())) {
 	                	throw new IDempiereRestException("Invalid batch alias",
 	                			"'responseAlias' value '" + req.getResponseAlias() + "' was already used earlier in this batch.", Status.BAD_REQUEST);
 	                }
@@ -210,22 +207,24 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
      * Resolves reference values against sub-request responses accumulated as one batch runs.
      * One instance is scoped to a single {@code processBatch} call.
      * <p>
-     * Two independent grammars, distinguished purely by shape - see {@link #resolveReference}:
+     * Two independent grammars, both wrapped in '@' - matching iDempiere's own pre-existing
+     * {@code Evaluator.VARIABLE_START_END_MARKER} convention (used for context vars in message texts,
+     * SQL, print formats, etc.) rather than inventing a marker of our own - so an ordinary literal that
+     * happens to contain '$' (a price, a bracketed SKU) is never mistaken for a reference just because
+     * of its shape. Distinguished by what's inside the wrapper - see {@link #resolveReference}:
      * <ul>
-     * <li>{@code alias$.jsonPathExpr} - a bare standard JSONPath (RFC 9535) against a prior sub-request's
-     * response, cached under its mandatory, batch-unique {@code responseAlias}. No wrapping needed: an
-     * identifier immediately followed by JSONPath's own root marker '$' is already an unambiguous shape,
-     * so we don't invent extra punctuation on top of a standard.</li>
-     * <li>{@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} - a session/context variable,
-     * wrapped in '@' because that's iDempiere's own pre-existing {@code Evaluator.VARIABLE_START_END_MARKER}
-     * convention (used for context vars in message texts, SQL, print formats, etc.), not something of our
-     * own to be consistent with.</li>
+     * <li>{@code @alias$.jsonPathExpr@} - a standard JSONPath (RFC 9535) against a prior sub-request's
+     * response, cached under its optional, batch-unique {@code responseAlias}. JSONPath itself requires
+     * every expression to start with its root marker '$', so the alias and the path are unambiguous
+     * once split on it (see {@link #isJsonPathReferenceToken}); the {@code JsonPath} library itself is
+     * the sole authority on whether what follows is valid syntax.</li>
+     * <li>{@code @#GlobalVar@} / {@code @$GlobalVar@} / {@code @+GlobalVar@} - a session/context variable.</li>
      * </ul>
      */
     private static class BatchReferenceResolver {
 
-        // Responses of successful sub-requests, cached by the sub-request's mandatory, batch-unique
-        // responseAlias, so a later sub-request's body can reference a value from one via "alias$.jsonPathExpr".
+        // Responses of successful sub-requests, cached by the sub-request's optional, batch-unique
+        // responseAlias, so a later sub-request's body can reference a value from one via "@alias$.jsonPathExpr@".
         private final Map<String, Object> referenceCache = new HashMap<>();
         private final Properties sessionCtx;
 
@@ -238,12 +237,13 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         /**
-         * Cache a successful sub-request's response under its mandatory, batch-unique response alias.
-         * @param alias the sub-request's "responseAlias" value
+         * Cache a successful sub-request's response under its response alias, if it was given one.
+         * @param alias the sub-request's "responseAlias" value, or null/empty if none was given
          * @param bodyAsMap the sub-request's response body
          */
         void cacheResponse(String alias, Object bodyAsMap) {
-            referenceCache.put(alias, bodyAsMap);
+            if (!Util.isEmpty(alias, true))
+                referenceCache.put(alias, bodyAsMap);
         }
 
         /**
@@ -276,7 +276,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         private boolean isReference(String value) {
-            return isGlobalVariableToken(value) || isJsonPathExpression(value);
+            return isGlobalVariableToken(value) || isJsonPathReferenceToken(value);
         }
 
         /**
@@ -292,15 +292,19 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         /**
-         * A bare {@code alias$.jsonPathExpr} / {@code alias$[jsonPathExpr]} value: an identifier immediately
-         * followed by JSONPath's own root marker '$', which real literal data doesn't shape itself like.
+         * A wrapped {@code @alias$.jsonPathExpr@} / {@code @alias$[jsonPathExpr]@} value: same '@...@'
+         * wrapping as {@link #isGlobalVariableToken}, so ordinary literal data is never mistaken for a
+         * reference just because it happens to contain '$'. Inside the wrapper, an identifier immediately
+         * followed by JSONPath's own root marker '$' (and not itself a global variable, which would have
+         * that marker right after the opening '@') is what marks this grammar - the {@code JsonPath}
+         * library itself is the authority on whether what follows is valid syntax.
          */
-        private boolean isJsonPathExpression(String value) {
-            int dollar = value.indexOf('$');
-            if (dollar <= 0 || dollar + 1 >= value.length())
+        private boolean isJsonPathReferenceToken(String value) {
+            if (value.length() <= 2 || value.charAt(0) != '@' || value.charAt(value.length() - 1) != '@')
                 return false;
-            char afterDollar = value.charAt(dollar + 1);
-            return afterDollar == '.' || afterDollar == '[';
+            String inner = value.substring(1, value.length() - 1);
+            int dollar = inner.indexOf('$');
+            return dollar > 0 && dollar + 1 < inner.length();
         }
 
         /**
@@ -322,9 +326,10 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
         }
 
         private Object resolveJsonPath(String token) {
-            int dollar = token.indexOf('$');
-            String alias = token.substring(0, dollar);
-            String jsonPath = token.substring(dollar);
+            String inner = token.substring(1, token.length() - 1);
+            int dollar = inner.indexOf('$');
+            String alias = inner.substring(0, dollar);
+            String jsonPath = inner.substring(dollar);
 
             Object cached = referenceCache.get(alias);
             if (!(cached instanceof Map))
@@ -333,7 +338,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
             try {
                 return JsonPath.read(cached, jsonPath);
-            } catch (InvalidPathException e) {
+            } catch (InvalidPathException | PathNotFoundException e) {
                 throw new IDempiereRestException("Unresolved batch reference",
                         "JSONPath '" + jsonPath + "' not found in response for responseAlias '" + alias + "'. Referenced by: " + token, Status.BAD_REQUEST);
             }

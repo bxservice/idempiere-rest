@@ -5516,7 +5516,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"newBPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":101\n                        }\n                    ]\n                }\n            ]\n        }\n    },\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"responseAlias\": \"bpartnerUpdate\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":101\n                        }\n                    ]\n                }\n            ]\n        }\n    },\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5569,7 +5569,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"responseAlias\": \"bpartnerUpdate\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"newBPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":10000000\n                        }\n                    ]\n                }\n            ]\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"PUT\",\n        \"path\": \"v1/models/C_BPartner/117\",\n        \"body\": {\n            \"description\": \"Test batch update {{$isoTimestamp}}\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"name\":\"Test creating BP with User and Interest Area from REST\",\n            \"AD_User\": [\n                {\n                    \"Name\":\"Test User with Interest area\",\n                    \"R_ContactInterest\": [\n                        {\n                            \"R_InterestArea_ID\":10000000\n                        }\n                    ]\n                }\n            ]\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5622,7 +5622,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bpartner\",\n        \"body\": {\n            \"Value\": \"CUST-BATCHREF-{{$timestamp}}\",\n            \"Name\": \"Batch Reference Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"responseAlias\": \"bpartnerLocation\",\n        \"body\": {\n            \"C_BPartner_ID\": \"bpartner$.id\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\",\n            \"Name\": \"Main\",\n            \"IsBillTo\": \"Y\",\n            \"IsShipTo\": \"Y\",\n            \"C_Location_ID\": {\n                \"Address1\": \"Hlavna 1\",\n                \"City\": \"Kosice\",\n                \"Postal\": \"04001\",\n                \"C_Country_ID\": {\n                    \"lookupColumn\": \"CountryCode\",\n                    \"lookupValue\": \"SK\"\n                }\n            }\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bpartner\",\n        \"body\": {\n            \"Value\": \"CUST-BATCHREF-{{$timestamp}}\",\n            \"Name\": \"Batch Reference Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@bpartner$.id@\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\",\n            \"Name\": \"Main\",\n            \"IsBillTo\": \"Y\",\n            \"IsShipTo\": \"Y\",\n            \"C_Location_ID\": {\n                \"Address1\": \"Hlavna 1\",\n                \"City\": \"Kosice\",\n                \"Postal\": \"04001\",\n                \"C_Country_ID\": {\n                    \"lookupColumn\": \"CountryCode\",\n                    \"lookupValue\": \"SK\"\n                }\n            }\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5649,7 +5649,7 @@
 						}
 					]
 				},
-				"description": "New sub-request in this batch references the id that the previous sub-request's response just generated, via bpartner$.id (bare JSONPath, no wrapping punctuation - resolved against the response cached under the mandatory 'responseAlias': 'bpartner'). Also resolves AD_Org_ID from session context via @#AD_Org_ID@, a separate mechanism kept wrapped since it follows iDempiere's own pre-existing Evaluator.VARIABLE_START_END_MARKER convention."
+				"description": "New sub-request in this batch references the id that the previous sub-request's response just generated, via @bpartner$.id@ - resolved against the response cached under the first sub-request's 'responseAlias': 'bpartner'. Wrapped in '@' the same way as @#AD_Org_ID@ below, iDempiere's own pre-existing Evaluator.VARIABLE_START_END_MARKER convention, so literal data containing '$' is never mistaken for a reference."
 			},
 			"response": []
 		},
@@ -5676,7 +5676,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bpartner\",\n        \"body\": {\n            \"Value\": \"CUST-ALIAS-{{$timestamp}}\",\n            \"Name\": \"Batch Alias Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"responseAlias\": \"billAddr\",\n        \"body\": {\n            \"Address1\": \"Hlavna 1\",\n            \"City\": \"Kosice\",\n            \"Postal\": \"04001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"responseAlias\": \"shipAddr\",\n        \"body\": {\n            \"Address1\": \"Skladova 5\",\n            \"City\": \"Presov\",\n            \"Postal\": \"08001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"responseAlias\": \"billLocation\",\n        \"body\": {\n            \"C_BPartner_ID\": \"bpartner$.id\",\n            \"C_Location_ID\": \"billAddr$.id\",\n            \"Name\": \"Billing\",\n            \"IsBillTo\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"responseAlias\": \"shipLocation\",\n        \"body\": {\n            \"C_BPartner_ID\": \"bpartner$.id\",\n            \"C_Location_ID\": \"shipAddr$.id\",\n            \"Name\": \"Shipping\",\n            \"IsShipTo\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bpartner\",\n        \"body\": {\n            \"Value\": \"CUST-ALIAS-{{$timestamp}}\",\n            \"Name\": \"Batch Alias Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"responseAlias\": \"billAddr\",\n        \"body\": {\n            \"Address1\": \"Hlavna 1\",\n            \"City\": \"Kosice\",\n            \"Postal\": \"04001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_Location\",\n        \"responseAlias\": \"shipAddr\",\n        \"body\": {\n            \"Address1\": \"Skladova 5\",\n            \"City\": \"Presov\",\n            \"Postal\": \"08001\",\n            \"C_Country_ID\": {\n                \"lookupColumn\": \"CountryCode\",\n                \"lookupValue\": \"SK\"\n            }\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@bpartner$.id@\",\n            \"C_Location_ID\": \"@billAddr$.id@\",\n            \"Name\": \"Billing\",\n            \"IsBillTo\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@bpartner$.id@\",\n            \"C_Location_ID\": \"@shipAddr$.id@\",\n            \"Name\": \"Shipping\",\n            \"IsShipTo\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5703,12 +5703,12 @@
 						}
 					]
 				},
-				"description": "C_Location is created twice in the same batch, disambiguated with the mandatory 'responseAlias' on each sub-request (billAddr / shipAddr), then each is referenced explicitly by alias (billAddr$.id / shipAddr$.id) when creating the two C_BPartner_Location rows."
+				"description": "C_Location is created twice in the same batch, disambiguated with a 'responseAlias' on each sub-request (billAddr / shipAddr), then each is referenced explicitly by alias (@billAddr$.id@ / @shipAddr$.id@) when creating the two C_BPartner_Location rows."
 			},
 			"response": []
 		},
 		{
-			"name": "/api/v1/batch alias$.jsonPathExpr (nested field, standard JSONPath)",
+			"name": "/api/v1/batch @alias$.jsonPathExpr@ (nested field, standard JSONPath)",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -5730,7 +5730,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bp\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-{{$timestamp}}\",\n            \"Name\": \"Batch JSONPath Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bp2\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-2-{{$timestamp}}\",\n            \"Name\": \"bp$.AD_Org_ID.identifier\",\n            \"IsCustomer\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bp\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-{{$timestamp}}\",\n            \"Name\": \"Batch JSONPath Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\"\n        }\n    },\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-JSONPATH-2-{{$timestamp}}\",\n            \"Name\": \"@bp$.AD_Org_ID.identifier@\",\n            \"IsCustomer\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5757,7 +5757,7 @@
 						}
 					]
 				},
-				"description": "alias$.jsonPathExpr evaluates a standard JSONPath (RFC 9535) against the response cached under that mandatory 'responseAlias' - a bare value, no wrapping punctuation needed, since an identifier immediately followed by JSONPath's own root marker '$' is already an unambiguous shape. Here 'bp' is the responseAlias of the C_BPartner created in step 1, and bp$.AD_Org_ID.identifier reaches into the nested AD_Org_ID.identifier field of its response - two levels deep - so the second C_BPartner's Name ends up set to the org's name (e.g. 'HQ'). Also supports array indexing/filters, e.g. alias$.Lines[0].C_OrderLine_ID or alias$.Lines[?(@.QtyOrdered > 5)].C_OrderLine_ID (the '@' there is real JSONPath's own 'current node' filter syntax, unrelated to iDempiere's @#GlobalVar@ convention). Note: references only resolve inside the request body, not inside \"path\", and the whole field value must be the reference - not a substring of a larger literal."
+				"description": "@alias$.jsonPathExpr@ evaluates a standard JSONPath (RFC 9535) against the response cached under that 'responseAlias', wrapped in '@' the same way as @#GlobalVar@ so literal data containing '$' is never mistaken for a reference. Here 'bp' is the responseAlias of the C_BPartner created in step 1, and @bp$.AD_Org_ID.identifier@ reaches into the nested AD_Org_ID.identifier field of its response - two levels deep - so the second C_BPartner's Name ends up set to the org's name (e.g. 'HQ'). Also supports array indexing/filters, e.g. @alias$.Lines[0].C_OrderLine_ID@ or @alias$.Lines[?(@.QtyOrdered > 5)].C_OrderLine_ID@ (the inner '@' there is real JSONPath's own 'current node' filter syntax - unrelated to, and not confused with, our own outer '@...@' wrapper, since only the first and last characters of the value are checked for the wrapper). Note: references only resolve inside the request body, not inside \"path\", and the whole field value must be the reference - not a substring of a larger literal."
 			},
 			"response": []
 		},
@@ -5784,7 +5784,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"responseAlias\": \"bpartner\",\n        \"body\": {\n            \"Value\": \"CUST-CTXVAR-{{$timestamp}}\",\n            \"Name\": \"Batch Context Var Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner\",\n        \"body\": {\n            \"Value\": \"CUST-CTXVAR-{{$timestamp}}\",\n            \"Name\": \"Batch Context Var Test {{$isoTimestamp}}\",\n            \"IsCustomer\": \"Y\",\n            \"AD_Org_ID\": \"@#AD_Org_ID@\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5838,7 +5838,7 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"responseAlias\": \"location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"bpartner$.id\",\n            \"Name\": \"Should Fail\",\n            \"IsBillTo\": \"Y\"\n        }\n    }\n]",
+					"raw": "[\n    {\n        \"method\": \"POST\",\n        \"path\": \"v1/models/C_BPartner_Location\",\n        \"body\": {\n            \"C_BPartner_ID\": \"@bpartner$.id@\",\n            \"Name\": \"Should Fail\",\n            \"IsBillTo\": \"Y\"\n        }\n    }\n]",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -5865,7 +5865,7 @@
 						}
 					]
 				},
-				"description": "No prior sub-request in this batch used responseAlias 'bpartner', so bpartner$.id cannot resolve. Expect a 400 with an 'Unresolved batch reference' message, not a silent null."
+				"description": "No prior sub-request in this batch used responseAlias 'bpartner', so @bpartner$.id@ cannot resolve. Expect a 400 with an 'Unresolved batch reference' message, not a silent null."
 			},
 			"response": []
 		},

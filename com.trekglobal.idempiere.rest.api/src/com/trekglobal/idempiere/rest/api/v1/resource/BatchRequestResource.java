@@ -51,7 +51,6 @@ public interface BatchRequestResource {
 	 *	  {
 	 *	    "method": "POST",
 	 *	    "path": "v1/model/C_Order",
-	 *	    "responseAlias": "order",
 	 * 	    "body": {
 	 *	      "DocumentNo": "ORD001",
 	 *	      "C_BPartner_ID": 1000000
@@ -60,36 +59,35 @@ public interface BatchRequestResource {
 	 *	  {
 	 *	    "method": "PUT",
 	 *	    "path": "v1/model/C_Order/1000012",
-	 *	    "responseAlias": "orderUpdate",
 	 *	    "body": {
 	 *	      "DocStatus": "CO"
 	 *	    }
 	 *	  },
 	 *	  {
 	 *	    "method": "DELETE",
-	 *	    "path": "v1/model/C_Order/1000013",
-	 *	    "responseAlias": "orderDelete"
+	 *	    "path": "v1/model/C_Order/1000013"
 	 *	  }
 	 * ]
 	 * </pre>
-	 * Every sub-request must set a {@code responseAlias}, unique within the batch. A later sub-request's
-	 * body may reference an earlier one's response instead of a literal value, using
-	 * {@code alias$.jsonPathExpr} - a bare standard JSONPath (RFC 9535, e.g.
-	 * {@code order$.Lines[0].C_OrderLine_ID}) evaluated against the response cached under that
-	 * {@code responseAlias}. No wrapping punctuation is needed: an identifier immediately followed by
-	 * JSONPath's own root marker '$' is already an unambiguous shape. A record's own primary key is always
-	 * at {@code $.id} in its response (e.g. {@code bpartner$.id}).
+	 * A sub-request's {@code responseAlias} is only needed if a later sub-request in the same batch wants
+	 * to chain off its response - it's optional otherwise, but must be unique within the batch when given.
+	 * That later sub-request's body may then reference the earlier one's response instead of a literal
+	 * value, using {@code @alias$.jsonPathExpr@} - a standard JSONPath (RFC 9535, e.g.
+	 * {@code @order$.Lines[0].C_OrderLine_ID@}) evaluated against the response cached under that
+	 * {@code responseAlias}. Wrapped in '@' because that's iDempiere's own pre-existing
+	 * {@code Evaluator.VARIABLE_START_END_MARKER} convention - the same marker {@code @#GlobalVar@} below
+	 * uses - so ordinary literal data that happens to contain '$' (a price, a bracketed SKU) is never
+	 * mistaken for a reference just because of its shape. A record's own primary key is always at
+	 * {@code $.id} in its response (e.g. {@code @bpartner$.id@}).
 	 * <p>
 	 * Separately, {@code @#GlobalVar@} (session/context variable, e.g. {@code @#AD_Org_ID@}) resolves a
-	 * value from the caller's session rather than a prior sub-request - wrapped in '@' because that's
-	 * iDempiere's own pre-existing {@code Evaluator.VARIABLE_START_END_MARKER} convention, not something
-	 * invented for batch requests specifically.
+	 * value from the caller's session rather than a prior sub-request.
 	 * <pre>
 	 * [
 	 *   { "method": "POST", "path": "v1/models/c_bpartner", "responseAlias": "bpartner",
 	 *     "body": { "Value": "CUST-1001", "Name": "Acme" } },
-	 *   { "method": "POST", "path": "v1/models/c_bpartner_location", "responseAlias": "bpartnerLocation",
-	 *     "body": { "C_BPartner_ID": "bpartner$.id", "Name": "Main", "IsShipTo": "Y" } }
+	 *   { "method": "POST", "path": "v1/models/c_bpartner_location",
+	 *     "body": { "C_BPartner_ID": "@bpartner$.id@", "Name": "Main", "IsShipTo": "Y" } }
 	 * ]
 	 * </pre>
 	 * @param requests the list of batch requests to process
@@ -119,8 +117,8 @@ public interface BatchRequestResource {
 	    public Object getBody() { return body; }
 	    public void setBody(Object body) { this.body = body; }
 	    /**
-	     * Mandatory, batch-unique alias this sub-request's response is cached under, so a later
-	     * sub-request's body can reference it via {@code responseAlias$.jsonPathExpr}.
+	     * Optional alias, unique within the batch, this sub-request's response is cached under - only
+	     * needed if a later sub-request's body should reference it via {@code @responseAlias$.jsonPathExpr@}.
 	     */
 	    public String getResponseAlias() { return responseAlias; }
 	    public void setResponseAlias(String responseAlias) { this.responseAlias = responseAlias; }
