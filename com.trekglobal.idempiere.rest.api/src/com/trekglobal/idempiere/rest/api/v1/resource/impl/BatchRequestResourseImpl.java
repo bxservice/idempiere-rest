@@ -54,7 +54,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
 import com.trekglobal.idempiere.rest.api.json.IDempiereRestException;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.BatchRequestResource;
@@ -338,7 +337,7 @@ public class BatchRequestResourseImpl implements BatchRequestResource {
 
             try {
                 return JsonPath.read(cached, jsonPath);
-            } catch (InvalidPathException | PathNotFoundException e) {
+            } catch (InvalidPathException e) {
                 throw new IDempiereRestException("Unresolved batch reference",
                         "JSONPath '" + jsonPath + "' not found in response for responseAlias '" + alias + "'. Referenced by: " + token, Status.BAD_REQUEST);
             }
