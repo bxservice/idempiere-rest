@@ -212,12 +212,11 @@ public class ModelHelper {
 				if (!Util.isEmpty(convertedWhereClause))
 					convertedWhereClause =  convertedWhereClause + " AND ";
 				convertedWhereClause = convertedWhereClause + "(" + validationRule.getCode() + ")";
-
-				if (!Util.isEmpty(context)) {
-					convertedWhereClause = parseContext(convertedWhereClause, context);
-				}
 			}
 		}
+
+		if (!Util.isEmpty(convertedWhereClause) && convertedWhereClause.contains("@"))
+			convertedWhereClause = parseContext(convertedWhereClause, context);
 		
 		//add optional where clause from view definition
 		if (view != null && !Util.isEmpty(view.getWhereClause(), true)) {
@@ -242,14 +241,16 @@ public class ModelHelper {
 		String parsedWhereClause = whereClause;
 		int windowNo = RestUtils.getWindowNo();
 
-		for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
-			String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);
-			String contextName = namevaluePair[0];
-			String contextValue = namevaluePair[1];
-			
-			if (!isValidContextValue(contextValue)) 
-				continue;
-			Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
+		if (!Util.isEmpty(context, true)) {
+			for (String contextNameValue : context.split(CONTEXT_VARIABLES_SEPARATOR)) {
+				String[] namevaluePair = contextNameValue.split(CONTEXT_NAMEVALUE_SEPARATOR);
+				String contextName = namevaluePair[0];
+				String contextValue = namevaluePair[1];
+				
+				if (!isValidContextValue(contextValue)) 
+					continue;
+				Env.setContext(Env.getCtx(), windowNo, contextName, contextValue);
+			}
 		}
 		
 		parsedWhereClause = Env.parseContext(Env.getCtx(), windowNo, parsedWhereClause, false, true);
