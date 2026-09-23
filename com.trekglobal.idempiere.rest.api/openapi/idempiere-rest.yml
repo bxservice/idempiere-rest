@@ -4749,6 +4749,13 @@ paths:
       tags:
         - Models
       summary: Get attachment of a record by file name
+      description: >-
+        Returns the binary content of a single attachment entry. By default the raw
+        file stream is returned; pass the json query parameter to receive a JSON
+        object with base64 encoded data instead. Pass presign=true to receive a
+        time-limited signed URL ({"url": "..."}) that can be shared without
+        authentication. The expiry is capped by REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS
+        (default 3600s).
       parameters:
         - name: tableName
           in: path
@@ -4770,9 +4777,61 @@ paths:
             type: string
           description: file name
           required: true
+        - name: json
+          in: query
+          schema:
+            type: string
+          description: 'not empty to get attachment content as base64 encoded data ("data": "base64 content")'
+        - name: presign
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
+        - name: expiresInSeconds
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: 'lifetime of the presigned URL in seconds (0 = use server default; capped by REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS)'
       responses:
         '200':
-          $ref: '#/components/responses/BinaryResponse'
+          description: >-
+            OK. Response is the file stream, a JSON object with base64 encoded data
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: string
+                        format: byte
+                        description: base64 encoded attachment content
+                  - type: object
+                    required: [url, via]
+                    properties:
+                      url:
+                        type: string
+                        description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
@@ -4867,8 +4926,12 @@ paths:
           in: query
           schema:
             type: string
-            enum: ['true']
-          description: 'pass "true" to return a presigned URL instead of binary content'
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
         - name: expiresInSeconds
           in: query
           schema:
@@ -4880,7 +4943,7 @@ paths:
         '200':
           description: >-
             OK. Response is the file stream, a JSON object with base64 encoded data
-            (if json is specified), or a JSON object with a presigned URL (if presign=true).
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
           content:
             application/octet-stream:
               schema:
@@ -4890,16 +4953,25 @@ paths:
               schema:
                 oneOf:
                   - type: object
+                    required: [data]
                     properties:
                       data:
                         type: string
                         format: byte
                         description: base64 encoded archive content
                   - type: object
+                    required: [url, via]
                     properties:
                       url:
                         type: string
                         description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
@@ -7888,6 +7960,13 @@ paths:
       tags:
         - Views
       summary: Get attachment of a record by file name
+      description: >-
+        Returns the binary content of a single attachment entry. By default the raw
+        file stream is returned; pass the json query parameter to receive a JSON
+        object with base64 encoded data instead. Pass presign=true to receive a
+        time-limited signed URL ({"url": "..."}) that can be shared without
+        authentication. The expiry is capped by REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS
+        (default 3600s).
       parameters:
         - name: viewName
           in: path
@@ -7909,9 +7988,61 @@ paths:
             type: string
           description: file name
           required: true
+        - name: json
+          in: query
+          schema:
+            type: string
+          description: 'not empty to get attachment content as base64 encoded data ("data": "base64 content")'
+        - name: presign
+          in: query
+          schema:
+            type: string
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
+        - name: expiresInSeconds
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: 'lifetime of the presigned URL in seconds (0 = use server default; capped by REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS)'
       responses:
         '200':
-          $ref: '#/components/responses/BinaryResponse'
+          description: >-
+            OK. Response is the file stream, a JSON object with base64 encoded data
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: string
+                        format: byte
+                        description: base64 encoded attachment content
+                  - type: object
+                    required: [url, via]
+                    properties:
+                      url:
+                        type: string
+                        description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
@@ -8000,8 +8131,12 @@ paths:
           in: query
           schema:
             type: string
-            enum: ['true']
-          description: 'pass "true" to return a presigned URL instead of binary content'
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
         - name: expiresInSeconds
           in: query
           schema:
@@ -8013,7 +8148,7 @@ paths:
         '200':
           description: >-
             OK. Response is the file stream, a JSON object with base64 encoded data
-            (if json is specified), or a JSON object with a presigned URL (if presign=true).
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
           content:
             application/octet-stream:
               schema:
@@ -8023,16 +8158,25 @@ paths:
               schema:
                 oneOf:
                   - type: object
+                    required: [data]
                     properties:
                       data:
                         type: string
                         format: byte
                         description: base64 encoded archive content
                   - type: object
+                    required: [url, via]
                     properties:
                       url:
                         type: string
                         description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
