@@ -139,7 +139,10 @@ public class PresignedURL {
 						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
 					return;
 				}
-				if (!url.startsWith(urlFromCredential)) {
+				//	Match the exact signed path, or a sub-path of it (e.g. chunk upload requests
+				//	signed at the "chunks" prefix). A plain startsWith would let a signature for
+				//	".../archives/100" also authorize ".../archives/1001".
+				if (!url.equals(urlFromCredential) && !url.startsWith(urlFromCredential + "/")) {
 					if (hideErrors)
 						requestContext.abortWith(buildGenericErrorResponse());
 					else
