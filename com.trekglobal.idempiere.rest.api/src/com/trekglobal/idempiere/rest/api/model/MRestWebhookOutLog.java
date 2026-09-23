@@ -74,25 +74,36 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	}
 
 	/**
-	 * Get deliveries that need processing: due Pending rows plus stuck
-	 * IN_PROGRESS rows whose worker likely died mid-flight (Updated older
+	 * Get one batch of deliveries that need processing: due Pending rows plus
+	 * stuck IN_PROGRESS rows whose worker likely died mid-flight (Updated older
 	 * than {@link #STALE_INPROGRESS_MS}).
+	 * <p>
+	 * Rows of paused endpoints are excluded — they stay Pending and are picked
+	 * up once the endpoint is resumed. Results are ordered by ID and limited to
+	 * {@code batchSize}; pass the last returned ID as {@code afterId} to fetch
+	 * the next batch.
 	 *
 	 * @param ctx context
 	 * @param maxAttempts maximum number of attempts before abandoning
+	 * @param afterId only return rows with a higher REST_Webhook_Out_Log_ID (0 = from start)
+	 * @param batchSize maximum number of rows to return
 	 * @param trxName transaction name
-	 * @return list of deliveries due for dispatch or recovery
+	 * @return batch of deliveries due for dispatch or recovery
 	 */
-	public static List<MRestWebhookOutLog> getPendingRetries(Properties ctx, int maxAttempts, String trxName) {
+	public static List<MRestWebhookOutLog> getPendingRetries(Properties ctx, int maxAttempts,
+			int afterId, int batchSize, String trxName) {
 		Timestamp staleThreshold = new Timestamp(System.currentTimeMillis() - STALE_INPROGRESS_MS);
 		return new Query(ctx, Table_Name,
 				"("
 				+ "  (DeliveryStatus=? AND (NextRetryAt IS NULL OR NextRetryAt<=getDate()))"
 				+ "  OR (DeliveryStatus=? AND Updated<=?)"
-				+ ") AND Attempts<?",
+				+ ") AND Attempts<? AND REST_Webhook_Out_Log_ID>?"
+				+ " AND NOT EXISTS (SELECT 1 FROM REST_Webhook_Out w"
+				+ "   WHERE w.REST_Webhook_Out_ID=REST_Webhook_Out_Log.REST_Webhook_Out_ID AND w.IsPaused='Y')",
 				trxName)
-				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts)
-				.setOrderBy("NextRetryAt NULLS FIRST, Created")
+				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts, afterId)
+				.setOrderBy(COLUMNNAME_REST_Webhook_Out_Log_ID)
+				.setPageSize(batchSize)
 				.list();
 	}
 
