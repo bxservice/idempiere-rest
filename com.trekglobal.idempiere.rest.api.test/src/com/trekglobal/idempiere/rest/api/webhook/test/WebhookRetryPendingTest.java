@@ -21,12 +21,12 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.webhook.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.compiere.util.Env;
 import org.junit.jupiter.api.Test;
@@ -36,11 +36,10 @@ import com.trekglobal.idempiere.rest.api.model.MRestWebhookOut;
 import com.trekglobal.idempiere.rest.api.model.MRestWebhookOutLog;
 
 /**
- * Tests for {@link MRestWebhookOutLog#getPendingRetries} batching (#537):
- * rows of paused endpoints are not loaded, and the backlog is read in
- * bounded batches continued by ID.
+ * Tests for {@link MRestWebhookOutLog#iteratePendingRetries} (#537):
+ * rows of paused endpoints are not loaded by the retry processor.
  */
-public class WebhookRetryBatchTest extends RestTestCase {
+public class WebhookRetryPendingTest extends RestTestCase {
 
 	private static final int MAX_ATTEMPTS = 10;
 
@@ -66,35 +65,21 @@ public class WebhookRetryBatchTest extends RestTestCase {
 		return log.get_ID();
 	}
 
-	private List<Integer> ids(int afterId, int batchSize) {
-		return MRestWebhookOutLog.getPendingRetries(Env.getCtx(), MAX_ATTEMPTS, afterId, batchSize, getTrxName())
-				.stream().map(MRestWebhookOutLog::get_ID).collect(Collectors.toList());
+	private Set<Integer> pendingIds() {
+		Set<Integer> ids = new HashSet<>();
+		Iterator<MRestWebhookOutLog> it = MRestWebhookOutLog.iteratePendingRetries(Env.getCtx(), MAX_ATTEMPTS, getTrxName());
+		while (it.hasNext())
+			ids.add(it.next().get_ID());
+		return ids;
 	}
 
 	@Test
 	public void pausedEndpointRowsAreNotLoaded() {
-		MRestWebhookOut active = endpoint("retry-test-active", false);
-		MRestWebhookOut paused = endpoint("retry-test-paused", true);
-		int a = pendingDelivery(active);
-		int p = pendingDelivery(paused);
+		int active = pendingDelivery(endpoint("retry-test-active", false));
+		int paused = pendingDelivery(endpoint("retry-test-paused", true));
 
-		List<Integer> loaded = ids(Math.min(a, p) - 1, 100);
-		assertTrue(loaded.contains(a), "active endpoint row must be loaded");
-		assertFalse(loaded.contains(p), "paused endpoint row must not be loaded");
-	}
-
-	@Test
-	public void backlogIsReadInBoundedBatchesById() {
-		MRestWebhookOut active = endpoint("retry-test-batch", false);
-		int d1 = pendingDelivery(active);
-		int d2 = pendingDelivery(active);
-		int d3 = pendingDelivery(active);
-		int d4 = pendingDelivery(active);
-		int d5 = pendingDelivery(active);
-
-		assertEquals(List.of(d1, d2), ids(d1 - 1, 2));
-		assertEquals(List.of(d3, d4), ids(d2, 2));
-		assertEquals(List.of(d5), ids(d4, 2));
-		assertTrue(ids(d5, 2).isEmpty());
+		Set<Integer> loaded = pendingIds();
+		assertTrue(loaded.contains(active), "active endpoint row must be loaded");
+		assertFalse(loaded.contains(paused), "paused endpoint row must not be loaded");
 	}
 }

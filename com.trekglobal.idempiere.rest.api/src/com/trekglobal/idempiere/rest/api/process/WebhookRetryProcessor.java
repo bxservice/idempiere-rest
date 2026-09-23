@@ -25,7 +25,7 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.process;
 
-import java.util.List;
+import java.util.Iterator;
 import java.util.logging.Level;
 
 import org.compiere.model.MSysConfig;
@@ -43,9 +43,9 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
  *
  * Queries pending deliveries (status=P, NextRetryAt past, Attempts below max),
  * dispatches each via WebhookDispatcher, and marks abandoned after max retries.
- * Works in batches of {@link #REST_WEBHOOK_RETRY_BATCH_SIZE} rows, committing
- * after each batch, and stops after {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME}
- * seconds so memory stays bounded regardless of backlog size.
+ * Deliveries are loaded one at a time (IDs first) so memory stays small
+ * regardless of backlog size; progress is committed regularly and the run
+ * stops after {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME} seconds.
  *
  * @author muriloht Murilo H. Torquato &lt;murilo@muriloht.com&gt;
  */
@@ -53,10 +53,10 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
 public class WebhookRetryProcessor extends SvrProcess {
 
 	public static final String REST_WEBHOOK_MAX_RETRIES = "REST_WEBHOOK_MAX_RETRIES";
-	/** SysConfig: rows loaded per batch. */
-	public static final String REST_WEBHOOK_RETRY_BATCH_SIZE = "REST_WEBHOOK_RETRY_BATCH_SIZE";
 	/** SysConfig: max seconds per run; the next scheduled run continues the backlog. */
 	public static final String REST_WEBHOOK_RETRY_MAX_RUNTIME = "REST_WEBHOOK_RETRY_MAX_RUNTIME";
+	/** Commit after this many deliveries. */
+	private static final int COMMIT_INTERVAL = 100;
 
 	private int success = 0;
 	private int failed = 0;
@@ -72,33 +72,26 @@ public class WebhookRetryProcessor extends SvrProcess {
 	protected String doIt() throws Exception {
 		// Use System (0) for global default — SysConfig falls back to system-level value
 		int maxRetries = MSysConfig.getIntValue(REST_WEBHOOK_MAX_RETRIES, 10, 0);
-		int batchSize = Math.max(1, MSysConfig.getIntValue(REST_WEBHOOK_RETRY_BATCH_SIZE, 500, 0));
 		long deadline = System.currentTimeMillis()
 				+ MSysConfig.getIntValue(REST_WEBHOOK_RETRY_MAX_RUNTIME, 300, 0) * 1000L;
 
 		int processed = 0;
-		int lastId = 0;
 		boolean timedOut = false;
 
-		while (!timedOut) {
-			List<MRestWebhookOutLog> batch = MRestWebhookOutLog.getPendingRetries(
-					getCtx(), maxRetries, lastId, batchSize, get_TrxName());
-			for (MRestWebhookOutLog delivery : batch) {
-				// Dispatch is synchronous HTTP — check the limit per delivery, not per batch
-				if (System.currentTimeMillis() > deadline) {
-					timedOut = true;
-					break;
-				}
-				lastId = delivery.get_ID();
-				processDelivery(delivery, maxRetries);
-				processed++;
-			}
-			// Persist progress per batch so a crash does not roll back the whole run
-			commitEx();
-
-			if (batch.size() < batchSize)
+		Iterator<MRestWebhookOutLog> pending = MRestWebhookOutLog.iteratePendingRetries(
+				getCtx(), maxRetries, get_TrxName());
+		while (pending.hasNext()) {
+			// Dispatch is synchronous HTTP — check the limit before each delivery
+			if (System.currentTimeMillis() > deadline) {
+				timedOut = true;
 				break;
+			}
+			processDelivery(pending.next(), maxRetries);
+			// Persist progress regularly so a crash does not roll back the whole run
+			if (++processed % COMMIT_INTERVAL == 0)
+				commitEx();
 		}
+		commitEx();
 
 		if (processed == 0) {
 			return "@NotFound@";

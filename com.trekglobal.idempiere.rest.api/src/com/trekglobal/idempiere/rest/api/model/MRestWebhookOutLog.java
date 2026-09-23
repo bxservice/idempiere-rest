@@ -24,7 +24,7 @@ package com.trekglobal.idempiere.rest.api.model;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -74,37 +74,33 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	}
 
 	/**
-	 * Get one batch of deliveries that need processing: due Pending rows plus
-	 * stuck IN_PROGRESS rows whose worker likely died mid-flight (Updated older
+	 * Iterate deliveries that need processing: due Pending rows plus stuck
+	 * IN_PROGRESS rows whose worker likely died mid-flight (Updated older
 	 * than {@link #STALE_INPROGRESS_MS}).
 	 * <p>
 	 * Rows of paused endpoints are excluded — they stay Pending and are picked
-	 * up once the endpoint is resumed. Results are ordered by ID and limited to
-	 * {@code batchSize}; pass the last returned ID as {@code afterId} to fetch
-	 * the next batch.
+	 * up once the endpoint is resumed. Only IDs are loaded up front; each
+	 * delivery is loaded on {@code next()}, so memory stays small even with a
+	 * large backlog.
 	 *
 	 * @param ctx context
 	 * @param maxAttempts maximum number of attempts before abandoning
-	 * @param afterId only return rows with a higher REST_Webhook_Out_Log_ID (0 = from start)
-	 * @param batchSize maximum number of rows to return
 	 * @param trxName transaction name
-	 * @return batch of deliveries due for dispatch or recovery
+	 * @return iterator over deliveries due for dispatch or recovery
 	 */
-	public static List<MRestWebhookOutLog> getPendingRetries(Properties ctx, int maxAttempts,
-			int afterId, int batchSize, String trxName) {
+	public static Iterator<MRestWebhookOutLog> iteratePendingRetries(Properties ctx, int maxAttempts, String trxName) {
 		Timestamp staleThreshold = new Timestamp(System.currentTimeMillis() - STALE_INPROGRESS_MS);
 		return new Query(ctx, Table_Name,
 				"("
 				+ "  (DeliveryStatus=? AND (NextRetryAt IS NULL OR NextRetryAt<=getDate()))"
 				+ "  OR (DeliveryStatus=? AND Updated<=?)"
-				+ ") AND Attempts<? AND REST_Webhook_Out_Log_ID>?"
+				+ ") AND Attempts<?"
 				+ " AND NOT EXISTS (SELECT 1 FROM REST_Webhook_Out w"
 				+ "   WHERE w.REST_Webhook_Out_ID=REST_Webhook_Out_Log.REST_Webhook_Out_ID AND w.IsPaused='Y')",
 				trxName)
-				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts, afterId)
-				.setOrderBy(COLUMNNAME_REST_Webhook_Out_Log_ID)
-				.setPageSize(batchSize)
-				.list();
+				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts)
+				.setOrderBy("NextRetryAt NULLS FIRST, Created")
+				.iterate();
 	}
 
 	/**
