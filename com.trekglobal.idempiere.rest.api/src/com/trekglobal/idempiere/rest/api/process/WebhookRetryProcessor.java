@@ -80,23 +80,24 @@ public class WebhookRetryProcessor extends SvrProcess {
 		int lastId = 0;
 		boolean timedOut = false;
 
-		while (true) {
+		while (!timedOut) {
 			List<MRestWebhookOutLog> batch = MRestWebhookOutLog.getPendingRetries(
 					getCtx(), maxRetries, lastId, batchSize, get_TrxName());
 			for (MRestWebhookOutLog delivery : batch) {
+				// Dispatch is synchronous HTTP — check the limit per delivery, not per batch
+				if (System.currentTimeMillis() > deadline) {
+					timedOut = true;
+					break;
+				}
 				lastId = delivery.get_ID();
 				processDelivery(delivery, maxRetries);
+				processed++;
 			}
-			processed += batch.size();
 			// Persist progress per batch so a crash does not roll back the whole run
 			commitEx();
 
 			if (batch.size() < batchSize)
 				break;
-			if (System.currentTimeMillis() > deadline) {
-				timedOut = true;
-				break;
-			}
 		}
 
 		if (processed == 0) {
