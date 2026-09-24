@@ -24,9 +24,9 @@ package com.trekglobal.idempiere.rest.api.model;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.Iterator;
 import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Stream;
 
 import org.compiere.model.MSysConfig;
 import org.compiere.model.Query;
@@ -74,21 +74,22 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	}
 
 	/**
-	 * Iterate deliveries that need processing: due Pending rows plus stuck
+	 * Stream deliveries that need processing: due Pending rows plus stuck
 	 * IN_PROGRESS rows whose worker likely died mid-flight (Updated older
 	 * than {@link #STALE_INPROGRESS_MS}).
 	 * <p>
 	 * Rows of paused endpoints are excluded — they stay Pending and are picked
-	 * up once the endpoint is resumed. Only IDs are loaded up front; each
-	 * delivery is loaded on {@code next()}, so memory stays small even with a
-	 * large backlog.
+	 * up once the endpoint is resumed. Each delivery is built directly off the
+	 * open result set as it is consumed (one query, no per-row re-fetch), so
+	 * memory stays small even with a large backlog. The caller must close the
+	 * returned stream (e.g. via try-with-resources).
 	 *
 	 * @param ctx context
 	 * @param maxAttempts maximum number of attempts before abandoning
 	 * @param trxName transaction name
-	 * @return iterator over deliveries due for dispatch or recovery
+	 * @return stream of deliveries due for dispatch or recovery, most-due first
 	 */
-	public static Iterator<MRestWebhookOutLog> iteratePendingRetries(Properties ctx, int maxAttempts, String trxName) {
+	public static Stream<MRestWebhookOutLog> streamPendingRetries(Properties ctx, int maxAttempts, String trxName) {
 		Timestamp staleThreshold = new Timestamp(System.currentTimeMillis() - STALE_INPROGRESS_MS);
 		return new Query(ctx, Table_Name,
 				"("
@@ -100,7 +101,7 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 				trxName)
 				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts)
 				.setOrderBy("NextRetryAt NULLS FIRST, Created")
-				.iterate();
+				.stream();
 	}
 
 	/**

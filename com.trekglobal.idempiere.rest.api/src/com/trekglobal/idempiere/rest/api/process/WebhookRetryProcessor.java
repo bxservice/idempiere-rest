@@ -27,6 +27,7 @@ package com.trekglobal.idempiere.rest.api.process;
 
 import java.util.Iterator;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import org.compiere.model.MSysConfig;
 import org.compiere.process.SvrProcess;
@@ -43,9 +44,12 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
  *
  * Queries pending deliveries (status=P, NextRetryAt past, Attempts below max),
  * dispatches each via WebhookDispatcher, and marks abandoned after max retries.
- * Deliveries are loaded one at a time (IDs first) so memory stays small
- * regardless of backlog size; progress is committed regularly and the run
- * stops after {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME} seconds.
+ * Deliveries are streamed in batches of {@link #COMMIT_INTERVAL} — one query
+ * per batch, one row build per delivery, no per-row re-fetch — so memory and
+ * query count stay small regardless of backlog size. The stream is closed and
+ * re-opened between batches so a commit never runs while its cursor is open;
+ * progress is committed after each batch and the run stops after
+ * {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME} seconds.
  *
  * @author muriloht Murilo H. Torquato &lt;murilo@muriloht.com&gt;
  */
@@ -78,20 +82,31 @@ public class WebhookRetryProcessor extends SvrProcess {
 		int processed = 0;
 		boolean timedOut = false;
 
-		Iterator<MRestWebhookOutLog> pending = MRestWebhookOutLog.iteratePendingRetries(
-				getCtx(), maxRetries, get_TrxName());
-		while (pending.hasNext()) {
-			// Dispatch is synchronous HTTP — check the limit before each delivery
-			if (System.currentTimeMillis() > deadline) {
-				timedOut = true;
-				break;
+		// Re-run the query one batch at a time: rows leave the WHERE clause once
+		// processed (status/NextRetryAt change), so each fresh batch naturally
+		// picks up where the previous one left off.
+		boolean hasMorePending = true;
+		while (hasMorePending) {
+			int inBatch = 0;
+			try (Stream<MRestWebhookOutLog> batch = MRestWebhookOutLog.streamPendingRetries(
+					getCtx(), maxRetries, get_TrxName())) {
+				Iterator<MRestWebhookOutLog> pending = batch.iterator();
+				while (pending.hasNext() && inBatch < COMMIT_INTERVAL) {
+					// Dispatch is synchronous HTTP — check the limit before each delivery
+					if (System.currentTimeMillis() > deadline) {
+						timedOut = true;
+						break;
+					}
+					processDelivery(pending.next(), maxRetries);
+					processed++;
+					inBatch++;
+				}
 			}
-			processDelivery(pending.next(), maxRetries);
-			// Persist progress regularly so a crash does not roll back the whole run
-			if (++processed % COMMIT_INTERVAL == 0)
-				commitEx();
+			// Persist progress after each batch so a crash does not roll back the whole run
+			commitEx();
+			// A full batch means more rows may be waiting; a short one means the backlog is drained
+			hasMorePending = !timedOut && inBatch == COMMIT_INTERVAL;
 		}
-		commitEx();
 
 		if (processed == 0) {
 			return "@NotFound@";

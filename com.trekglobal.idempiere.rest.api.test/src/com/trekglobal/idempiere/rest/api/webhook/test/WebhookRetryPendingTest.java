@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.compiere.util.Env;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import com.trekglobal.idempiere.rest.api.model.MRestWebhookOut;
 import com.trekglobal.idempiere.rest.api.model.MRestWebhookOutLog;
 
 /**
- * Tests for {@link MRestWebhookOutLog#iteratePendingRetries} (#537):
+ * Tests for {@link MRestWebhookOutLog#streamPendingRetries} (#537):
  * rows of paused endpoints are not loaded by the retry processor.
  */
 public class WebhookRetryPendingTest extends RestTestCase {
@@ -67,9 +67,9 @@ public class WebhookRetryPendingTest extends RestTestCase {
 
 	private Set<Integer> pendingIds() {
 		Set<Integer> ids = new HashSet<>();
-		Iterator<MRestWebhookOutLog> it = MRestWebhookOutLog.iteratePendingRetries(Env.getCtx(), MAX_ATTEMPTS, getTrxName());
-		while (it.hasNext())
-			ids.add(it.next().get_ID());
+		try (Stream<MRestWebhookOutLog> pending = MRestWebhookOutLog.streamPendingRetries(Env.getCtx(), MAX_ATTEMPTS, getTrxName())) {
+			pending.forEach(log -> ids.add(log.get_ID()));
+		}
 		return ids;
 	}
 
