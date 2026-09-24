@@ -25,8 +25,9 @@
 **********************************************************************/
 package com.trekglobal.idempiere.rest.api.process;
 
-import java.util.List;
+import java.util.Iterator;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import org.compiere.model.MSysConfig;
 import org.compiere.process.SvrProcess;
@@ -43,6 +44,12 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
  *
  * Queries pending deliveries (status=P, NextRetryAt past, Attempts below max),
  * dispatches each via WebhookDispatcher, and marks abandoned after max retries.
+ * Deliveries are streamed in batches of {@link #COMMIT_INTERVAL} — one query
+ * per batch, one row build per delivery, no per-row re-fetch — so memory and
+ * query count stay small regardless of backlog size. The stream is closed and
+ * re-opened between batches so a commit never runs while its cursor is open;
+ * progress is committed after each batch and the run stops after
+ * {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME} seconds.
  *
  * @author muriloht Murilo H. Torquato &lt;murilo@muriloht.com&gt;
  */
@@ -50,6 +57,15 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
 public class WebhookRetryProcessor extends SvrProcess {
 
 	public static final String REST_WEBHOOK_MAX_RETRIES = "REST_WEBHOOK_MAX_RETRIES";
+	/** SysConfig: max seconds per run; the next scheduled run continues the backlog. */
+	public static final String REST_WEBHOOK_RETRY_MAX_RUNTIME = "REST_WEBHOOK_RETRY_MAX_RUNTIME";
+	/** Commit after this many deliveries. */
+	private static final int COMMIT_INTERVAL = 100;
+
+	private int success = 0;
+	private int failed = 0;
+	private int abandoned = 0;
+	private int skippedPaused = 0;
 
 	@Override
 	protected void prepare() {
@@ -60,56 +76,81 @@ public class WebhookRetryProcessor extends SvrProcess {
 	protected String doIt() throws Exception {
 		// Use System (0) for global default — SysConfig falls back to system-level value
 		int maxRetries = MSysConfig.getIntValue(REST_WEBHOOK_MAX_RETRIES, 10, 0);
+		long deadline = System.currentTimeMillis()
+				+ MSysConfig.getIntValue(REST_WEBHOOK_RETRY_MAX_RUNTIME, 300, 0) * 1000L;
 
-		List<MRestWebhookOutLog> pending = MRestWebhookOutLog.getPendingRetries(
-				getCtx(), maxRetries, get_TrxName());
+		int processed = 0;
+		boolean timedOut = false;
 
-		if (pending.isEmpty()) {
+		// Re-run the query one batch at a time: rows leave the WHERE clause once
+		// processed (status/NextRetryAt change), so each fresh batch naturally
+		// picks up where the previous one left off.
+		boolean hasMorePending = true;
+		while (hasMorePending) {
+			int inBatch = 0;
+			try (Stream<MRestWebhookOutLog> batch = MRestWebhookOutLog.streamPendingRetries(
+					getCtx(), maxRetries, get_TrxName())) {
+				Iterator<MRestWebhookOutLog> pending = batch.iterator();
+				while (pending.hasNext() && inBatch < COMMIT_INTERVAL) {
+					// Dispatch is synchronous HTTP — check the limit before each delivery
+					if (System.currentTimeMillis() > deadline) {
+						timedOut = true;
+						break;
+					}
+					processDelivery(pending.next(), maxRetries);
+					processed++;
+					inBatch++;
+				}
+			}
+			// Persist progress after each batch so a crash does not roll back the whole run
+			commitEx();
+			// A full batch means more rows may be waiting; a short one means the backlog is drained
+			hasMorePending = !timedOut && inBatch == COMMIT_INTERVAL;
+		}
+
+		if (processed == 0) {
 			return "@NotFound@";
 		}
 
-		int success = 0;
-		int failed = 0;
-		int abandoned = 0;
-		int skippedPaused = 0;
-
-		for (MRestWebhookOutLog delivery : pending) {
-			try {
-				MRestWebhookOut endpoint = new MRestWebhookOut(getCtx(),
-						delivery.getREST_Webhook_Out_ID(), get_TrxName());
-				if (endpoint.get_ID() > 0 && endpoint.isPaused()) {
-					skippedPaused++;
-					continue;
-				}
-
-				if (delivery.getAttempts() >= maxRetries) {
-					delivery.markAbandoned();
-					abandoned++;
-					continue;
-				}
-
-				boolean ok = WebhookDispatcher.dispatch(getCtx(), delivery.get_ID(), null);
-				if (ok) {
-					success++;
-				} else {
-					failed++;
-				}
-			} catch (Exception e) {
-				log.log(Level.WARNING, "Retry failed for delivery " + delivery.get_ID(), e);
-				try {
-					delivery.markFailed(0, null,
-							"Dispatcher error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
-				} catch (Exception markErr) {
-					log.log(Level.SEVERE, "Failed to mark delivery " + delivery.get_ID() + " as failed", markErr);
-				}
-				failed++;
-			}
-		}
-
-		return "Processed: " + pending.size()
+		return "Processed: " + processed
 				+ " (success=" + success
 				+ ", failed=" + failed
 				+ ", abandoned=" + abandoned
-				+ ", skippedPaused=" + skippedPaused + ")";
+				+ ", skippedPaused=" + skippedPaused + ")"
+				+ (timedOut ? " - time limit reached, continuing next run" : "");
+	}
+
+	private void processDelivery(MRestWebhookOutLog delivery, int maxRetries) {
+		try {
+			// Endpoint may have been paused after the batch was loaded
+			MRestWebhookOut endpoint = new MRestWebhookOut(getCtx(),
+					delivery.getREST_Webhook_Out_ID(), get_TrxName());
+			if (endpoint.get_ID() > 0 && endpoint.isPaused()) {
+				skippedPaused++;
+				return;
+			}
+
+			if (delivery.getAttempts() >= maxRetries) {
+				delivery.markAbandoned();
+				abandoned++;
+				return;
+			}
+
+			boolean ok = WebhookDispatcher.dispatch(getCtx(), delivery.get_ID(), null);
+			if (ok) {
+				success++;
+			} else {
+				failed++;
+			}
+		} catch (Exception e) {
+			log.log(Level.WARNING, "Retry failed for delivery " + delivery.get_ID(), e);
+			try {
+				delivery.markFailed(0, null,
+						"Dispatcher error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+			} catch (Exception markErr) {
+				log.log(Level.SEVERE, "Failed to mark delivery " + delivery.get_ID() + " as failed", markErr);
+			}
+			failed++;
+		}
 	}
 }
