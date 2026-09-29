@@ -207,6 +207,12 @@ public class ExpandParser {
 		}
 		String[] tableNameKeyColumnName = getTableNameAndKeyColumnName(detailEntity);
 		String tableName = tableNameKeyColumnName[0];
+		//	Normalize to AD_Table.TableName as the model class lookup is case sensitive
+		MTable detailTable = MTable.get(Env.getCtx(), tableName);
+		if (detailTable != null) {
+			tableName = detailTable.getTableName();
+		}
+
 		String parentKeyColumn = tableNameKeyColumnName[1];
 		String childKeyColumn = parentKeyColumn;
 		if (parentKeyColumn.contains(":")) {
