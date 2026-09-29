@@ -80,16 +80,18 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 	 * <p>
 	 * Rows of paused endpoints are excluded — they stay Pending and are picked
 	 * up once the endpoint is resumed. Each delivery is built directly off the
-	 * open result set as it is consumed (one query, no per-row re-fetch), so
-	 * memory stays small even with a large backlog. The caller must close the
-	 * returned stream (e.g. via try-with-resources).
+	 * open result set as it is consumed (one query, no per-row re-fetch). The
+	 * result is capped in SQL by {@code limit}: the JDBC driver buffers the
+	 * whole result set, so an unbounded query would load the entire backlog.
+	 * The caller must close the returned stream (e.g. via try-with-resources).
 	 *
 	 * @param ctx context
 	 * @param maxAttempts maximum number of attempts before abandoning
+	 * @param limit maximum number of rows to return
 	 * @param trxName transaction name
 	 * @return stream of deliveries due for dispatch or recovery, most-due first
 	 */
-	public static Stream<MRestWebhookOutLog> streamPendingRetries(Properties ctx, int maxAttempts, String trxName) {
+	public static Stream<MRestWebhookOutLog> streamPendingRetries(Properties ctx, int maxAttempts, int limit, String trxName) {
 		Timestamp staleThreshold = new Timestamp(System.currentTimeMillis() - STALE_INPROGRESS_MS);
 		return new Query(ctx, Table_Name,
 				"("
@@ -101,6 +103,7 @@ public class MRestWebhookOutLog extends X_REST_Webhook_Out_Log {
 				trxName)
 				.setParameters(DELIVERYSTATUS_Pending, DELIVERYSTATUS_InProgress, staleThreshold, maxAttempts)
 				.setOrderBy("NextRetryAt NULLS FIRST, Created")
+				.setPageSize(limit)
 				.stream();
 	}
 

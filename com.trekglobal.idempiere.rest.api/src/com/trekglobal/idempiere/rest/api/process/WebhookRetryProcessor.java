@@ -44,10 +44,11 @@ import com.trekglobal.idempiere.rest.api.webhook.WebhookDispatcher;
  *
  * Queries pending deliveries (status=P, NextRetryAt past, Attempts below max),
  * dispatches each via WebhookDispatcher, and marks abandoned after max retries.
- * Deliveries are streamed in batches of {@link #COMMIT_INTERVAL} — one query
- * per batch, one row build per delivery, no per-row re-fetch — so memory and
- * query count stay small regardless of backlog size. The stream is closed and
- * re-opened between batches so a commit never runs while its cursor is open;
+ * Deliveries are streamed in batches of {@link #COMMIT_INTERVAL} (LIMIT in
+ * SQL) — one query per batch, one row build per delivery, no per-row
+ * re-fetch — so memory and query count stay small regardless of backlog size.
+ * The stream is closed and re-opened between batches so a commit never runs
+ * while its cursor is open;
  * progress is committed after each batch and the run stops after
  * {@link #REST_WEBHOOK_RETRY_MAX_RUNTIME} seconds.
  *
@@ -87,11 +88,15 @@ public class WebhookRetryProcessor extends SvrProcess {
 		// picks up where the previous one left off.
 		boolean hasMorePending = true;
 		while (hasMorePending) {
+			if (System.currentTimeMillis() > deadline) {
+				timedOut = true;
+				break;
+			}
 			int inBatch = 0;
 			try (Stream<MRestWebhookOutLog> batch = MRestWebhookOutLog.streamPendingRetries(
-					getCtx(), maxRetries, get_TrxName())) {
+					getCtx(), maxRetries, COMMIT_INTERVAL, get_TrxName())) {
 				Iterator<MRestWebhookOutLog> pending = batch.iterator();
-				while (pending.hasNext() && inBatch < COMMIT_INTERVAL) {
+				while (pending.hasNext()) {
 					// Dispatch is synchronous HTTP — check the limit before each delivery
 					if (System.currentTimeMillis() > deadline) {
 						timedOut = true;

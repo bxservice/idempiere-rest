@@ -67,7 +67,7 @@ public class WebhookRetryPendingTest extends RestTestCase {
 
 	private Set<Integer> pendingIds() {
 		Set<Integer> ids = new HashSet<>();
-		try (Stream<MRestWebhookOutLog> pending = MRestWebhookOutLog.streamPendingRetries(Env.getCtx(), MAX_ATTEMPTS, getTrxName())) {
+		try (Stream<MRestWebhookOutLog> pending = MRestWebhookOutLog.streamPendingRetries(Env.getCtx(), MAX_ATTEMPTS, 1000, getTrxName())) {
 			pending.forEach(log -> ids.add(log.get_ID()));
 		}
 		return ids;
