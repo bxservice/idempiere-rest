@@ -186,15 +186,21 @@ public interface ModelResource {
 	
 	@Path("{tableName}/{id}/attachments/{fileName}")
 	@GET
-	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	@Produces({MediaType.APPLICATION_OCTET_STREAM, MediaType.APPLICATION_JSON})
 	/**
-	 * Get content of an attachment item
+	 * Get content of an attachment item.
+	 * When presign=true, returns a JSON object with a signed URL instead of streaming bytes.
 	 * @param tableName
 	 * @param id record id/uuid
 	 * @param fileName name of an attachment item
-	 * @return binary stream of an attachment item
+	 * @param asJson return content as base64-encoded JSON
+	 * @param presign if set, return a presigned URL instead of binary content
+	 * @param expiresInSeconds lifetime of the presigned URL in seconds (capped by REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS)
+	 * @return binary stream, base64 JSON, or presigned URL JSON
 	 */
-	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id, @PathParam("fileName") String fileName, @QueryParam(QueryOperators.AS_JSON) String asJson);
+	public Response getAttachmentEntry(@PathParam("tableName") String tableName, @PathParam("id") String id,
+			@PathParam("fileName") String fileName, @QueryParam(QueryOperators.AS_JSON) String asJson,
+			@QueryParam("presign") String presign, @DefaultValue("0") @QueryParam("expiresInSeconds") long expiresInSeconds);
 	
 	@Path("{tableName}/{id}/attachments")
 	@POST
