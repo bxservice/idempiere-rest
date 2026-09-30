@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
@@ -141,6 +142,11 @@ public class ModelResourceImpl implements ModelResource {
 	 */
 	protected ModelResourceImpl restView() {
 		useRestView = true;
+		return this;
+	}
+
+	protected ModelResourceImpl withUriInfo(UriInfo uriInfo) {
+		this.uriInfo = uriInfo;
 		return this;
 	}
 	
@@ -810,7 +816,7 @@ public class ModelResourceImpl implements ModelResource {
 											EventManager.getInstance().unregister(childEventHandler);
 										}
 										fireRestSaveEvent(childPO, PO_AFTER_REST_SAVE, false);
-										childJsonObject = serializer.toJson(childPO, finalChildView, trx.getTrxName());
+										childJsonObject = childSerializer.toJson(childPO, finalChildView, trx.getTrxName());
 										savedArray.add(childJsonObject);
 									}									
 								}
@@ -1006,23 +1012,32 @@ public class ModelResourceImpl implements ModelResource {
 					.setParameters(archiveId, po.get_Table_ID(), po.get_ID())
 					.first();
 			if (archive != null) {
-				if ("true".equalsIgnoreCase(presign)) {
+				if ("true".equalsIgnoreCase(presign) || "auto".equalsIgnoreCase(presign)
+						|| "storage".equalsIgnoreCase(presign) || "idempiere".equalsIgnoreCase(presign)) {
 					int maxExpire = MSysConfig.getIntValue(REST_PRESIGNED_URL_MAX_EXPIRE_SECONDS, 3600);
 					if (expiresInSeconds <= 0 || expiresInSeconds > maxExpire)
 						expiresInSeconds = maxExpire;
-					String nativeUrl = archive.getPresignedURL(expiresInSeconds);
+					boolean preferIdempiere = "idempiere".equalsIgnoreCase(presign);
+					String nativeUrl = preferIdempiere ? null : archive.getPresignedURL(expiresInSeconds);
 					if (nativeUrl != null) {
 						JsonObject json = new JsonObject();
 						json.addProperty("url", nativeUrl);
-						return Response.ok(json.toString(), "application/json").build();
+						json.addProperty("via", "storage");
+						return Response.ok(json.toString(), "application/json").header("Cache-Control", "no-store").build();
+					}
+					URI baseUri = uriInfo.getBaseUri();
+					if (!"https".equalsIgnoreCase(baseUri.getScheme())) {
+						return ResponseUtils.getResponseError(Status.BAD_REQUEST, "Presigned URL error",
+								"An iDempiere-signed download URL cannot be issued over a non-HTTPS connection", "");
 					}
 					String archivePrefix = useRestView ? "v1/views/" : "v1/models/"; // no leading slash - same pattern as UploadResourceImpl
 					String archivePath = archivePrefix + originalTableName + "/" + id + "/archives/" + archiveId;
 					String presignedURLParams = PresignedURL.createPresignedURLParams("GET", archivePath, expiresInSeconds);
-					String baseUrl = uriInfo.getBaseUri().toString();
+					String baseUrl = baseUri.toString();
 					JsonObject json = new JsonObject();
 					json.addProperty("url", baseUrl + archivePath + presignedURLParams);
-					return Response.ok(json.toString(), "application/json").build();
+					json.addProperty("via", "idempiere");
+					return Response.ok(json.toString(), "application/json").header("Cache-Control", "no-store").build();
 				}
 				byte[] binaryData = archive.getBinaryData();
 				if (binaryData != null) {
