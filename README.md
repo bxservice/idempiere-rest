@@ -29,6 +29,7 @@ You can find the documentation on how to use it here: https://bxservice.github.i
 * api/v1/servers - servers and schedulers resource
 * api/v1/infos - info windows
 * api/v1/workflow - get workflow nodes, approve, reject, forward, acknowledge, setuserchoice
+* api/v1/menutree - get a menu tree by id, or the menu of the session role (menutree/me)
 
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
