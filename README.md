@@ -30,6 +30,15 @@ You can find the documentation on how to use it here: https://bxservice.github.i
 * api/v1/infos - info windows
 * api/v1/workflow - get workflow nodes, approve, reject, forward, acknowledge, setuserchoice
 
+## System administrator request headers
+The following request headers are only honored for JWT tokens of the System client (`AD_Client_ID=0`) and an administrator user. They are ignored for all other users and clients.
+
+* `X-ID-LogMigrationScript` (`Y`/`N`) - enable/disable generation of database migration scripts for dictionary changes
+* `X-ID-AdempiereSys` (`Y`/`N`) - enable/disable AdempiereSys (centralized ID) behavior for system records
+* `X-ID-MigrationScriptComment` - ticket or short description used for the generated migration script file. CR/LF and repeated whitespace are normalized to a single line
+
+The migration script file is opened when a dictionary change first generates SQL. When a request supplies the log/comment headers, the generated migration script files are flushed and closed at the end of that request, so the next request starts with its own header values. Within the same authenticated session (`AD_Session`), subsequent requests with the same `X-ID-MigrationScriptComment` (or the same `IDEMPIERE-<number>` ticket, or when the comment is omitted) reuse and append to the same migration script file until the comment changes or the session logs out.
+
 ## Testing
 * postman/trekglobal-idempiere-rest.postman_collection.json
   * must run "POST api/v1/auth/tokens" and "PUT api/v1/auth/tokens" before you can test other calls. the security token created by the 2 calls is valid for 1 hour.

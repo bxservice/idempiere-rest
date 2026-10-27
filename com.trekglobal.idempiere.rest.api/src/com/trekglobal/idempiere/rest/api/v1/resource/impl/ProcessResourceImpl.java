@@ -71,6 +71,7 @@ import com.trekglobal.idempiere.rest.api.json.TypeConverterUtils;
 import com.trekglobal.idempiere.rest.api.json.filter.ConvertedQuery;
 import com.trekglobal.idempiere.rest.api.json.filter.IQueryConverter;
 import com.trekglobal.idempiere.rest.api.util.ErrorBuilder;
+import com.trekglobal.idempiere.rest.api.util.MigrationScriptContext;
 import com.trekglobal.idempiere.rest.api.util.ThreadLocalTrx;
 import com.trekglobal.idempiere.rest.api.v1.resource.ProcessResource;
 
@@ -332,6 +333,7 @@ public class ProcessResourceImpl implements ProcessResource {
 			Env.setContext(m_ctx, Env.AD_SESSION_ID, ctx.getProperty(Env.AD_SESSION_ID));
 			Env.setContext(m_ctx, Env.DATE, ctx.getProperty(Env.DATE));
 			RestUtils.setSessionContextVariables(m_ctx);
+			MigrationScriptContext.copy(ctx, m_ctx);
 
 			m_externalTraceId = AuditTraceContext.getExternalTraceId();
 			m_pi = pi;

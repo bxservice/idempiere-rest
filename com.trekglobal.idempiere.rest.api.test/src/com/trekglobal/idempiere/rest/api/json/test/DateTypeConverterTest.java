@@ -32,7 +32,6 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.Date;
 
 import org.compiere.model.MColumn;

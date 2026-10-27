@@ -132,6 +132,11 @@
 								<id>org.apache.felix.scr</id>
 								<versionRange>0.0.0</versionRange>
 							</requirement>
+                                                        <requirement>
+                                                                <type>eclipse-plugin</type>
+                                                                <id>wrapped.org.apache.xmlbeans.xmlbeans</id>
+                                                                <versionRange>0.0.0</versionRange>
+                                                        </requirement>
 						</extraRequirements>
 					</dependency-resolution>
 				</configuration>
