@@ -75,7 +75,7 @@ public final class MigrationScriptContext {
 	/**
 	 * Apply the migration script headers of the request to the current context.
 	 * Nothing is applied if the request has none of the headers or if the current
-	 * user is not a System administrator.
+	 * userID > 102 or tenantID > 20 (Seed tenants and users).
 	 *
 	 * @param requestContext request context
 	 */
