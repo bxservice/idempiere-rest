@@ -35,7 +35,6 @@ import javax.ws.rs.container.ContainerRequestContext;
 
 import org.compiere.dbPort.Convert;
 import org.compiere.model.I_AD_UserPreference;
-import org.compiere.model.MUser;
 import org.compiere.util.Env;
 import org.compiere.util.Ini;
 import org.compiere.util.Util;
@@ -88,7 +87,7 @@ public final class MigrationScriptContext {
 			return;
 
 		Properties ctx = Env.getCtx();
-		if (!isSystemAdministrator(ctx))
+		if (!isSeedUserAndTenant(ctx))
 			return;
 
 		String logMigrationScript = parseYesNo(logHeader);
@@ -189,14 +188,8 @@ public final class MigrationScriptContext {
 		return sessionId + "#" + identifier;
 	}
 
-	private static boolean isSystemAdministrator(Properties ctx) {
-		// System tenant only
-		if (Env.getAD_Client_ID(ctx) != 0)
-			return false;
-
-		// System administrator only
-		MUser user = MUser.get(ctx, Env.getAD_User_ID(ctx));
-		return user != null && user.isAdministrator();
+	private static boolean isSeedUserAndTenant(Properties ctx) {
+		return (Env.getAD_Client_ID(ctx) <= 20 && Env.getAD_User_ID(ctx) <= 102);
 	}
 
 	private static String parseYesNo(String value) {
