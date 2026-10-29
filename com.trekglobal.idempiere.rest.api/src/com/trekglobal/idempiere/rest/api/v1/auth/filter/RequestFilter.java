@@ -63,6 +63,7 @@ import com.trekglobal.idempiere.rest.api.model.MAuthToken;
 import com.trekglobal.idempiere.rest.api.model.MOIDCService;
 import com.trekglobal.idempiere.rest.api.model.MRefreshToken;
 import com.trekglobal.idempiere.rest.api.model.MRestResourceAccess;
+import com.trekglobal.idempiere.rest.api.util.MigrationScriptContext;
 import com.trekglobal.idempiere.rest.api.v1.jwt.LoginClaims;
 import com.trekglobal.idempiere.rest.api.v1.jwt.TokenUtils;
 
@@ -78,6 +79,9 @@ public class RequestFilter implements ContainerRequestFilter {
 	private static final String REST_HEALTH_MONITORING_KEY = "REST_HEALTH_MONITORING_KEY";
 	public static final String LOGIN_NAME = "#LoginName";
 	public static final String LOGIN_CLIENTS = "#LoginClients";
+	public static final String LOG_MIGRATION_SCRIPT_HEADER = MigrationScriptContext.LOG_MIGRATION_SCRIPT_HEADER;
+	public static final String ADEMPIERE_SYS_HEADER = MigrationScriptContext.ADEMPIERE_SYS_HEADER;
+	public static final String MIGRATION_SCRIPT_COMMENT_HEADER = MigrationScriptContext.MIGRATION_SCRIPT_COMMENT_HEADER;
 
 	public RequestFilter() {
 	}
@@ -150,6 +154,7 @@ public class RequestFilter implements ContainerRequestFilter {
 					Util.isEmpty(Env.getContext(Env.getCtx(), Env.AD_ROLE_ID))) {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
 						requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+						return;
 					}
 				}
 				//check resource access by role (if enable)
@@ -157,9 +162,11 @@ public class RequestFilter implements ContainerRequestFilter {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
 						if (!MRestResourceAccess.hasAccess(requestContext.getUriInfo().getPath(true), requestContext.getMethod())) {
 							requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+							return;
 						}
 					}
 				}
+				MigrationScriptContext.apply(requestContext);
 			} catch (JWTVerificationException ex) {
 				ex.printStackTrace();				
 				requestContext.abortWith(ResponseUtils.getResponseError(Status.UNAUTHORIZED, ex.getLocalizedMessage(), "", ""));

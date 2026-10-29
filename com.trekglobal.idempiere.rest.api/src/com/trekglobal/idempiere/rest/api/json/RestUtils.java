@@ -48,6 +48,8 @@ import org.compiere.model.Query;
 import org.compiere.util.CCache;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
+
+import com.trekglobal.idempiere.rest.api.util.MigrationScriptContext;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Language;
@@ -503,6 +505,7 @@ public class RestUtils {
 	 */
 	public static void removeSavedCtx(int sessionId) {
 		ctxSessionCache.remove(sessionId);
+		MigrationScriptContext.cleanSessionCache(sessionId);
 	}
     
     /**

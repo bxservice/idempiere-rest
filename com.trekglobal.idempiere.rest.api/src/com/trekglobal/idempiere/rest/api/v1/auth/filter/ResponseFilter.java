@@ -34,6 +34,8 @@ import javax.ws.rs.ext.Provider;
 
 import org.adempiere.util.ServerContext;
 
+import com.trekglobal.idempiere.rest.api.util.MigrationScriptContext;
+
 @Provider
 /**
  * 
@@ -47,6 +49,10 @@ public class ResponseFilter implements ContainerResponseFilter {
 
 	@Override
 	public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
-		ServerContext.dispose();
+		try {
+			MigrationScriptContext.closeMigrationScriptFiles(requestContext);
+		} finally {
+			ServerContext.dispose();
+		}
 	}
 }
