@@ -50,4 +50,14 @@ public interface MenuTreeResource {
 	 */
 	public Response getMenu(@PathParam("menuTreeId") String id);
 
+	/**
+	 * Get the menu tree of the session's role, the same as {@link #getMenu(String)} for the tree the ZK desktop
+	 * shows for that role, so the caller passes no tree id
+	 * @return JSON representation of menu with its children
+	 */
+	@Path("me")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getMyMenu();
+
 }

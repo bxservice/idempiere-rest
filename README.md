@@ -29,6 +29,7 @@ You can find the documentation on how to use it here: https://bxservice.github.i
 * api/v1/servers - servers and schedulers resource
 * api/v1/infos - info windows
 * api/v1/workflow - get workflow nodes, approve, reject, forward, acknowledge, setuserchoice
+* api/v1/menutree - get a menu tree by id, or the menu of the session role (menutree/me)
 
 ## System administrator request headers
 The following request headers are only honored for JWT tokens of the System client (`AD_Client_ID=0`) and an administrator user. They are ignored for all other users and clients.
