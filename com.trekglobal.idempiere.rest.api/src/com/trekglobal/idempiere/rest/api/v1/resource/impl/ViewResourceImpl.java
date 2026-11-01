@@ -28,8 +28,10 @@ package com.trekglobal.idempiere.rest.api.v1.resource.impl;
 import java.util.List;
 import java.util.logging.Level;
 
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
 import org.compiere.model.MColumn;
 import org.compiere.model.MTable;
@@ -51,12 +53,15 @@ import com.trekglobal.idempiere.rest.api.v1.resource.ViewResource;
 public class ViewResourceImpl implements ViewResource {
 
 	private final static CLogger log = CLogger.getCLogger(ViewResourceImpl.class);
-	
+
+	@Context
+	private UriInfo uriInfo;
+
 	public ViewResourceImpl() {
 	}
 
 	private ModelResourceImpl restView() {
-		return new ModelResourceImpl().restView();
+		return new ModelResourceImpl().restView().withUriInfo(uriInfo);
 	}
 	
 	public Response getPO(String tableName, String id, String details, String select, String showsql) {

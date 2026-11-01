@@ -4867,8 +4867,12 @@ paths:
           in: query
           schema:
             type: string
-            enum: ['true']
-          description: 'pass "true" to return a presigned URL instead of binary content'
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
         - name: expiresInSeconds
           in: query
           schema:
@@ -4880,7 +4884,7 @@ paths:
         '200':
           description: >-
             OK. Response is the file stream, a JSON object with base64 encoded data
-            (if json is specified), or a JSON object with a presigned URL (if presign=true).
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
           content:
             application/octet-stream:
               schema:
@@ -4890,16 +4894,25 @@ paths:
               schema:
                 oneOf:
                   - type: object
+                    required: [data]
                     properties:
                       data:
                         type: string
                         format: byte
                         description: base64 encoded archive content
                   - type: object
+                    required: [url, via]
                     properties:
                       url:
                         type: string
                         description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
@@ -8000,8 +8013,12 @@ paths:
           in: query
           schema:
             type: string
-            enum: ['true']
-          description: 'pass "true" to return a presigned URL instead of binary content'
+            enum: ['true', 'auto', 'storage', 'idempiere']
+          description: >-
+            Request a presigned URL instead of binary content.
+            "auto" (or "true") tries the storage-provider native URL first and falls back to an
+            iDempiere-signed link. "storage" expresses a preference for the storage URL but still
+            falls back. "idempiere" forces an iDempiere-signed link regardless of the backend.
         - name: expiresInSeconds
           in: query
           schema:
@@ -8013,7 +8030,7 @@ paths:
         '200':
           description: >-
             OK. Response is the file stream, a JSON object with base64 encoded data
-            (if json is specified), or a JSON object with a presigned URL (if presign=true).
+            (if json is specified), or a JSON object with a presigned URL (if presign is set).
           content:
             application/octet-stream:
               schema:
@@ -8023,16 +8040,25 @@ paths:
               schema:
                 oneOf:
                   - type: object
+                    required: [data]
                     properties:
                       data:
                         type: string
                         format: byte
                         description: base64 encoded archive content
                   - type: object
+                    required: [url, via]
                     properties:
                       url:
                         type: string
                         description: presigned URL for direct download without authentication
+                      via:
+                        type: string
+                        enum: ['storage', 'idempiere']
+                        description: >-
+                          Indicates who signed the URL. "storage" means the URL points directly
+                          at the object store (S3/CDN). "idempiere" means it routes back through
+                          the iDempiere REST endpoint.
         '403':
           $ref: '#/components/responses/ForbiddenGetRecordRequest'
         '404':
