@@ -2863,6 +2863,162 @@
 			"response": []
 		},
 		{
+			"name": "api/v1/models/{table name}/{id}/attachments/{file name}?presign",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch?presign=true&expiresInSeconds=600",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments",
+						"IDEMPIERE-3997.patch"
+					],
+					"query": [
+						{
+							"key": "presign",
+							"value": "true"
+						},
+						{
+							"key": "expiresInSeconds",
+							"value": "600"
+						}
+					]
+				},
+				"description": "Get a presigned time-limited download URL for a single attachment entry. Use presign=auto (or true) to try storage-provider native URL first with fallback to iDempiere-signed. Response includes {\"url\": \"...\", \"via\": \"storage|idempiere\"}"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}/attachments/{file name}?presign=storage",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch?presign=storage&expiresInSeconds=600",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments",
+						"IDEMPIERE-3997.patch"
+					],
+					"query": [
+						{
+							"key": "presign",
+							"value": "storage"
+						},
+						{
+							"key": "expiresInSeconds",
+							"value": "600"
+						}
+					]
+				},
+				"description": "Prefer a storage-provider native presigned URL (e.g. S3/CloudFront). Falls back to iDempiere-signed if backend does not support native signing. Response includes {\"url\": \"...\", \"via\": \"storage|idempiere\"}"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}/attachments/{file name}?presign=idempiere",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_order/1000022/attachments/IDEMPIERE-3997.patch?presign=idempiere&expiresInSeconds=600",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_order",
+						"1000022",
+						"attachments",
+						"IDEMPIERE-3997.patch"
+					],
+					"query": [
+						{
+							"key": "presign",
+							"value": "idempiere"
+						},
+						{
+							"key": "expiresInSeconds",
+							"value": "600"
+						}
+					]
+				},
+				"description": "Force an iDempiere HMAC-signed download URL regardless of storage backend. Response always includes {\"url\": \"...\", \"via\": \"idempiere\"}"
+			},
+			"response": []
+		},
+		{
 			"name": "api/v1/models/{table name}/{id}/archives",
 			"request": {
 				"method": "GET",
@@ -3041,7 +3197,111 @@
 						}
 					]
 				},
-				"description": "Get a presigned (time-limited, auth-free) download URL for a single archive entry. Returns {\"url\": \"...\"}"
+				"description": "Get a presigned time-limited download URL for a single archive entry. Use presign=auto (or true) to try storage-provider native URL first with fallback to iDempiere-signed. Response includes {\"url\": \"...\", \"via\": \"storage|idempiere\"}"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}/archives/{archive id}?presign=storage",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_invoice/1000045/archives/1000123?presign=storage&expiresInSeconds=600",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_invoice",
+						"1000045",
+						"archives",
+						"1000123"
+					],
+					"query": [
+						{
+							"key": "presign",
+							"value": "storage"
+						},
+						{
+							"key": "expiresInSeconds",
+							"value": "600"
+						}
+					]
+				},
+				"description": "Prefer a storage-provider native presigned URL (e.g. S3/CloudFront). Falls back to iDempiere-signed if backend does not support native signing. Response includes {\"url\": \"...\", \"via\": \"storage|idempiere\"}"
+			},
+			"response": []
+		},
+		{
+			"name": "api/v1/models/{table name}/{id}/archives/{archive id}?presign=idempiere",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{authToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{protocol}}://{{host}}:{{port}}/api/v1/models/c_invoice/1000045/archives/1000123?presign=idempiere&expiresInSeconds=600",
+					"protocol": "{{protocol}}",
+					"host": [
+						"{{host}}"
+					],
+					"port": "{{port}}",
+					"path": [
+						"api",
+						"v1",
+						"models",
+						"c_invoice",
+						"1000045",
+						"archives",
+						"1000123"
+					],
+					"query": [
+						{
+							"key": "presign",
+							"value": "idempiere"
+						},
+						{
+							"key": "expiresInSeconds",
+							"value": "600"
+						}
+					]
+				},
+				"description": "Force an iDempiere HMAC-signed download URL regardless of storage backend. Response always includes {\"url\": \"...\", \"via\": \"idempiere\"}"
 			},
 			"response": []
 		},
