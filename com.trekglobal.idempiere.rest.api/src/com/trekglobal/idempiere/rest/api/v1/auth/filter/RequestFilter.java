@@ -162,7 +162,7 @@ public class RequestFilter implements ContainerRequestFilter {
 					if (!requestContext.getUriInfo().getPath().startsWith("v1/auth/")) {
 						if (!MRestResourceAccess.hasAccess(requestContext.getUriInfo().getPath(true), requestContext.getMethod())) {
 							requestContext.abortWith(Response.status(Response.Status.FORBIDDEN).build());
-                            return;
+							return;
 						}
 					}
 				}
