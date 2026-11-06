@@ -196,10 +196,6 @@ public class RequestFilterMigrationHeaderTest extends RestTestCase {
 
 	@Test
 	public void testGardenWorldClientIgnoresMigrationHeaders() throws Exception {
-		DB.executeUpdateEx("DELETE FROM REST_RefreshToken WHERE CreatedBy IN (SELECT AD_User_ID FROM AD_User WHERE Name LIKE 'NonSeed%')", null);
-		DB.executeUpdateEx("DELETE FROM AD_User_Roles WHERE AD_User_ID IN (SELECT AD_User_ID FROM AD_User WHERE Name LIKE 'NonSeed%')", null);
-		DB.executeUpdateEx("DELETE FROM AD_User WHERE Name LIKE 'NonSeed%'", null);
-
 		Properties userCtx = new Properties(Env.getCtx());
 		Env.setContext(userCtx, Env.AD_CLIENT_ID, GARDEN_WORLD_CLIENT);
 		Env.setContext(userCtx, Env.AD_ORG_ID, GARDEN_WORLD_HQ_ORG);
@@ -211,9 +207,8 @@ public class RequestFilterMigrationHeaderTest extends RestTestCase {
 		user.saveEx();
 
 		MUserRoles userRole = new MUserRoles(userCtx, user.getAD_User_ID(), GARDEN_WORLD_ADMIN_ROLE, null);
-		userRole.saveEx();
-
 		try {
+			userRole.saveEx();
 			String token = createToken(userName, "password",
 					GARDEN_WORLD_CLIENT, GARDEN_WORLD_ADMIN_ROLE, GARDEN_WORLD_HQ_ORG);
 
@@ -227,7 +222,8 @@ public class RequestFilterMigrationHeaderTest extends RestTestCase {
 			assertNotEquals("IDEMPIERE-1234 Should be ignored", Env.getContext(Env.getCtx(), I_AD_UserPreference.COLUMNNAME_MigrationScriptComment));
 		} finally {
 			DB.executeUpdateEx("DELETE FROM REST_RefreshToken WHERE CreatedBy=?", new Object[] { user.getAD_User_ID() }, null);
-			userRole.deleteEx(true);
+			if (!userRole.is_new())
+				userRole.deleteEx(true);
 			user.deleteEx(true);
 		}
 	}

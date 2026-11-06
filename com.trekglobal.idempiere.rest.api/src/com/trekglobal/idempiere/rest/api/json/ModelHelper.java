@@ -96,7 +96,7 @@ public class ModelHelper {
 		//validate view and tableName agree, should never happens
 		if (view != null) {
 			MTable table = MTable.get(Env.getCtx(), view.getAD_Table_ID());
-			if (table == null || !tableName.equalsIgnoreCase(table.getTableName())) {
+			if (table == null || tableName == null || !tableName.equalsIgnoreCase(table.getTableName())) {
 				throw new IllegalArgumentException("Rest view belongs to a different table from what this ModelHelper is using");
 			}
 		}
