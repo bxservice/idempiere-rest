@@ -56,6 +56,9 @@ import javax.ws.rs.core.UriInfo;
 import org.compiere.dbPort.Convert;
 import org.compiere.model.I_AD_UserPreference;
 import org.compiere.model.MRole;
+import org.compiere.model.MUser;
+import org.compiere.model.MUserRoles;
+import org.compiere.util.DB;
 import org.compiere.util.Env;
 import org.compiere.util.Ini;
 import org.idempiere.test.DictionaryIDs;
@@ -193,17 +196,36 @@ public class RequestFilterMigrationHeaderTest extends RestTestCase {
 
 	@Test
 	public void testGardenWorldClientIgnoresMigrationHeaders() throws Exception {
-		String token = createToken("GardenAdmin", "GardenAdmin",
-				GARDEN_WORLD_CLIENT, GARDEN_WORLD_ADMIN_ROLE, GARDEN_WORLD_HQ_ORG);
+		Properties userCtx = new Properties(Env.getCtx());
+		Env.setContext(userCtx, Env.AD_CLIENT_ID, GARDEN_WORLD_CLIENT);
+		Env.setContext(userCtx, Env.AD_ORG_ID, GARDEN_WORLD_HQ_ORG);
 
-		ContainerRequestContext req = mockRequestContext(token, "Y", "Y", "IDEMPIERE-1234 Should be ignored");
-		requestFilter.filter(req);
-		verify(req, never()).abortWith(ArgumentMatchers.any());
-		verify(req, never()).setProperty(ArgumentMatchers.anyString(), ArgumentMatchers.any());
+		String userName = "NonSeedGardenUser_" + System.currentTimeMillis();
+		MUser user = new MUser(userCtx, 0, null);
+		user.setName(userName);
+		user.setPassword("password");
+		user.saveEx();
 
-		assertFalse(Convert.isLogMigrationScript());
-		assertFalse("Y".equalsIgnoreCase(Env.getCtx().getProperty(Ini.P_ADEMPIERESYS)));
-		assertNotEquals("IDEMPIERE-1234 Should be ignored", Env.getContext(Env.getCtx(), I_AD_UserPreference.COLUMNNAME_MigrationScriptComment));
+		MUserRoles userRole = new MUserRoles(userCtx, user.getAD_User_ID(), GARDEN_WORLD_ADMIN_ROLE, null);
+		try {
+			userRole.saveEx();
+			String token = createToken(userName, "password",
+					GARDEN_WORLD_CLIENT, GARDEN_WORLD_ADMIN_ROLE, GARDEN_WORLD_HQ_ORG);
+
+			ContainerRequestContext req = mockRequestContext(token, "Y", "Y", "IDEMPIERE-1234 Should be ignored");
+			requestFilter.filter(req);
+			verify(req, never()).abortWith(ArgumentMatchers.any());
+			verify(req, never()).setProperty(ArgumentMatchers.anyString(), ArgumentMatchers.any());
+
+			assertFalse(Convert.isLogMigrationScript());
+			assertFalse("Y".equalsIgnoreCase(Env.getCtx().getProperty(Ini.P_ADEMPIERESYS)));
+			assertNotEquals("IDEMPIERE-1234 Should be ignored", Env.getContext(Env.getCtx(), I_AD_UserPreference.COLUMNNAME_MigrationScriptComment));
+		} finally {
+			DB.executeUpdateEx("DELETE FROM REST_RefreshToken WHERE CreatedBy=?", new Object[] { user.getAD_User_ID() }, null);
+			if (!userRole.is_new())
+				userRole.deleteEx(true);
+			user.deleteEx(true);
+		}
 	}
 
 	@Test

@@ -94,8 +94,11 @@ public class ModelHelper {
 	public void setView(MRestView view) {
 		this.view = view;
 		//validate view and tableName agree, should never happens
-		if (view != null && !(MTable.getTableName(Env.getCtx(), view.getAD_Table_ID()).equalsIgnoreCase(tableName))) {
-			throw new IllegalArgumentException("Rest view belongs to a different table from what this ModelHelper is using");
+		if (view != null) {
+			MTable table = MTable.get(Env.getCtx(), view.getAD_Table_ID());
+			if (table == null || tableName == null || !tableName.equalsIgnoreCase(table.getTableName())) {
+				throw new IllegalArgumentException("Rest view belongs to a different table from what this ModelHelper is using");
+			}
 		}
 	}
 	
