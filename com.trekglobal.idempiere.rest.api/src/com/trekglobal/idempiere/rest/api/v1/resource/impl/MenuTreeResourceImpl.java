@@ -35,6 +35,7 @@ import org.compiere.model.MMenu;
 import org.compiere.model.MTable;
 import org.compiere.model.MTree;
 import org.compiere.model.MTreeNode;
+import org.compiere.model.SystemIDs;
 import org.compiere.util.CLogger;
 import org.compiere.util.DB;
 import org.compiere.util.Env;
@@ -105,6 +106,21 @@ public class MenuTreeResourceImpl implements MenuTreeResource {
 		}
 	}
 	
+	@Override
+	public Response getMyMenu() {
+		return getMenu(String.valueOf(sessionMenuTreeId(Env.getAD_Role_ID(Env.getCtx()))));
+	}
+
+	/** The menu tree the ZK desktop shows for this role ({@code AbstractMenuPanel.getTreeId}). */
+	public static int sessionMenuTreeId(int roleId) {
+		int treeId = DB.getSQLValue(null,
+				"SELECT COALESCE(r.AD_Tree_Menu_ID, ci.AD_Tree_Menu_ID) "
+				+ "FROM AD_ClientInfo ci "
+				+ "INNER JOIN AD_Role r ON (ci.AD_Client_ID=r.AD_Client_ID) "
+				+ "WHERE r.AD_Role_ID=?", roleId);
+		return treeId > 0 ? treeId : SystemIDs.TREE_MENUPRIMARY;
+	}
+
 	private void generateMenu(JsonArray menuEntries, MTreeNode mNode) {
 		final String[] includedColumns = {
 			MMenu.COLUMNNAME_Name,
