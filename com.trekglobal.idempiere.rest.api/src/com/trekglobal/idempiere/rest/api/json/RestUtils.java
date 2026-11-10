@@ -230,7 +230,7 @@ public class RestUtils {
 			&& table.isView()
 			&& tableName.toLowerCase().endsWith("_v")) {
 		    MTable trl_view = MTable.get(Env.getCtx(), tableName + "t");
-		    if (trl_view != null && trl_view.get_ColumnCount() > 0)
+		    if (trl_view != null && trl_view.getColumns(false).length > 0)
 		        return trl_view;
 		}
 
@@ -246,7 +246,13 @@ public class RestUtils {
 		if (table == null || table.getAD_Table_ID()==0) {
 			throw new IDempiereRestException("Invalid table name", "No match found for table name: " + tableName, Status.NOT_FOUND);
 		}
-		
+
+		// Tables/views registered without AD_Column (e.g. *_vt translation views) have no POInfo
+		// and would produce an invalid "SELECT FROM null"
+		if (table.getColumns(false).length == 0) {
+			throw new IDempiereRestException("Invalid table name", "Table " + tableName + " has no columns defined in the Application Dictionary", Status.NOT_FOUND);
+		}
+
 		if (!hasAccess(table, isReadWrite)) {
 			throw new IDempiereRestException("Access denied", "Access denied for table: " + tableName, Status.FORBIDDEN);
 		}
